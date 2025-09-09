@@ -5,27 +5,97 @@
     box-sizing: border-box;
 }
 
+:root {
+    /* Light theme colors */
+    --bg-primary: #f5f5f7;
+    --bg-secondary: white;
+    --bg-tertiary: #fafafa;
+    --bg-quaternary: #f8f8f8;
+    --bg-hover: #f0f0f2;
+    --text-primary: #1d1d1f;
+    --text-secondary: #86868b;
+    --border-primary: #e5e5e7;
+    --border-hover: #d1d1d6;
+    --accent-primary: #007aff;
+    --accent-hover: #0056cc;
+    --success: #34c759;
+    --warning: #ff9500;
+    --warning-hover: #e6850e;
+    --danger: #ff3b30;
+    --danger-hover: #d70015;
+    --shadow: rgba(0, 0, 0, 0.1);
+}
+
+.dark-theme {
+    /* Dark theme colors */
+    --bg-primary: #1c1c1e;
+    --bg-secondary: #2c2c2e;
+    --bg-tertiary: #3a3a3c;
+    --bg-quaternary: #48484a;
+    --bg-hover: #4a4a4c;
+    --text-primary: #ffffff;
+    --text-secondary: #98989d;
+    --border-primary: #48484a;
+    --border-hover: #6d6d70;
+    --accent-primary: #0a84ff;
+    --accent-hover: #409cff;
+    --success: #32d74b;
+    --warning: #ff9f0a;
+    --warning-hover: #ffb340;
+    --danger: #ff453a;
+    --danger-hover: #ff6961;
+    --shadow: rgba(0, 0, 0, 0.3);
+}
+
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background-color: #f5f5f7;
+    background-color: var(--bg-primary);
     padding: 20px;
+    transition: background-color 0.3s ease;
 }
 
 .container {
     max-width: 800px;
     margin: 0 auto;
-    background: white;
+    background: var(--bg-secondary);
     border-radius: 12px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 20px var(--shadow);
     padding: 30px;
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
 }
 
 h1 {
-    text-align: center;
-    color: #1d1d1f;
-    margin-bottom: 30px;
+    color: var(--text-primary);
     font-size: 2.5rem;
     font-weight: 600;
+    transition: color 0.3s ease;
+}
+
+.theme-toggle {
+    background: var(--bg-tertiary);
+    border: 2px solid var(--border-primary);
+    border-radius: 20px;
+    padding: 8px 16px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.theme-toggle:hover {
+    background: var(--bg-hover);
+    border-color: var(--border-hover);
 }
 
 .search-container {
@@ -35,21 +105,22 @@ h1 {
 .search-input {
     width: 100%;
     padding: 14px 16px;
-    border: 2px solid #e5e5e7;
+    border: 2px solid var(--border-primary);
     border-radius: 8px;
     font-size: 16px;
-    transition: border-color 0.3s ease;
-    background-color: #f8f8f8;
+    transition: border-color 0.3s ease, background-color 0.3s ease;
+    background-color: var(--bg-quaternary);
+    color: var(--text-primary);
 }
 
 .search-input:focus {
     outline: none;
-    border-color: #007aff;
-    background-color: white;
+    border-color: var(--accent-primary);
+    background-color: var(--bg-secondary);
 }
 
 .search-input::placeholder {
-    color: #86868b;
+    color: var(--text-secondary);
 }
 
 .add-todo-form {
@@ -61,19 +132,21 @@ h1 {
 .todo-input {
     flex: 1;
     padding: 14px 16px;
-    border: 2px solid #e5e5e7;
+    border: 2px solid var(--border-primary);
     border-radius: 8px;
     font-size: 16px;
-    transition: border-color 0.3s ease;
+    transition: border-color 0.3s ease, background-color 0.3s ease;
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
 }
 
 .todo-input:focus {
     outline: none;
-    border-color: #007aff;
+    border-color: var(--accent-primary);
 }
 
 .add-btn {
-    background: #007aff;
+    background: var(--accent-primary);
     color: white;
     border: none;
     padding: 14px 24px;
@@ -85,7 +158,7 @@ h1 {
 }
 
 .add-btn:hover {
-    background: #0056cc;
+    background: var(--accent-hover);
 }
 
 .todo-list {
@@ -97,16 +170,16 @@ h1 {
     align-items: center;
     gap: 12px;
     padding: 16px;
-    border: 1px solid #e5e5e7;
+    border: 1px solid var(--border-primary);
     border-radius: 8px;
     margin-bottom: 8px;
-    background: #fafafa;
+    background: var(--bg-tertiary);
     transition: all 0.3s ease;
 }
 
 .todo-item:hover {
-    background: #f0f0f2;
-    border-color: #d1d1d6;
+    background: var(--bg-hover);
+    border-color: var(--border-hover);
 }
 
 .todo-checkbox {
@@ -118,12 +191,13 @@ h1 {
 .todo-text {
     flex: 1;
     font-size: 16px;
-    color: #1d1d1f;
+    color: var(--text-primary);
+    transition: color 0.3s ease;
 }
 
 .todo-text.completed {
     text-decoration: line-through;
-    color: #86868b;
+    color: var(--text-secondary);
 }
 
 .todo-actions {
@@ -141,28 +215,29 @@ h1 {
 }
 
 .edit-btn {
-    background: #ff9500;
+    background: var(--warning);
     color: white;
 }
 
 .edit-btn:hover {
-    background: #e6850e;
+    background: var(--warning-hover);
 }
 
 .delete-btn {
-    background: #ff3b30;
+    background: var(--danger);
     color: white;
 }
 
 .delete-btn:hover {
-    background: #d70015;
+    background: var(--danger-hover);
 }
 
 .empty-state {
     text-align: center;
-    color: #86868b;
+    color: var(--text-secondary);
     font-size: 18px;
     padding: 40px 20px;
+    transition: color 0.3s ease;
 }
 
 .edit-form {
@@ -174,9 +249,12 @@ h1 {
 .edit-input {
     flex: 1;
     padding: 8px 12px;
-    border: 2px solid #007aff;
+    border: 2px solid var(--accent-primary);
     border-radius: 6px;
     font-size: 16px;
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+    transition: background-color 0.3s ease;
 }
 
 .save-btn, .cancel-btn {
@@ -185,14 +263,15 @@ h1 {
     border-radius: 6px;
     font-size: 14px;
     cursor: pointer;
+    transition: background-color 0.3s ease;
 }
 
 .save-btn {
-    background: #34c759;
+    background: var(--success);
     color: white;
 }
 
 .cancel-btn {
-    background: #86868b;
+    background: var(--text-secondary);
     color: white;
 }
