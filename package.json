@@ -8,10 +8,11 @@
     "test:delete": "node test-delete-unit-tests.js",
     "test:search": "node search.test.js",
     "test:drag-drop": "node drag-drop.test.js",
-    "test:browser": "echo 'Open test-delete-unit-tests.html, test.html, and test-delete-functionality.html in your browser to run all tests'",
-    "test:integration": "echo 'Open test-delete-functionality.html in your browser to run integration tests'",
+    "test:browser": "echo 'Open test-delete-unit-tests.html, test.html, test-delete-functionality.html, and test-drag-drop-integration.html in your browser to run all tests'",
+    "test:integration": "echo 'Open test-delete-functionality.html and test-drag-drop-integration.html in your browser to run integration tests'",
+    "test:drag-drop-integration": "echo 'Open test-drag-drop-integration.html in your browser to run drag & drop integration tests'",
     "start": "echo 'Open index.html in your browser to run the AutoToDo application'",
-    "test:all": "npm run test && echo '\\nTo run browser tests, open test-delete-unit-tests.html, test.html, and test-delete-functionality.html in your browser'"
+    "test:all": "npm run test && echo '\\nTo run browser tests, open test-delete-unit-tests.html, test.html, test-delete-functionality.html, and test-drag-drop-integration.html in your browser'"
   },
   "keywords": [
     "todo",
@@ -33,7 +34,7 @@
     "test-delete-functionality.html",
     "search.test.js",
     "drag-drop.test.js",
-    "test.html",
+    "test-drag-drop-integration.html",
     "README-TESTING.md",
     "TEST_README.md"
   ],
