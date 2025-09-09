@@ -102,11 +102,41 @@ h1 {
     margin-bottom: 8px;
     background: #fafafa;
     transition: all 0.3s ease;
+    cursor: move;
 }
 
 .todo-item:hover {
     background: #f0f0f2;
     border-color: #d1d1d6;
+}
+
+.todo-item.dragging {
+    opacity: 0.5;
+    transform: scale(1.05);
+    z-index: 1000;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.todo-item.drag-over {
+    border-color: #007aff;
+    background: #e3f2fd;
+    transform: translateY(-2px);
+}
+
+.drag-handle {
+    color: #86868b;
+    font-size: 18px;
+    cursor: grab;
+    user-select: none;
+    padding: 4px;
+}
+
+.drag-handle:hover {
+    color: #007aff;
+}
+
+.drag-handle:active {
+    cursor: grabbing;
 }
 
 .todo-checkbox {

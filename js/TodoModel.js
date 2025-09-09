@@ -11,6 +11,11 @@ class TodoModel {
      * @returns {Array} Array of todo objects
      */
     loadTodos() {
+        // Handle Node.js environment
+        if (typeof localStorage === 'undefined') {
+            return [];
+        }
+        
         const saved = localStorage.getItem('todos');
         return saved ? JSON.parse(saved) : [];
     }
@@ -19,6 +24,11 @@ class TodoModel {
      * Save todos to localStorage
      */
     saveTodos() {
+        // Handle Node.js environment
+        if (typeof localStorage === 'undefined') {
+            return;
+        }
+        
         localStorage.setItem('todos', JSON.stringify(this.todos));
     }
 
@@ -160,6 +170,28 @@ class TodoModel {
     }
 
     /**
+     * Reorder todos by moving a todo from one position to another
+     * @param {string} id - Todo ID to move
+     * @param {number} newIndex - New position index (0-based)
+     * @returns {boolean} True if reorder was successful, false otherwise
+     */
+    reorderTodo(id, newIndex) {
+        const todoIndex = this.todos.findIndex(t => t.id === id);
+        if (todoIndex === -1 || newIndex < 0 || newIndex >= this.todos.length) {
+            return false;
+        }
+
+        // Remove the todo from its current position
+        const [todo] = this.todos.splice(todoIndex, 1);
+        
+        // Insert it at the new position
+        this.todos.splice(newIndex, 0, todo);
+        
+        this.saveTodos();
+        return true;
+    }
+
+    /**
      * Get count of todos
      * @returns {Object} Object with total, completed, and pending counts
      */
@@ -170,4 +202,9 @@ class TodoModel {
         
         return { total, completed, pending };
     }
+}
+
+// Export for Node.js
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = TodoModel;
 }

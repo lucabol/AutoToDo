@@ -45,7 +45,8 @@ class TodoView {
      */
     renderTodoItem(todo) {
         return `
-            <li class="todo-item" data-id="${todo.id}">
+            <li class="todo-item" data-id="${todo.id}" draggable="true">
+                <span class="drag-handle">≡</span>
                 <input 
                     type="checkbox" 
                     class="todo-checkbox" 
@@ -70,6 +71,7 @@ class TodoView {
     renderEditForm(todo) {
         return `
             <li class="todo-item" data-id="${todo.id}">
+                <span class="drag-handle" style="opacity: 0.3;">≡</span>
                 <input type="checkbox" class="todo-checkbox" ${todo.completed ? 'checked' : ''} disabled>
                 <form class="edit-form" data-action="save-edit" data-id="${todo.id}">
                     <input 

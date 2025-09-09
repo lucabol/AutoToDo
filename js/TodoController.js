@@ -6,6 +6,7 @@ class TodoController {
         this.model = model;
         this.view = view;
         this.searchTerm = '';
+        this.draggedId = null;
         this.init();
     }
 
@@ -26,6 +27,7 @@ class TodoController {
         this.bindTodoListClick();
         this.bindTodoListSubmit();
         this.bindTodoListChange();
+        this.bindDragAndDrop();
         this.bindKeyboardShortcuts();
     }
 
@@ -83,6 +85,35 @@ class TodoController {
     bindKeyboardShortcuts() {
         document.addEventListener('keydown', (e) => {
             this.handleKeyboardShortcuts(e);
+        });
+    }
+
+    /**
+     * Bind drag and drop event handlers
+     */
+    bindDragAndDrop() {
+        this.view.todoList.addEventListener('dragstart', (e) => {
+            this.handleDragStart(e);
+        });
+
+        this.view.todoList.addEventListener('dragover', (e) => {
+            this.handleDragOver(e);
+        });
+
+        this.view.todoList.addEventListener('drop', (e) => {
+            this.handleDrop(e);
+        });
+
+        this.view.todoList.addEventListener('dragend', (e) => {
+            this.handleDragEnd(e);
+        });
+
+        this.view.todoList.addEventListener('dragenter', (e) => {
+            this.handleDragEnter(e);
+        });
+
+        this.view.todoList.addEventListener('dragleave', (e) => {
+            this.handleDragLeave(e);
         });
     }
 
@@ -283,5 +314,108 @@ class TodoController {
      */
     getStats() {
         return this.model.getStats();
+    }
+
+    /**
+     * Handle drag start event
+     * @param {Event} e - Drag start event
+     */
+    handleDragStart(e) {
+        const todoItem = e.target.closest('.todo-item');
+        if (!todoItem) return;
+
+        this.draggedId = todoItem.dataset.id;
+        todoItem.classList.add('dragging');
+        
+        // Set drag effect
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/html', todoItem.outerHTML);
+    }
+
+    /**
+     * Handle drag over event
+     * @param {Event} e - Drag over event
+     */
+    handleDragOver(e) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+    }
+
+    /**
+     * Handle drag enter event
+     * @param {Event} e - Drag enter event
+     */
+    handleDragEnter(e) {
+        const todoItem = e.target.closest('.todo-item');
+        if (todoItem && todoItem.dataset.id !== this.draggedId) {
+            todoItem.classList.add('drag-over');
+        }
+    }
+
+    /**
+     * Handle drag leave event
+     * @param {Event} e - Drag leave event
+     */
+    handleDragLeave(e) {
+        const todoItem = e.target.closest('.todo-item');
+        if (todoItem) {
+            todoItem.classList.remove('drag-over');
+        }
+    }
+
+    /**
+     * Handle drop event
+     * @param {Event} e - Drop event
+     */
+    handleDrop(e) {
+        e.preventDefault();
+        
+        const targetItem = e.target.closest('.todo-item');
+        if (!targetItem || !this.draggedId) return;
+
+        const targetId = targetItem.dataset.id;
+        if (targetId === this.draggedId) return;
+
+        // Calculate new index based on current filtered todos
+        const currentTodos = this.searchTerm ? 
+            this.model.filterTodos(this.searchTerm) : 
+            this.model.getAllTodos();
+        
+        const targetIndex = currentTodos.findIndex(todo => todo.id === targetId);
+        
+        // If we're dealing with filtered results, we need to find the actual index in the full list
+        if (this.searchTerm) {
+            const allTodos = this.model.getAllTodos();
+            const targetTodo = currentTodos[targetIndex];
+            const actualTargetIndex = allTodos.findIndex(todo => todo.id === targetTodo.id);
+            
+            if (this.model.reorderTodo(this.draggedId, actualTargetIndex)) {
+                this.render();
+            }
+        } else {
+            if (this.model.reorderTodo(this.draggedId, targetIndex)) {
+                this.render();
+            }
+        }
+
+        // Clean up drag classes
+        targetItem.classList.remove('drag-over');
+    }
+
+    /**
+     * Handle drag end event
+     * @param {Event} e - Drag end event
+     */
+    handleDragEnd(e) {
+        const todoItem = e.target.closest('.todo-item');
+        if (todoItem) {
+            todoItem.classList.remove('dragging');
+        }
+
+        // Clean up all drag-over classes
+        const dragOverItems = this.view.todoList.querySelectorAll('.drag-over');
+        dragOverItems.forEach(item => item.classList.remove('drag-over'));
+
+        this.draggedId = null;
     }
 }
