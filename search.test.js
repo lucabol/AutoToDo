@@ -102,7 +102,28 @@ class TodoApp {
     }
 
     generateId() {
-        return Date.now().toString(36) + Math.random().toString(36).substr(2);
+        // Use modern crypto.randomUUID() if available (most modern browsers)
+        if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+            return crypto.randomUUID();
+        }
+        
+        // Fallback: More robust custom implementation
+        // Combines timestamp, high-precision timer, and crypto-random values
+        const timestamp = Date.now().toString(36);
+        const performance = (typeof window !== 'undefined' && window.performance?.now() || Date.now()).toString(36);
+        
+        // Generate cryptographically random values if crypto.getRandomValues is available
+        let randomPart = '';
+        if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+            const array = new Uint8Array(8);
+            crypto.getRandomValues(array);
+            randomPart = Array.from(array, byte => byte.toString(36)).join('');
+        } else {
+            // Final fallback for very old browsers
+            randomPart = Math.random().toString(36).substr(2) + Math.random().toString(36).substr(2);
+        }
+        
+        return timestamp + '-' + performance + '-' + randomPart;
     }
 
     addTodo() {
@@ -470,6 +491,45 @@ testRunner.test('search should work with completed todos', function() {
     const filtered = app.filterTodos();
     this.assertEqual(filtered.length, 1, 'Should find completed todos in search');
     this.assertTrue(filtered[0].completed, 'Found todo should be completed');
+});
+
+// Tests for generateId method improvements
+testRunner.test('generateId should generate unique IDs', function() {
+    const app = new TodoApp(true);
+    const ids = new Set();
+    
+    // Generate 100 IDs and ensure they are all unique
+    for (let i = 0; i < 100; i++) {
+        const id = app.generateId();
+        this.assertFalse(ids.has(id), `Generated duplicate ID: ${id}`);
+        ids.add(id);
+    }
+    
+    this.assertEqual(ids.size, 100, 'Should generate 100 unique IDs');
+});
+
+testRunner.test('generateId should generate valid string IDs', function() {
+    const app = new TodoApp(true);
+    
+    for (let i = 0; i < 10; i++) {
+        const id = app.generateId();
+        this.assertTrue(typeof id === 'string', 'ID should be a string');
+        this.assertTrue(id.length > 0, 'ID should not be empty');
+    }
+});
+
+testRunner.test('generateId should handle rapid generation', function() {
+    const app = new TodoApp(true);
+    const ids = [];
+    
+    // Generate many IDs in rapid succession
+    for (let i = 0; i < 50; i++) {
+        ids.push(app.generateId());
+    }
+    
+    // Check for uniqueness
+    const uniqueIds = new Set(ids);
+    this.assertEqual(uniqueIds.size, ids.length, 'All rapidly generated IDs should be unique');
 });
 
 // Export for Node.js environment
