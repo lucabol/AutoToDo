@@ -218,10 +218,25 @@
             }
 
             bindEvents() {
+                // Bind form submission
                 const form = document.getElementById('addTodoForm');
                 form.addEventListener('submit', (e) => {
                     e.preventDefault();
                     this.addTodo();
+                });
+
+                // Use event delegation for todo list interactions
+                const todoList = document.getElementById('todoList');
+                todoList.addEventListener('click', (e) => {
+                    this.handleTodoListClick(e);
+                });
+
+                todoList.addEventListener('change', (e) => {
+                    this.handleTodoListChange(e);
+                });
+
+                todoList.addEventListener('submit', (e) => {
+                    this.handleTodoListSubmit(e);
                 });
             }
 
@@ -294,6 +309,45 @@
                 this.render();
             }
 
+            handleTodoListClick(e) {
+                const todoItem = e.target.closest('.todo-item');
+                if (!todoItem) return;
+
+                const todoId = todoItem.dataset.id;
+
+                if (e.target.classList.contains('edit-btn')) {
+                    this.startEdit(todoId);
+                } else if (e.target.classList.contains('delete-btn')) {
+                    this.deleteTodo(todoId);
+                } else if (e.target.classList.contains('cancel-btn')) {
+                    this.cancelEdit();
+                }
+            }
+
+            handleTodoListChange(e) {
+                if (e.target.classList.contains('todo-checkbox')) {
+                    const todoItem = e.target.closest('.todo-item');
+                    if (todoItem) {
+                        const todoId = todoItem.dataset.id;
+                        this.toggleTodo(todoId);
+                    }
+                }
+            }
+
+            handleTodoListSubmit(e) {
+                if (e.target.classList.contains('edit-form')) {
+                    e.preventDefault();
+                    const todoItem = e.target.closest('.todo-item');
+                    if (todoItem) {
+                        const todoId = todoItem.dataset.id;
+                        const editInput = e.target.querySelector('.edit-input');
+                        if (editInput) {
+                            this.saveEdit(todoId, editInput.value);
+                        }
+                    }
+                }
+            }
+
             render() {
                 const todoList = document.getElementById('todoList');
                 const emptyState = document.getElementById('emptyState');
@@ -313,9 +367,6 @@
                     }
                     return this.renderTodoItem(todo);
                 }).join('');
-
-                // Bind event listeners for the newly rendered elements
-                this.bindTodoEvents();
             }
 
             renderTodoItem(todo) {
@@ -325,12 +376,11 @@
                             type="checkbox" 
                             class="todo-checkbox" 
                             ${todo.completed ? 'checked' : ''}
-                            onchange="app.toggleTodo('${todo.id}')"
                         >
                         <span class="todo-text ${todo.completed ? 'completed' : ''}">${this.escapeHtml(todo.text)}</span>
                         <div class="todo-actions">
-                            <button class="edit-btn" onclick="app.startEdit('${todo.id}')">Edit</button>
-                            <button class="delete-btn" onclick="app.deleteTodo('${todo.id}')">Delete</button>
+                            <button class="edit-btn">Edit</button>
+                            <button class="delete-btn">Delete</button>
                         </div>
                     </li>
                 `;
@@ -340,7 +390,7 @@
                 return `
                     <li class="todo-item" data-id="${todo.id}">
                         <input type="checkbox" class="todo-checkbox" ${todo.completed ? 'checked' : ''} disabled>
-                        <form class="edit-form" onsubmit="event.preventDefault(); app.saveEdit('${todo.id}', this.querySelector('.edit-input').value)">
+                        <form class="edit-form">
                             <input 
                                 type="text" 
                                 class="edit-input" 
@@ -348,15 +398,10 @@
                                 autofocus
                             >
                             <button type="submit" class="save-btn">Save</button>
-                            <button type="button" class="cancel-btn" onclick="app.cancelEdit()">Cancel</button>
+                            <button type="button" class="cancel-btn">Cancel</button>
                         </form>
                     </li>
                 `;
-            }
-
-            bindTodoEvents() {
-                // Events are bound using inline handlers in the HTML for simplicity
-                // This ensures they work correctly when the DOM is updated
             }
 
             escapeHtml(text) {
