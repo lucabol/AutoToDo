@@ -118,7 +118,7 @@ class KeyboardShortcutManager {
     /**
      * Find the first matching shortcut for the given keyboard event
      * @param {KeyboardEvent} event - The keyboard event
-     * @returns {Object|null} The matching shortcut configuration or null
+     * @returns {Object|null} The matching shortcut configuration, or null if no shortcut matches
      * @private
      */
     findMatchingShortcut(event) {
@@ -142,6 +142,8 @@ class KeyboardShortcutManager {
             }
         }
         
+        // No matching shortcut found - this is expected behavior when
+        // user presses keys that aren't configured as shortcuts
         return null;
     }
 
@@ -172,7 +174,11 @@ class KeyboardShortcutManager {
      * @private
      */
     handleShortcutError(error) {
-        console.error('Error executing keyboard shortcut:', error);
+        // Log error with consistent format for better debugging
+        console.error('KeyboardShortcutManager: Error executing shortcut:', error.message || error);
+        
+        // In production, you might want to send this to an error reporting service
+        // or display a user-friendly message
     }
 
     /**
@@ -187,7 +193,8 @@ class KeyboardShortcutManager {
                     active.push(contextName);
                 }
             } catch (error) {
-                console.error(`Error checking context ${contextName}:`, error);
+                // Use consistent error handling format
+                console.error(`KeyboardShortcutManager: Error checking context '${contextName}':`, error.message || error);
             }
         }
         return active;
