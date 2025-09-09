@@ -303,20 +303,107 @@ The shortcut system consists of three main components:
 
 #### Adding Custom Shortcuts
 
-To add new shortcuts, modify the `getShortcuts()` method in `ShortcutsConfig.js`:
+To add new shortcuts, modify the `getShortcuts()` method in `ShortcutsConfig.js`. Here's a comprehensive guide with detailed examples:
+
+##### Example 1: Simple Global Shortcut
+Add a shortcut to show application statistics:
 
 ```javascript
-// Example: Add a new shortcut for archiving todos
+// 1. First, define your handler function in the appropriate class
+class TodoController {
+    showStats() {
+        const completed = this.model.todos.filter(todo => todo.completed).length;
+        const total = this.model.todos.length;
+        alert(`Statistics: ${completed}/${total} todos completed`);
+    }
+}
+
+// 2. Add the shortcut configuration in ShortcutsConfig.js
 {
-    key: 'r',
-    ctrlKey: true,
-    context: 'global',
-    action: archiveTodo,
+    key: 'i',                    // Press 'i' key
+    ctrlKey: true,               // With Ctrl modifier
+    context: 'global',           // Available everywhere
+    action: showStats,           // Reference to your handler function
+    preventDefault: true,        // Prevent browser default behavior
+    description: 'Show todo statistics (Ctrl+I)',
+    category: 'General'          // Group in help dialog
+}
+
+// 3. Register the handler in KeyboardShortcutManager.js
+const handlers = {
+    // ... existing handlers
+    showStats: () => this.todoController.showStats()
+};
+```
+
+##### Example 2: Context-Aware Shortcut
+Add a shortcut that only works when searching:
+
+```javascript
+// 1. Create a custom context and handler
+{
+    key: 'Enter',
+    shiftKey: true,              // Shift+Enter combination
+    context: 'searching',        // Custom context
+    action: advancedSearch,      // Your custom search function
     preventDefault: true,
-    description: 'Archive selected todo (Ctrl+R)',
-    category: 'Todo Management'
+    description: 'Advanced search mode (Shift+Enter)',
+    category: 'Search & Filtering'
+}
+
+// 2. Update context management in KeyboardShortcutManager.js
+updateContext() {
+    if (document.activeElement === this.searchInput && this.searchInput.value.length > 0) {
+        this.currentContext = 'searching';
+    } else if (this.isEditing) {
+        this.currentContext = 'editing';
+    } else {
+        this.currentContext = 'global';
+    }
 }
 ```
+
+##### Example 3: Multi-Key Combination
+Add a complex shortcut with multiple modifiers:
+
+```javascript
+{
+    key: 'e',
+    ctrlKey: true,
+    shiftKey: true,
+    altKey: true,                // Ctrl+Shift+Alt+E
+    context: 'global',
+    action: exportTodos,
+    preventDefault: true,
+    description: 'Export all todos (Ctrl+Shift+Alt+E)',
+    category: 'Data Management'
+}
+```
+
+##### Example 4: Function Key Shortcut
+Add a function key for quick actions:
+
+```javascript
+{
+    key: 'F3',                   // Function key
+    context: 'global',
+    action: focusNextTodo,
+    preventDefault: true,
+    description: 'Focus next todo (F3)',
+    category: 'Navigation'
+}
+```
+
+##### Step-by-Step Integration Process
+
+1. **Plan Your Shortcut**: Define what action it should perform and when it should be available
+2. **Check for Conflicts**: Use the validation rules to ensure no conflicts with existing shortcuts
+3. **Implement the Handler**: Add the function to the appropriate controller class
+4. **Add Configuration**: Insert the shortcut object in the `getShortcuts()` array
+5. **Register Handler**: Add the handler to the handlers object in KeyboardShortcutManager.js
+6. **Test Functionality**: Verify the shortcut works in all expected contexts
+7. **Update Help Dialog**: Ensure your shortcut appears in the built-in help (automatic with proper category)
+8. **Document Usage**: Add examples to user documentation if needed
 
 #### Shortcut Configuration Properties
 
@@ -346,7 +433,188 @@ The system includes built-in validation to prevent conflicts:
 - **Common modifier combinations** - Warns about potential conflicts with standard shortcuts
 - **Maximum shortcuts per context** - Prevents excessive shortcut definitions
 
+##### Validation Example
+```javascript
+// Before adding a new shortcut, check against reserved keys
+const validationRules = ShortcutsConfig.getValidationRules();
+
+// Check if your shortcut conflicts with system shortcuts
+const newShortcut = { key: 's', ctrlKey: true };
+const hasConflict = validationRules.systemShortcuts.some(reserved => 
+    reserved.key === newShortcut.key && reserved.ctrlKey === newShortcut.ctrlKey
+);
+
+if (hasConflict) {
+    console.warn('Shortcut conflicts with system shortcut');
+    // Choose a different key combination
+}
+```
+
+##### Testing Your Custom Shortcuts
+```javascript
+// 1. Unit test for shortcut configuration
+function testShortcutConfig() {
+    const shortcuts = ShortcutsConfig.getShortcuts(mockHandlers);
+    const myShortcut = shortcuts.find(s => s.key === 'i' && s.ctrlKey);
+    assert(myShortcut, 'Custom shortcut should be registered');
+    assert(myShortcut.action === mockHandlers.showStats, 'Handler should match');
+}
+
+// 2. Integration test for keyboard events
+function testShortcutExecution() {
+    const event = new KeyboardEvent('keydown', {
+        key: 'i',
+        ctrlKey: true,
+        bubbles: true
+    });
+    
+    document.dispatchEvent(event);
+    // Verify your action was executed
+}
+```
+
 For detailed implementation examples, refer to the existing shortcuts in `ShortcutsConfig.js`.
+
+### Community Contributions
+
+We welcome community contributions to enhance AutoToDo's keyboard shortcut system. Here's how you can contribute:
+
+#### Proposing New Shortcuts
+
+**Before Contributing:**
+1. **Check existing shortcuts** - Review current shortcuts to avoid conflicts
+2. **Follow conventions** - Use standard modifier key patterns (Ctrl+Key for global actions)
+3. **Consider accessibility** - Ensure shortcuts work with screen readers and assistive technologies
+4. **Test cross-platform** - Verify shortcuts work on Windows, Mac, and Linux
+
+**Contribution Guidelines:**
+
+##### 1. Shortcut Design Principles
+- **Intuitive**: Use mnemonic keys where possible (Ctrl+S for Save, Ctrl+F for Find)
+- **Consistent**: Follow established patterns in the application
+- **Non-conflicting**: Avoid overriding essential browser shortcuts
+- **Context-appropriate**: Use global context sparingly, prefer specific contexts
+
+##### 2. Required Documentation
+When proposing a new shortcut, include:
+```markdown
+**Shortcut**: Ctrl+R
+**Action**: Archive completed todos
+**Context**: Global (available everywhere)
+**Justification**: Provides quick cleanup without permanent deletion
+**Conflicts**: None (checked against system shortcuts)
+**Testing**: Verified on Chrome 90+, Firefox 88+, Safari 14+
+```
+
+##### 3. Code Contribution Process
+
+**Step 1: Fork and Setup**
+```bash
+git clone https://github.com/[your-username]/AutoToDo.git
+cd AutoToDo
+# Test that the app works in your environment
+```
+
+**Step 2: Implement Your Shortcut**
+```javascript
+// Add to ShortcutsConfig.js
+{
+    key: 'r',
+    ctrlKey: true,
+    context: 'global',
+    action: archiveCompleted,
+    preventDefault: true,
+    description: 'Archive completed todos (Ctrl+R)',
+    category: 'Todo Management'
+}
+```
+
+**Step 3: Add Handler Function**
+```javascript
+// Add to appropriate controller class
+archiveCompleted() {
+    const completed = this.model.todos.filter(todo => todo.completed);
+    if (completed.length === 0) {
+        this.view.showMessage('No completed todos to archive');
+        return;
+    }
+    
+    // Your implementation here
+    this.model.archiveTodos(completed);
+    this.view.render();
+    this.view.showMessage(`Archived ${completed.length} todos`);
+}
+```
+
+**Step 4: Write Tests**
+```javascript
+// Add to appropriate test file
+describe('Archive shortcut', () => {
+    it('should archive completed todos when Ctrl+R is pressed', () => {
+        // Test implementation
+    });
+    
+    it('should show message when no completed todos exist', () => {
+        // Test edge case
+    });
+});
+```
+
+**Step 5: Update Documentation**
+- Add your shortcut to the README.md shortcuts section
+- Include it in the appropriate category
+- Provide usage examples and context
+
+##### 4. Review Criteria
+
+Pull requests for new shortcuts will be evaluated on:
+
+**Functionality**
+- [ ] Shortcut works as described across major browsers
+- [ ] No conflicts with existing shortcuts or browser functions  
+- [ ] Appropriate context and scope
+- [ ] Handles edge cases gracefully
+
+**Code Quality**
+- [ ] Follows existing code patterns and conventions
+- [ ] Includes appropriate error handling
+- [ ] Has comprehensive test coverage
+- [ ] Is well-documented with clear descriptions
+
+**User Experience**
+- [ ] Provides meaningful functionality that enhances productivity
+- [ ] Uses intuitive key combinations
+- [ ] Gives appropriate user feedback
+- [ ] Follows accessibility best practices
+
+**Documentation**
+- [ ] Clear description of functionality and usage
+- [ ] Included in help dialog with proper categorization
+- [ ] Updated README with examples and context
+- [ ] Follows documentation formatting standards
+
+#### Community Discussion
+
+**Before implementing large changes:**
+1. **Open an issue** to discuss your proposed shortcut
+2. **Get feedback** from maintainers and community members  
+3. **Iterate on the design** based on community input
+4. **Consider alternatives** suggested by reviewers
+
+**Collaboration channels:**
+- GitHub Issues for feature proposals and bug reports
+- Pull Request discussions for code review and refinement
+- README examples serve as implementation guides
+
+#### Maintenance and Updates
+
+**Long-term considerations:**
+- **Browser compatibility** - New shortcuts should work across supported browsers
+- **Future-proofing** - Consider how shortcuts might need to evolve
+- **Performance impact** - Avoid shortcuts that significantly impact app performance
+- **User customization** - Design with potential user customization in mind
+
+By following these guidelines, you help ensure that new shortcuts enhance AutoToDo's usability while maintaining code quality and consistency.
 
 ### Pro Tips for Maximum Efficiency
 
