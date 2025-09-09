@@ -23,11 +23,43 @@ class TodoModel {
     }
 
     /**
-     * Generate unique ID for new todos
+     * Generate unique ID for new todos using crypto.randomUUID() with fallback
      * @returns {string} Unique identifier
      */
     generateId() {
-        return Date.now().toString(36) + Math.random().toString(36).substr(2);
+        // Try to use crypto.randomUUID() for maximum uniqueness (supported in modern browsers)
+        if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+            let id;
+            do {
+                id = crypto.randomUUID();
+            } while (this.todos.some(todo => todo.id === id));
+            return id;
+        }
+        
+        // Fallback for older browsers: enhanced timestamp + crypto random
+        let id;
+        do {
+            // Use performance.now() for higher precision than Date.now()
+            const timestamp = (typeof performance !== 'undefined' && performance.now) 
+                ? performance.now().toString(36) 
+                : Date.now().toString(36);
+            
+            // Use crypto.getRandomValues() if available for better randomness
+            let randomPart;
+            if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+                const array = new Uint8Array(8);
+                crypto.getRandomValues(array);
+                randomPart = Array.from(array, byte => byte.toString(36)).join('');
+            } else {
+                // Last resort: enhanced Math.random()
+                randomPart = Math.random().toString(36).substring(2) + 
+                            Math.random().toString(36).substring(2);
+            }
+            
+            id = timestamp + '-' + randomPart;
+        } while (this.todos.some(todo => todo.id === id)); // Ensure uniqueness
+        
+        return id;
     }
 
     /**
