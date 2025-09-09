@@ -7,7 +7,25 @@ class TodoController {
         this.view = view;
         this.searchTerm = '';
         this.draggedId = null;
+        this.dragDropSupported = this.checkDragDropSupport();
         this.init();
+    }
+
+    /**
+     * Check if browser supports HTML5 Drag and Drop API
+     * @returns {boolean} True if drag and drop is supported
+     */
+    checkDragDropSupport() {
+        // Check for essential drag and drop features
+        const testElement = document.createElement('div');
+        
+        return (
+            'draggable' in testElement &&
+            'ondragstart' in testElement &&
+            'ondrop' in testElement &&
+            typeof DataTransfer !== 'undefined' &&
+            typeof DragEvent !== 'undefined'
+        );
     }
 
     /**
@@ -15,7 +33,17 @@ class TodoController {
      */
     init() {
         this.bindEvents();
+        this.handleDragDropCompatibility();
         this.render();
+    }
+
+    /**
+     * Handle drag and drop compatibility
+     */
+    handleDragDropCompatibility() {
+        if (!this.dragDropSupported) {
+            this.view.showDragDropUnsupportedMessage();
+        }
     }
 
     /**
@@ -92,6 +120,11 @@ class TodoController {
      * Bind drag and drop event handlers
      */
     bindDragAndDrop() {
+        // Only bind drag and drop events if supported
+        if (!this.dragDropSupported) {
+            return;
+        }
+
         this.view.todoList.addEventListener('dragstart', (e) => {
             this.handleDragStart(e);
         });
@@ -305,7 +338,7 @@ class TodoController {
     render() {
         const allTodos = this.model.getAllTodos();
         const filteredTodos = this.model.filterTodos(this.searchTerm);
-        this.view.render(filteredTodos, allTodos, this.searchTerm);
+        this.view.render(filteredTodos, allTodos, this.searchTerm, this.dragDropSupported);
     }
 
     /**

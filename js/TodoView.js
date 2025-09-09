@@ -7,6 +7,7 @@ class TodoView {
         this.emptyState = document.getElementById('emptyState');
         this.todoInput = document.getElementById('todoInput');
         this.editingId = null;
+        this.dragDropMessageShown = false;
     }
 
     /**
@@ -14,39 +15,47 @@ class TodoView {
      * @param {Array} todos - Array of todo objects to display
      * @param {Array} allTodos - Array of all todos (for search context)
      * @param {string} searchTerm - Current search term
+     * @param {boolean} dragDropSupported - Whether drag and drop is supported
      */
-    render(todos, allTodos = [], searchTerm = '') {
+    render(todos, allTodos = [], searchTerm = '', dragDropSupported = true) {
         if (todos.length === 0) {
             this.showEmptyState(allTodos.length === 0, searchTerm);
             return;
         }
 
         this.hideEmptyState();
-        this.renderTodoList(todos);
+        this.renderTodoList(todos, dragDropSupported);
     }
 
     /**
      * Render the todo list items
      * @param {Array} todos - Array of todo objects
+     * @param {boolean} dragDropSupported - Whether drag and drop is supported
      */
-    renderTodoList(todos) {
+    renderTodoList(todos, dragDropSupported = true) {
         this.todoList.innerHTML = todos.map(todo => {
             if (this.editingId === todo.id) {
-                return this.renderEditForm(todo);
+                return this.renderEditForm(todo, dragDropSupported);
             }
-            return this.renderTodoItem(todo);
+            return this.renderTodoItem(todo, dragDropSupported);
         }).join('');
     }
 
     /**
      * Render a single todo item
      * @param {Object} todo - Todo object
+     * @param {boolean} dragDropSupported - Whether drag and drop is supported
      * @returns {string} HTML string for the todo item
      */
-    renderTodoItem(todo) {
+    renderTodoItem(todo, dragDropSupported = true) {
+        const dragAttributes = dragDropSupported ? 'draggable="true"' : '';
+        const dragHandle = dragDropSupported ? 
+            '<span class="drag-handle">≡</span>' : 
+            '<span class="drag-handle-disabled" title="Drag and drop not supported in this browser">≡</span>';
+
         return `
-            <li class="todo-item" data-id="${todo.id}" draggable="true">
-                <span class="drag-handle">≡</span>
+            <li class="todo-item" data-id="${todo.id}" ${dragAttributes}>
+                ${dragHandle}
                 <input 
                     type="checkbox" 
                     class="todo-checkbox" 
@@ -66,12 +75,17 @@ class TodoView {
     /**
      * Render the edit form for a todo
      * @param {Object} todo - Todo object being edited
+     * @param {boolean} dragDropSupported - Whether drag and drop is supported
      * @returns {string} HTML string for the edit form
      */
-    renderEditForm(todo) {
+    renderEditForm(todo, dragDropSupported = true) {
+        const dragHandle = dragDropSupported ? 
+            '<span class="drag-handle" style="opacity: 0.3;">≡</span>' : 
+            '<span class="drag-handle-disabled" style="opacity: 0.3;" title="Drag and drop not supported in this browser">≡</span>';
+
         return `
             <li class="todo-item" data-id="${todo.id}">
-                <span class="drag-handle" style="opacity: 0.3;">≡</span>
+                ${dragHandle}
                 <input type="checkbox" class="todo-checkbox" ${todo.completed ? 'checked' : ''} disabled>
                 <form class="edit-form" data-action="save-edit" data-id="${todo.id}">
                     <input 
@@ -201,5 +215,18 @@ class TodoView {
      */
     showConfirmation(message) {
         return this.showMessage(message, 'confirm');
+    }
+
+    /**
+     * Show drag and drop unsupported message
+     */
+    showDragDropUnsupportedMessage() {
+        if (this.dragDropMessageShown) {
+            return; // Don't show the message multiple times
+        }
+
+        const message = 'Your browser does not support drag and drop functionality. You can still add, edit, delete, and search todos normally.';
+        this.showMessage(message, 'info');
+        this.dragDropMessageShown = true;
     }
 }

@@ -226,3 +226,14 @@ h1 {
     background: #86868b;
     color: white;
 }
+
+/* Drag handle styles for unsupported browsers */
+.drag-handle-disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+    color: #999;
+    font-weight: bold;
+    font-size: 14px;
+    user-select: none;
+    padding: 0 8px;
+}
