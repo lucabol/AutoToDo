@@ -92,13 +92,14 @@ AutoToDo supports several keyboard shortcuts to help you navigate and interact w
 - **Enter** in edit mode - Save changes and return to view mode
 - **Escape** in edit mode - Cancel editing and discard changes, returning to the original text
 
-### Search
+### Search Functionality
 - **Enter** in search field - Apply search filter (though search works in real-time as you type)
 
 ### Tips for Efficient Use
 - After adding a todo, the input field automatically stays focused for adding more todos quickly
 - Use **Tab** to navigate to checkboxes and press **Space** to mark todos as completed
 - When editing a todo, press **Escape** to cancel changes if you make a mistake
+- Use the search field to quickly find specific todos in large lists
 - The app is fully keyboard accessible - you can perform all actions using only the keyboard
 
 ## Bug Fix
