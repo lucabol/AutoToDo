@@ -79,27 +79,52 @@ Your todos are automatically saved in your browser's local storage. Data persist
 6. Use Delete buttons to remove todos (with confirmation)
 
 ## Keyboard Shortcuts
-AutoToDo supports several keyboard shortcuts to help you navigate and interact with the app more efficiently:
+AutoToDo supports comprehensive keyboard shortcuts to help you navigate and interact with the app more efficiently:
 
-### General Navigation
-- **Enter** - Submit forms (add new todo, save edited todo)
-- **Tab** - Navigate between form elements and buttons
-- **Space** - Toggle checkboxes when focused
+### Adding Todos
+- **Enter** in "What needs to be done?" field - Add the new todo and automatically focus back to input field for quick consecutive additions
+- **Tab** from input field - Move focus to "Add Todo" button, then **Enter** or **Space** to add
+
+### Search and Filtering
+- **Tab** to search field or click directly to focus
+- Type to search (real-time filtering as you type)
+- **Ctrl+A** - Select all text in search field
+- **Backspace** or **Delete** - Clear search characters
+- **Enter** in search field - Apply search filter (though real-time search works automatically)
+
+### Todo List Navigation
+- **Tab** - Navigate between todo checkboxes, Edit buttons, and Delete buttons
+- **Shift+Tab** - Navigate backwards through elements
+- **Enter** or **Space** on focused buttons - Activate Edit/Delete actions
+- **Space** on focused checkbox - Toggle todo completion status
+- **Arrow keys** - Navigate within text when editing
 
 ### Editing Todos
-- **Escape** - Cancel edit mode and return to view mode
-- **Enter** - Save changes when editing a todo (submits the edit form)
+- **Enter** or click "Edit" button - Enter edit mode for a todo
+- **Enter** in edit field - Save changes and return to view mode
+- **Escape** - Cancel edit mode and discard changes
+- **Tab** within edit mode - Move between edit input, Save, and Cancel buttons
+- **Ctrl+A** in edit field - Select all text for quick replacement
 
-### Form Interactions
-- **Enter** in "What needs to be done?" field - Add the new todo
-- **Enter** in search field - Apply search filter (real-time search also works as you type)
-- **Enter** in edit field - Save the edited todo text
+### Text Selection and Editing
+- **Ctrl+A** - Select all text in any input field
+- **Ctrl+C** / **Ctrl+V** - Copy and paste text (standard browser shortcuts)
+- **Home** / **End** - Move cursor to beginning/end of text
+- **Ctrl+Left/Right** - Move cursor by word
+- **Shift+Arrow keys** - Select text while moving cursor
+
+### Accessibility Features
+- All interactive elements are keyboard accessible via **Tab** navigation
+- Focus indicators clearly show which element is active
+- Screen readers can navigate the todo list structure
+- No mouse required - complete keyboard-only operation is supported
 
 ### Tips for Efficient Use
-- After adding a todo, focus automatically returns to the input field for quick consecutive additions
-- Use the search field to quickly find specific todos in large lists
-- When editing a todo, press **Escape** to cancel changes and return to the original text
-- The app works entirely with keyboard navigation - you can use **Tab** to move between all interactive elements
+- After adding a todo, focus automatically returns to the input field for rapid todo creation
+- Use the search field to quickly filter large todo lists
+- **Tab** through todos to quickly mark multiple items as complete using **Space**
+- The app maintains focus context - editing a todo and pressing **Escape** returns focus appropriately
+- All standard browser text editing shortcuts work within input fields
 
 ## Bug Fix
 Fixed the issue where users were unable to delete todos using the graphical UI. The delete functionality now works correctly with:
