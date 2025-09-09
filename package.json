@@ -1,0 +1,38 @@
+{
+  "name": "auto-todo",
+  "version": "1.0.0",
+  "description": "A complete todo application with CRUD operations, search functionality, and robust delete handling",
+  "main": "script.js",
+  "scripts": {
+    "test": "node test-delete-unit-tests.js",
+    "test:browser": "echo 'Open test-delete-unit-tests.html in your browser to run unit tests'",
+    "test:integration": "echo 'Open test-delete-functionality.html in your browser to run integration tests'",
+    "start": "echo 'Open index.html in your browser to run the AutoToDo application'",
+    "test:all": "npm run test && echo '\\nTo run browser tests, open test-delete-unit-tests.html and test-delete-functionality.html in your browser'"
+  },
+  "keywords": [
+    "todo",
+    "javascript",
+    "crud",
+    "web-application",
+    "unit-tests"
+  ],
+  "author": "AutoToDo Team",
+  "license": "MIT",
+  "files": [
+    "index.html",
+    "script.js",
+    "styles.css",
+    "test-delete-unit-tests.js",
+    "test-delete-unit-tests.html",
+    "test-delete-functionality.html"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lucabol/AutoToDo.git"
+  },
+  "bugs": {
+    "url": "https://github.com/lucabol/AutoToDo/issues"
+  },
+  "homepage": "https://github.com/lucabol/AutoToDo#readme"
+}
