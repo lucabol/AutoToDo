@@ -24,10 +24,32 @@ class TodoModel {
 
     /**
      * Generate unique ID for new todos
+     * Uses crypto.randomUUID() when available, falls back to robust custom implementation
      * @returns {string} Unique identifier
      */
     generateId() {
-        return Date.now().toString(36) + Math.random().toString(36).substr(2);
+        // Use modern crypto.randomUUID() if available (most modern browsers)
+        if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+            return crypto.randomUUID();
+        }
+        
+        // Fallback: More robust custom implementation
+        // Combines timestamp, high-precision timer, and crypto-random values
+        const timestamp = Date.now().toString(36);
+        const performance = (typeof window !== 'undefined' && window.performance?.now() || Date.now()).toString(36);
+        
+        // Generate cryptographically random values if crypto.getRandomValues is available
+        let randomPart = '';
+        if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+            const array = new Uint8Array(8);
+            crypto.getRandomValues(array);
+            randomPart = Array.from(array, byte => byte.toString(36)).join('');
+        } else {
+            // Final fallback for very old browsers
+            randomPart = Math.random().toString(36).substr(2) + Math.random().toString(36).substr(2);
+        }
+        
+        return timestamp + '-' + performance + '-' + randomPart;
     }
 
     /**

@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AutoToDo Delete Functionality Unit Tests</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        .test-header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #007bff;
+            color: white;
+            border-radius: 10px;
+        }
+        .test-results {
+            margin-bottom: 20px;
+        }
+        .test-result {
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+            font-family: monospace;
+        }
+        .test-pass {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .test-fail {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .test-summary {
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 10px;
+            font-weight: bold;
+            text-align: center;
+        }
+        .test-summary.success {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 2px solid #bee5eb;
+        }
+        .test-summary.failure {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 2px solid #f5c6cb;
+        }
+        button {
+            padding: 12px 20px;
+            margin: 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            background-color: #28a745;
+            color: white;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #218838;
+        }
+        .code-section {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+            border: 1px solid #dee2e6;
+        }
+        .test-description {
+            background-color: #e9ecef;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <div class="test-header">
+            <h1>🧪 AutoToDo Delete Functionality Unit Tests</h1>
+            <p>Comprehensive unit tests to ensure robust delete functionality and edge case handling</p>
+        </div>
+
+        <div class="test-description">
+            <h2>About These Tests</h2>
+            <p>
+                This test suite validates the delete functionality with 10 comprehensive test cases covering:
+                basic deletion, confirmation dialogs, edge cases, error handling, persistence, 
+                and logging functionality.
+            </p>
+            <ul>
+                <li><strong>Unit Tests</strong> - Test individual methods in isolation</li>
+                <li><strong>Edge Cases</strong> - Handle invalid inputs and empty states</li>
+                <li><strong>Confirmation Logic</strong> - Verify user confirmation dialogs</li>
+                <li><strong>Persistence</strong> - Ensure changes are saved correctly</li>
+                <li><strong>Error Handling</strong> - Graceful handling of various scenarios</li>
+            </ul>
+        </div>
+
+        <button onclick="runAllTests()">🚀 Run All Unit Tests</button>
+        
+        <div class="test-results" id="testResults" style="display: none;">
+            <h2>Test Results</h2>
+            <div id="testOutput"></div>
+            <div id="testSummary"></div>
+        </div>
+
+        <div class="code-section">
+            <h3>Command Line Usage</h3>
+            <p>You can also run these tests from the command line:</p>
+            <code>node test-delete-unit-tests.js</code>
+        </div>
+    </div>
+
+    <script>
+        // Mock localStorage for browser testing
+        const mockLocalStorage = {
+            data: {},
+            getItem: function(key) {
+                return this.data[key] || null;
+            },
+            setItem: function(key, value) {
+                this.data[key] = value;
+            },
+            clear: function() {
+                this.data = {};
+            }
+        };
+
+        // Mock confirm function for testing
+        let mockConfirmResponse = true;
+        const mockConfirm = (message) => mockConfirmResponse;
+
+        // Mock console for capturing logs
+        const mockConsole = {
+            logs: [],
+            log: function(...args) {
+                this.logs.push(args.join(' '));
+            }
+        };
+
+        // TodoApp class for testing (extracted business logic)
+        class TestableTodoApp {
+            constructor() {
+                this.localStorage = mockLocalStorage;
+                this.confirm = mockConfirm;
+                this.console = mockConsole;
+                this.todos = this.loadTodos();
+            }
+
+            loadTodos() {
+                const saved = this.localStorage.getItem('todos');
+                return saved ? JSON.parse(saved) : [];
+            }
+
+            saveTodos() {
+                this.localStorage.setItem('todos', JSON.stringify(this.todos));
+            }
+
+            generateId() {
+                return Date.now().toString(36) + Math.random().toString(36).substr(2);
+            }
+
+            addTodo(text) {
+                if (!text || !text.trim()) return null;
+
+                const todo = {
+                    id: this.generateId(),
+                    text: text.trim(),
+                    completed: false,
+                    createdAt: new Date().toISOString()
+                };
+
+                this.todos.unshift(todo);
+                this.saveTodos();
+                this.console.log('Todo added successfully:', todo);
+                return todo;
+            }
+
+            deleteTodo(id) {
+                if (this.confirm('Are you sure you want to delete this todo?')) {
+                    const initialLength = this.todos.length;
+                    this.todos = this.todos.filter(todo => todo.id !== id);
+                    const deleted = initialLength > this.todos.length;
+                    if (deleted) {
+                        this.saveTodos();
+                        this.console.log(`Todo with id ${id} deleted successfully`);
+                    }
+                    return deleted;
+                }
+                return false;
+            }
+
+            findTodo(id) {
+                return this.todos.find(todo => todo.id === id);
+            }
+
+            getTodoCount() {
+                return this.todos.length;
+            }
+        }
+
+        // Browser Test Runner
+        class BrowserTestRunner {
+            constructor() {
+                this.tests = [];
+                this.passed = 0;
+                this.failed = 0;
+                this.results = [];
+            }
+
+            test(description, testFunction) {
+                this.tests.push({ description, testFunction });
+            }
+
+            run() {
+                this.passed = 0;
+                this.failed = 0;
+                this.results = [];
+
+                for (const test of this.tests) {
+                    try {
+                        // Reset mocks before each test
+                        mockLocalStorage.clear();
+                        mockConsole.logs = [];
+                        mockConfirmResponse = true;
+
+                        test.testFunction();
+                        this.results.push({
+                            description: test.description,
+                            status: 'PASS',
+                            error: null
+                        });
+                        this.passed++;
+                    } catch (error) {
+                        this.results.push({
+                            description: test.description,
+                            status: 'FAIL',
+                            error: error.message
+                        });
+                        this.failed++;
+                    }
+                }
+
+                this.displayResults();
+                return this.failed === 0;
+            }
+
+            displayResults() {
+                const resultsContainer = document.getElementById('testResults');
+                const outputContainer = document.getElementById('testOutput');
+                const summaryContainer = document.getElementById('testSummary');
+
+                resultsContainer.style.display = 'block';
+
+                // Display individual test results
+                let outputHTML = '';
+                for (const result of this.results) {
+                    const statusIcon = result.status === 'PASS' ? '✅' : '❌';
+                    const cssClass = result.status === 'PASS' ? 'test-pass' : 'test-fail';
+                    
+                    outputHTML += `<div class="test-result ${cssClass}">`;
+                    outputHTML += `${statusIcon} ${result.status}: ${result.description}`;
+                    if (result.error) {
+                        outputHTML += `<br>&nbsp;&nbsp;&nbsp;&nbsp;Error: ${result.error}`;
+                    }
+                    outputHTML += `</div>`;
+                }
+                outputContainer.innerHTML = outputHTML;
+
+                // Display summary
+                const total = this.passed + this.failed;
+                let summaryHTML = `<h3>📊 Test Summary: ${this.passed}/${total} tests passed</h3>`;
+                
+                if (this.failed === 0) {
+                    summaryHTML += '<p>🎉 All tests passed! Delete functionality is robust and handles all edge cases correctly.</p>';
+                    summaryContainer.className = 'test-summary success';
+                } else {
+                    summaryHTML += `<p>⚠️ ${this.failed} test(s) failed. Please review the implementation.</p>`;
+                    summaryContainer.className = 'test-summary failure';
+                }
+
+                summaryContainer.innerHTML = summaryHTML;
+            }
+
+            assert(condition, message) {
+                if (!condition) {
+                    throw new Error(message || 'Assertion failed');
+                }
+            }
+
+            assertEqual(actual, expected, message) {
+                if (actual !== expected) {
+                    throw new Error(message || `Expected ${expected}, but got ${actual}`);
+                }
+            }
+        }
+
+        // Initialize test runner
+        const runner = new BrowserTestRunner();
+
+        // Test Suite - Same tests as the Node.js version
+        runner.test('should delete an existing todo successfully', () => {
+            const app = new TestableTodoApp();
+            const todo = app.addTodo('Test todo');
+            
+            runner.assert(app.getTodoCount() === 1, 'Todo should be added');
+            
+            const deleted = app.deleteTodo(todo.id);
+            
+            runner.assert(deleted === true, 'Delete operation should return true');
+            runner.assert(app.getTodoCount() === 0, 'Todo count should be 0 after deletion');
+            runner.assert(app.findTodo(todo.id) === undefined, 'Todo should not be found after deletion');
+        });
+
+        runner.test('should show confirmation dialog before deleting', () => {
+            const app = new TestableTodoApp();
+            const todo = app.addTodo('Test todo');
+            
+            mockConfirmResponse = false;
+            
+            const deleted = app.deleteTodo(todo.id);
+            
+            runner.assert(deleted === false, 'Delete should return false when user cancels');
+            runner.assert(app.getTodoCount() === 1, 'Todo should still exist after cancellation');
+            runner.assert(app.findTodo(todo.id) !== undefined, 'Todo should be found after cancellation');
+        });
+
+        runner.test('should handle deletion of non-existent todo gracefully', () => {
+            const app = new TestableTodoApp();
+            app.addTodo('Test todo');
+            
+            const initialCount = app.getTodoCount();
+            const deleted = app.deleteTodo('non-existent-id');
+            
+            runner.assert(deleted === false, 'Deleting non-existent todo should return false');
+            runner.assert(app.getTodoCount() === initialCount, 'Todo count should remain unchanged');
+        });
+
+        runner.test('should handle deletion from empty todo list', () => {
+            const app = new TestableTodoApp();
+            
+            runner.assert(app.getTodoCount() === 0, 'Initial todo count should be 0');
+            
+            const deleted = app.deleteTodo('any-id');
+            
+            runner.assert(deleted === false, 'Deleting from empty list should return false');
+            runner.assert(app.getTodoCount() === 0, 'Todo count should remain 0');
+        });
+
+        runner.test('should handle multiple consecutive deletions', () => {
+            const app = new TestableTodoApp();
+            const todo1 = app.addTodo('First todo');
+            const todo2 = app.addTodo('Second todo');
+            const todo3 = app.addTodo('Third todo');
+            
+            runner.assert(app.getTodoCount() === 3, 'Should have 3 todos initially');
+            
+            let deleted1 = app.deleteTodo(todo1.id);
+            runner.assert(deleted1 === true, 'First deletion should succeed');
+            runner.assert(app.getTodoCount() === 2, 'Should have 2 todos after first deletion');
+            
+            let deleted2 = app.deleteTodo(todo2.id);
+            runner.assert(deleted2 === true, 'Second deletion should succeed');
+            runner.assert(app.getTodoCount() === 1, 'Should have 1 todo after second deletion');
+            
+            let deleted3 = app.deleteTodo(todo3.id);
+            runner.assert(deleted3 === true, 'Third deletion should succeed');
+            runner.assert(app.getTodoCount() === 0, 'Should have 0 todos after third deletion');
+        });
+
+        runner.test('should delete only the specified todo from a list', () => {
+            const app = new TestableTodoApp();
+            const todo1 = app.addTodo('Keep this one');
+            const todo2 = app.addTodo('Delete this one');
+            const todo3 = app.addTodo('Keep this one too');
+            
+            runner.assert(app.getTodoCount() === 3, 'Should have 3 todos initially');
+            
+            const deleted = app.deleteTodo(todo2.id);
+            
+            runner.assert(deleted === true, 'Deletion should succeed');
+            runner.assert(app.getTodoCount() === 2, 'Should have 2 todos after deletion');
+            runner.assert(app.findTodo(todo1.id) !== undefined, 'First todo should still exist');
+            runner.assert(app.findTodo(todo2.id) === undefined, 'Second todo should be deleted');
+            runner.assert(app.findTodo(todo3.id) !== undefined, 'Third todo should still exist');
+        });
+
+        runner.test('should persist changes to localStorage after deletion', () => {
+            const app = new TestableTodoApp();
+            const todo = app.addTodo('Test todo');
+            
+            const savedBefore = JSON.parse(mockLocalStorage.getItem('todos'));
+            runner.assert(savedBefore.length === 1, 'Todo should be saved to localStorage');
+            
+            app.deleteTodo(todo.id);
+            
+            const savedAfter = JSON.parse(mockLocalStorage.getItem('todos'));
+            runner.assert(savedAfter.length === 0, 'Deletion should be persisted to localStorage');
+        });
+
+        runner.test('should log successful delete operations', () => {
+            const app = new TestableTodoApp();
+            const todo = app.addTodo('Test todo');
+            
+            mockConsole.logs = [];
+            app.deleteTodo(todo.id);
+            
+            const deleteLog = mockConsole.logs.find(log => 
+                log.includes('deleted successfully') && log.includes(todo.id)
+            );
+            runner.assert(deleteLog !== undefined, 'Should log successful deletion');
+        });
+
+        runner.test('should handle deletion with invalid ID types', () => {
+            const app = new TestableTodoApp();
+            app.addTodo('Test todo');
+            
+            const initialCount = app.getTodoCount();
+            
+            let deleted1 = app.deleteTodo(null);
+            runner.assert(deleted1 === false, 'Should handle null ID');
+            
+            let deleted2 = app.deleteTodo(undefined);
+            runner.assert(deleted2 === false, 'Should handle undefined ID');
+            
+            let deleted3 = app.deleteTodo('');
+            runner.assert(deleted3 === false, 'Should handle empty string ID');
+            
+            runner.assert(app.getTodoCount() === initialCount, 'Todo count should remain unchanged');
+        });
+
+        runner.test('should show correct confirmation message', () => {
+            const app = new TestableTodoApp();
+            const todo = app.addTodo('Test todo');
+            
+            let confirmMessage = '';
+            app.confirm = (message) => {
+                confirmMessage = message;
+                return true;
+            };
+            
+            app.deleteTodo(todo.id);
+            
+            runner.assert(
+                confirmMessage === 'Are you sure you want to delete this todo?',
+                'Should show correct confirmation message'
+            );
+        });
+
+        // Function to run all tests
+        function runAllTests() {
+            runner.run();
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AutoToDo Delete Functionality Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .test-result {
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+        .test-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .test-fail {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        button {
+            padding: 10px 15px;
+            margin: 5px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            background-color: #007bff;
+            color: white;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        code {
+            background-color: #f8f9fa;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>AutoToDo Delete Functionality Test</h1>
+        <p>This page tests the delete functionality that was implemented to fix the bug where users were unable to delete todos.</p>
+        
+        <div class="test-section">
+            <h2>Test 1: Basic Delete Functionality</h2>
+            <p>This test verifies that todos can be deleted from the application.</p>
+            <button onclick="runBasicDeleteTest()">Run Basic Delete Test</button>
+            <div id="basic-delete-result"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>Test 2: Delete Confirmation Dialog</h2>
+            <p>This test verifies that a confirmation dialog appears before deleting a todo.</p>
+            <button onclick="runConfirmationTest()">Run Confirmation Test</button>
+            <div id="confirmation-result"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>Test 3: Multiple Delete Operations</h2>
+            <p>This test verifies that multiple todos can be deleted in sequence.</p>
+            <button onclick="runMultipleDeleteTest()">Run Multiple Delete Test</button>
+            <div id="multiple-delete-result"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>Test Results Summary</h2>
+            <div id="test-summary">
+                <p>Click the test buttons above to run individual tests.</p>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2>Manual Test Instructions</h2>
+            <ol>
+                <li>Open <code>index.html</code> in a web browser</li>
+                <li>Add several todos using the "Add Todo" form</li>
+                <li>Click the "Delete" button on any todo</li>
+                <li>Verify that a confirmation dialog appears asking "Are you sure you want to delete this todo?"</li>
+                <li>Click "OK" to confirm deletion</li>
+                <li>Verify that the todo is removed from the list</li>
+                <li>Repeat for multiple todos to ensure consistent functionality</li>
+                <li>Verify that when all todos are deleted, the "No todos yet" message appears</li>
+            </ol>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        let testResults = {
+            basicDelete: false,
+            confirmation: false,
+            multipleDelete: false
+        };
+
+        function runBasicDeleteTest() {
+            const resultDiv = document.getElementById('basic-delete-result');
+            
+            try {
+                // Create a test todo app instance
+                const testApp = new TodoApp();
+                
+                // Add a test todo
+                testApp.addTodo('Test todo for deletion');
+                const initialCount = testApp.todos.length;
+                
+                if (initialCount === 0) {
+                    throw new Error('Failed to add test todo');
+                }
+                
+                // Get the todo ID
+                const todoId = testApp.todos[0].id;
+                
+                // Mock the confirmation dialog to always return true
+                const originalConfirm = window.confirm;
+                window.confirm = () => true;
+                
+                // Delete the todo
+                testApp.deleteTodo(todoId);
+                
+                // Restore original confirm
+                window.confirm = originalConfirm;
+                
+                // Check if todo was deleted
+                const finalCount = testApp.todos.length;
+                
+                if (finalCount === initialCount - 1) {
+                    resultDiv.innerHTML = '<div class="test-result test-success">✓ Basic delete functionality works correctly</div>';
+                    testResults.basicDelete = true;
+                } else {
+                    throw new Error(`Expected ${initialCount - 1} todos, but found ${finalCount}`);
+                }
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="test-result test-fail">✗ Test failed: ${error.message}</div>`;
+                testResults.basicDelete = false;
+            }
+            
+            updateTestSummary();
+        }
+
+        function runConfirmationTest() {
+            const resultDiv = document.getElementById('confirmation-result');
+            
+            try {
+                const testApp = new TodoApp();
+                testApp.addTodo('Test todo for confirmation');
+                const todoId = testApp.todos[0].id;
+                
+                // Mock confirm to return false (cancel deletion)
+                const originalConfirm = window.confirm;
+                let confirmCalled = false;
+                window.confirm = (message) => {
+                    confirmCalled = true;
+                    if (message.includes('Are you sure you want to delete this todo?')) {
+                        return false; // Cancel deletion
+                    }
+                    return true;
+                };
+                
+                const initialCount = testApp.todos.length;
+                testApp.deleteTodo(todoId);
+                const finalCount = testApp.todos.length;
+                
+                window.confirm = originalConfirm;
+                
+                if (confirmCalled && initialCount === finalCount) {
+                    resultDiv.innerHTML = '<div class="test-result test-success">✓ Confirmation dialog works correctly (deletion cancelled when user clicks Cancel)</div>';
+                    testResults.confirmation = true;
+                } else if (!confirmCalled) {
+                    throw new Error('Confirmation dialog was not shown');
+                } else {
+                    throw new Error('Todo was deleted despite user cancelling');
+                }
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="test-result test-fail">✗ Test failed: ${error.message}</div>`;
+                testResults.confirmation = false;
+            }
+            
+            updateTestSummary();
+        }
+
+        function runMultipleDeleteTest() {
+            const resultDiv = document.getElementById('multiple-delete-result');
+            
+            try {
+                const testApp = new TodoApp();
+                
+                // Add multiple test todos
+                testApp.addTodo('First todo');
+                testApp.addTodo('Second todo');
+                testApp.addTodo('Third todo');
+                
+                const initialCount = testApp.todos.length;
+                
+                if (initialCount !== 3) {
+                    throw new Error(`Expected 3 todos, but found ${initialCount}`);
+                }
+                
+                // Mock confirm to always return true
+                const originalConfirm = window.confirm;
+                window.confirm = () => true;
+                
+                // Delete todos one by one
+                const firstTodoId = testApp.todos[0].id;
+                testApp.deleteTodo(firstTodoId);
+                
+                const secondTodoId = testApp.todos[0].id; // Note: after first deletion, indices shift
+                testApp.deleteTodo(secondTodoId);
+                
+                const finalCount = testApp.todos.length;
+                
+                window.confirm = originalConfirm;
+                
+                if (finalCount === 1) {
+                    resultDiv.innerHTML = '<div class="test-result test-success">✓ Multiple delete operations work correctly</div>';
+                    testResults.multipleDelete = true;
+                } else {
+                    throw new Error(`Expected 1 todo remaining, but found ${finalCount}`);
+                }
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="test-result test-fail">✗ Test failed: ${error.message}</div>`;
+                testResults.multipleDelete = false;
+            }
+            
+            updateTestSummary();
+        }
+
+        function updateTestSummary() {
+            const summaryDiv = document.getElementById('test-summary');
+            const passedTests = Object.values(testResults).filter(result => result).length;
+            const totalTests = Object.keys(testResults).length;
+            
+            let summaryHTML = `<h3>Test Results: ${passedTests}/${totalTests} tests passed</h3>`;
+            
+            for (const [testName, result] in Object.entries(testResults)) {
+                const status = result ? '✓' : '✗';
+                const className = result ? 'test-success' : 'test-fail';
+                summaryHTML += `<div class="test-result ${className}">${status} ${testName}</div>`;
+            }
+            
+            if (passedTests === totalTests) {
+                summaryHTML += '<div class="test-result test-success"><strong>🎉 All tests passed! Delete functionality is working correctly.</strong></div>';
+            }
+            
+            summaryDiv.innerHTML = summaryHTML;
+        }
+    </script>
+</body>
+</html>

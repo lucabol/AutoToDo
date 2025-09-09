@@ -21,35 +21,66 @@ class TodoController {
      * Set up all event listeners using event delegation
      */
     bindEvents() {
-        // Add todo form submission
+        this.bindAddTodoForm();
+        this.bindSearchInput();
+        this.bindTodoListClick();
+        this.bindTodoListSubmit();
+        this.bindTodoListChange();
+        this.bindKeyboardShortcuts();
+    }
+
+    /**
+     * Bind add todo form submission event
+     */
+    bindAddTodoForm() {
         const addTodoForm = document.getElementById('addTodoForm');
         addTodoForm.addEventListener('submit', (e) => {
             e.preventDefault();
             this.handleAddTodo();
         });
+    }
 
-        // Search input handler
+    /**
+     * Bind search input event handler
+     */
+    bindSearchInput() {
         const searchInput = document.getElementById('searchInput');
         searchInput.addEventListener('input', (e) => {
             this.handleSearch(e.target.value);
         });
+    }
 
-        // Event delegation for todo list interactions
+    /**
+     * Bind todo list click event delegation
+     */
+    bindTodoListClick() {
         this.view.todoList.addEventListener('click', (e) => {
             this.handleTodoListClick(e);
         });
+    }
 
-        // Event delegation for form submissions within todo list
+    /**
+     * Bind todo list form submission event delegation
+     */
+    bindTodoListSubmit() {
         this.view.todoList.addEventListener('submit', (e) => {
             this.handleTodoListSubmit(e);
         });
+    }
 
-        // Event delegation for checkbox changes
+    /**
+     * Bind todo list checkbox change event delegation
+     */
+    bindTodoListChange() {
         this.view.todoList.addEventListener('change', (e) => {
             this.handleTodoListChange(e);
         });
+    }
 
-        // Keyboard shortcuts
+    /**
+     * Bind keyboard shortcuts event handler
+     */
+    bindKeyboardShortcuts() {
         document.addEventListener('keydown', (e) => {
             this.handleKeyboardShortcuts(e);
         });
@@ -81,7 +112,7 @@ class TodoController {
      * @param {string} searchTerm - The search term
      */
     handleSearch(searchTerm) {
-        this.searchTerm = searchTerm;
+        this.searchTerm = searchTerm.toLowerCase().trim();
         this.render();
     }
 
@@ -143,6 +174,16 @@ class TodoController {
         // Escape key to cancel editing
         if (e.key === 'Escape' && this.view.isEditing()) {
             this.handleCancelEdit();
+        }
+        
+        // Ctrl+S to save when editing
+        if (e.key === 's' && e.ctrlKey && this.view.isEditing()) {
+            e.preventDefault(); // Prevent browser's default save dialog
+            const editingId = this.view.getEditingId();
+            const editForm = document.querySelector(`.edit-form[data-id="${editingId}"]`);
+            if (editForm) {
+                this.handleSaveEdit(editingId, editForm);
+            }
         }
     }
 
