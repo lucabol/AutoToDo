@@ -154,7 +154,7 @@ class TodoModel {
     }
 
     /**
-     * Filter todos by search term
+     * Filter todos by search term with enhanced matching
      * @param {string} searchTerm - Term to search for in todo text
      * @returns {Array} Array of filtered todos
      */
@@ -163,10 +163,22 @@ class TodoModel {
             return this.getAllTodos();
         }
         
-        const term = searchTerm.toLowerCase().trim();
-        return this.todos.filter(todo => 
-            todo.text.toLowerCase().includes(term)
-        );
+        // Normalize the search term: trim and collapse multiple spaces
+        const normalizedTerm = searchTerm.toLowerCase().trim().replace(/\s+/g, ' ');
+        
+        return this.todos.filter(todo => {
+            const todoText = todo.text.toLowerCase();
+            
+            // If the search term contains multiple words, check if all words are present
+            const searchWords = normalizedTerm.split(' ');
+            if (searchWords.length > 1) {
+                // All words must be present in the todo text
+                return searchWords.every(word => todoText.includes(word));
+            }
+            
+            // Single word or phrase search - use original substring matching
+            return todoText.includes(normalizedTerm);
+        });
     }
 
     /**

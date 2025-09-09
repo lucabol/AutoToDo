@@ -6,7 +6,12 @@ class TodoController {
         this.model = model;
         this.view = view;
         this.searchTerm = '';
-        this.keyboardManager = new KeyboardShortcutManager();
+        this.keyboardManager = new KeyboardShortcutManager({
+            debug: false, // Set to true for debugging
+            enableLogging: false,
+            validateConflicts: true
+        });
+        this.keyboardHandlers = new KeyboardHandlers(this);
         this.init();
     }
 
@@ -76,46 +81,43 @@ class TodoController {
     }
 
     /**
-     * Set up keyboard shortcuts using the KeyboardShortcutManager
+     * Set up keyboard shortcuts using the enhanced KeyboardShortcutManager
      */
     setupKeyboardShortcuts() {
         // Register editing context
         this.keyboardManager.registerContext('editing', () => this.view.isEditing());
         
-        // Register context handlers
-        this.keyboardManager.registerContextHandlers('editing', {
-            cancelEdit: () => this.handleCancelEdit(),
-            saveEdit: () => this.handleSaveEditFromShortcut()
-        });
+        // Get all handler functions from the KeyboardHandlers class
+        const handlers = this.keyboardHandlers.getAllHandlers();
 
-        // Register Escape key to cancel editing
-        this.keyboardManager.registerShortcut({
-            key: 'Escape',
-            context: 'editing',
-            action: () => this.handleCancelEdit(),
-            description: 'Cancel editing'
+        // Get shortcuts configuration and register all shortcuts
+        const shortcuts = ShortcutsConfig.getShortcuts(handlers);
+        
+        // Validate shortcuts before registering
+        const validation = ShortcutsConfig.validateShortcutCollection(shortcuts);
+        if (validation.errors > 0) {
+            console.warn('Shortcut validation found errors:', validation);
+        }
+        
+        // Register all shortcuts
+        shortcuts.forEach(shortcut => {
+            try {
+                this.keyboardManager.registerShortcut(shortcut);
+            } catch (error) {
+                console.error('Failed to register shortcut:', shortcut, error);
+            }
         });
-
-        // Register Ctrl+S to save when editing
-        this.keyboardManager.registerShortcut({
-            key: 's',
-            ctrlKey: true,
-            context: 'editing',
-            action: () => this.handleSaveEditFromShortcut(),
-            preventDefault: true,
-            description: 'Save changes'
-        });
+        
+        if (this.keyboardManager.options.debug) {
+            console.log('Keyboard shortcuts setup completed:', this.keyboardManager.getDebugInfo());
+        }
     }
 
     /**
-     * Handle save edit triggered by keyboard shortcut
+     * Show keyboard shortcuts help modal
      */
-    handleSaveEditFromShortcut() {
-        const editingId = this.view.getEditingId();
-        const editForm = document.querySelector(`.edit-form[data-id="${editingId}"]`);
-        if (editForm) {
-            this.handleSaveEdit(editingId, editForm);
-        }
+    showKeyboardHelp() {
+        HelpModalBuilder.showHelpModal(this.keyboardManager);
     }
 
     /**
@@ -124,6 +126,7 @@ class TodoController {
     bindEvents() {
         this.bindAddTodoForm();
         this.bindSearchInput();
+        this.bindClearSearchButton();
         this.bindTodoListClick();
         this.bindTodoListSubmit();
         this.bindTodoListChange();
@@ -161,6 +164,16 @@ class TodoController {
         const searchInput = document.getElementById('searchInput');
         searchInput.addEventListener('input', (e) => {
             this.handleSearch(e.target.value);
+        });
+    }
+
+    /**
+     * Bind clear search button event handler
+     */
+    bindClearSearchButton() {
+        const clearSearchBtn = document.getElementById('clearSearchBtn');
+        clearSearchBtn.addEventListener('click', () => {
+            this.handleClearSearch();
         });
     }
 
@@ -226,7 +239,17 @@ class TodoController {
      * @param {string} searchTerm - The search term
      */
     handleSearch(searchTerm) {
-        this.searchTerm = searchTerm.toLowerCase().trim();
+        this.searchTerm = searchTerm;
+        this.render();
+    }
+
+    /**
+     * Handle clearing the search input
+     */
+    handleClearSearch() {
+        const searchInput = document.getElementById('searchInput');
+        searchInput.value = '';
+        this.searchTerm = '';
         this.render();
     }
 
@@ -277,17 +300,6 @@ class TodoController {
 
         if (action === 'toggle' && id) {
             this.handleToggleTodo(id);
-        }
-    }
-
-    /**
-     * Handle save edit triggered by keyboard shortcut
-     */
-    handleSaveEditFromShortcut() {
-        const editingId = this.view.getEditingId();
-        const editForm = document.querySelector(`.edit-form[data-id="${editingId}"]`);
-        if (editForm) {
-            this.handleSaveEdit(editingId, editForm);
         }
     }
 
