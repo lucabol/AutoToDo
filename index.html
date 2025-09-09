@@ -34,6 +34,30 @@
             font-weight: 600;
         }
 
+        .search-container {
+            margin-bottom: 20px;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid #e5e5e7;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+            background-color: #f8f8f8;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #007aff;
+            background-color: white;
+        }
+
+        .search-input::placeholder {
+            color: #86868b;
+        }
+
         .add-todo-form {
             display: flex;
             gap: 12px;
@@ -184,6 +208,15 @@
     <div class="container">
         <h1>AutoToDo</h1>
         
+        <div class="search-container">
+            <input 
+                type="text" 
+                class="search-input" 
+                id="searchInput" 
+                placeholder="Search todos..."
+            >
+        </div>
+        
         <form class="add-todo-form" id="addTodoForm">
             <input 
                 type="text" 
@@ -209,6 +242,7 @@
             constructor() {
                 this.todos = this.loadTodos();
                 this.editingId = null;
+                this.searchTerm = '';
                 this.init();
             }
 
@@ -222,6 +256,11 @@
                 form.addEventListener('submit', (e) => {
                     e.preventDefault();
                     this.addTodo();
+                });
+
+                const searchInput = document.getElementById('searchInput');
+                searchInput.addEventListener('input', (e) => {
+                    this.setSearchTerm(e.target.value);
                 });
             }
 
@@ -294,12 +333,32 @@
                 this.render();
             }
 
+            setSearchTerm(term) {
+                this.searchTerm = term.toLowerCase();
+                this.render();
+            }
+
+            filterTodos() {
+                if (!this.searchTerm) {
+                    return this.todos;
+                }
+                return this.todos.filter(todo => 
+                    todo.text.toLowerCase().includes(this.searchTerm)
+                );
+            }
+
             render() {
                 const todoList = document.getElementById('todoList');
                 const emptyState = document.getElementById('emptyState');
+                const filteredTodos = this.filterTodos();
 
-                if (this.todos.length === 0) {
+                if (filteredTodos.length === 0) {
                     todoList.style.display = 'none';
+                    if (this.todos.length === 0) {
+                        emptyState.textContent = 'No todos yet. Add one above to get started!';
+                    } else {
+                        emptyState.textContent = 'No todos match your search.';
+                    }
                     emptyState.style.display = 'block';
                     return;
                 }
@@ -307,7 +366,7 @@
                 todoList.style.display = 'block';
                 emptyState.style.display = 'none';
 
-                todoList.innerHTML = this.todos.map(todo => {
+                todoList.innerHTML = filteredTodos.map(todo => {
                     if (this.editingId === todo.id) {
                         return this.renderEditForm(todo);
                     }
