@@ -129,9 +129,17 @@ h1 {
     cursor: grab;
     user-select: none;
     padding: 4px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
 }
 
 .drag-handle:hover {
+    color: #007aff;
+}
+
+.drag-handle:focus {
+    outline: 2px solid #007aff;
+    outline-offset: 2px;
     color: #007aff;
 }
 
@@ -236,4 +244,34 @@ h1 {
     font-size: 14px;
     user-select: none;
     padding: 0 8px;
+    border-radius: 4px;
+}
+
+.drag-handle-disabled:focus {
+    outline: 2px solid #999;
+    outline-offset: 2px;
+}
+
+/* Accessibility Media Queries */
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .drag-handle, .drag-handle-disabled {
+        border: 1px solid;
+    }
+    
+    .todo-item:focus-within {
+        border: 2px solid;
+    }
+}
+
+/* Reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+    .todo-item.dragging,
+    .todo-item.drag-over,
+    .drag-handle {
+        transition: none !important;
+        transform: none !important;
+        animation: none !important;
+    }
 }

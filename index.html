@@ -16,6 +16,7 @@
                 class="search-input" 
                 id="searchInput" 
                 placeholder="Search todos..."
+                aria-label="Search todos"
             >
         </div>
         
@@ -25,12 +26,13 @@
                 class="todo-input" 
                 id="todoInput" 
                 placeholder="What needs to be done?"
+                aria-label="Enter new todo"
                 required
             >
-            <button type="submit" class="add-btn">Add Todo</button>
+            <button type="submit" class="add-btn" aria-label="Add new todo">Add Todo</button>
         </form>
 
-        <ul class="todo-list" id="todoList">
+        <ul class="todo-list" id="todoList" role="list" aria-label="Todo items">
             <!-- Todos will be dynamically inserted here -->
         </ul>
 

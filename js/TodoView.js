@@ -50,11 +50,11 @@ class TodoView {
     renderTodoItem(todo, dragDropSupported = true) {
         const dragAttributes = dragDropSupported ? 'draggable="true"' : '';
         const dragHandle = dragDropSupported ? 
-            '<span class="drag-handle">≡</span>' : 
-            '<span class="drag-handle-disabled" title="Drag and drop not supported in this browser">≡</span>';
+            '<span class="drag-handle" role="button" tabindex="0" aria-label="Drag to reorder todo" title="Drag to reorder this todo">≡</span>' : 
+            '<span class="drag-handle-disabled" role="button" tabindex="0" aria-label="Drag to reorder (not supported)" title="Drag and drop not supported in this browser">≡</span>';
 
         return `
-            <li class="todo-item" data-id="${todo.id}" ${dragAttributes}>
+            <li class="todo-item" data-id="${todo.id}" ${dragAttributes} role="listitem" aria-label="Todo: ${this.escapeHtml(todo.text)}">
                 ${dragHandle}
                 <input 
                     type="checkbox" 
@@ -62,11 +62,12 @@ class TodoView {
                     ${todo.completed ? 'checked' : ''}
                     data-action="toggle"
                     data-id="${todo.id}"
+                    aria-label="Mark todo as ${todo.completed ? 'incomplete' : 'complete'}"
                 >
                 <span class="todo-text ${todo.completed ? 'completed' : ''}">${this.escapeHtml(todo.text)}</span>
                 <div class="todo-actions">
-                    <button class="edit-btn" data-action="edit" data-id="${todo.id}">Edit</button>
-                    <button class="delete-btn" data-action="delete" data-id="${todo.id}">Delete</button>
+                    <button class="edit-btn" data-action="edit" data-id="${todo.id}" aria-label="Edit todo">Edit</button>
+                    <button class="delete-btn" data-action="delete" data-id="${todo.id}" aria-label="Delete todo">Delete</button>
                 </div>
             </li>
         `;
@@ -80,13 +81,13 @@ class TodoView {
      */
     renderEditForm(todo, dragDropSupported = true) {
         const dragHandle = dragDropSupported ? 
-            '<span class="drag-handle" style="opacity: 0.3;">≡</span>' : 
-            '<span class="drag-handle-disabled" style="opacity: 0.3;" title="Drag and drop not supported in this browser">≡</span>';
+            '<span class="drag-handle" style="opacity: 0.3;" role="button" tabindex="-1" aria-label="Drag disabled while editing" title="Drag disabled while editing">≡</span>' : 
+            '<span class="drag-handle-disabled" style="opacity: 0.3;" role="button" tabindex="-1" aria-label="Drag to reorder (not supported)" title="Drag and drop not supported in this browser">≡</span>';
 
         return `
-            <li class="todo-item" data-id="${todo.id}">
+            <li class="todo-item" data-id="${todo.id}" role="listitem" aria-label="Editing todo">
                 ${dragHandle}
-                <input type="checkbox" class="todo-checkbox" ${todo.completed ? 'checked' : ''} disabled>
+                <input type="checkbox" class="todo-checkbox" ${todo.completed ? 'checked' : ''} disabled aria-label="Todo completion status (disabled while editing)">
                 <form class="edit-form" data-action="save-edit" data-id="${todo.id}">
                     <input 
                         type="text" 
@@ -95,9 +96,10 @@ class TodoView {
                         data-original-text="${this.escapeHtml(todo.text)}"
                         autofocus
                         required
+                        aria-label="Edit todo text"
                     >
-                    <button type="submit" class="save-btn">Save</button>
-                    <button type="button" class="cancel-btn" data-action="cancel-edit">Cancel</button>
+                    <button type="submit" class="save-btn" aria-label="Save changes">Save</button>
+                    <button type="button" class="cancel-btn" data-action="cancel-edit" aria-label="Cancel editing">Cancel</button>
                 </form>
             </li>
         `;

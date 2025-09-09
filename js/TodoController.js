@@ -114,6 +114,11 @@ class TodoController {
         document.addEventListener('keydown', (e) => {
             this.handleKeyboardShortcuts(e);
         });
+        
+        // Add keyboard support for drag handles
+        this.view.todoList.addEventListener('keydown', (e) => {
+            this.handleDragHandleKeyboard(e);
+        });
     }
 
     /**
@@ -248,6 +253,76 @@ class TodoController {
             if (editForm) {
                 this.handleSaveEdit(editingId, editForm);
             }
+        }
+    }
+
+    /**
+     * Handle keyboard interactions for drag handles
+     * @param {Event} e - Keyboard event
+     */
+    handleDragHandleKeyboard(e) {
+        // Only handle if target is a drag handle
+        if (!e.target.classList.contains('drag-handle') || !this.dragDropSupported) {
+            return;
+        }
+
+        const todoItem = e.target.closest('.todo-item');
+        if (!todoItem) return;
+
+        const todoId = todoItem.dataset.id;
+        const currentTodos = this.getCurrentTodos();
+        const currentIndex = currentTodos.findIndex(t => t.id === todoId);
+        
+        if (currentIndex === -1) return;
+
+        let newIndex = currentIndex;
+        let moved = false;
+
+        // Arrow keys for reordering
+        switch (e.key) {
+            case 'ArrowUp':
+                if (currentIndex > 0) {
+                    newIndex = currentIndex - 1;
+                    moved = true;
+                }
+                break;
+            case 'ArrowDown':
+                if (currentIndex < currentTodos.length - 1) {
+                    newIndex = currentIndex + 1;
+                    moved = true;
+                }
+                break;
+            case 'Home':
+                if (currentIndex > 0) {
+                    newIndex = 0;
+                    moved = true;
+                }
+                break;
+            case 'End':
+                if (currentIndex < currentTodos.length - 1) {
+                    newIndex = currentTodos.length - 1;
+                    moved = true;
+                }
+                break;
+            case 'Enter':
+            case ' ':
+                // Activate drag handle (could be extended for alternative reorder UI)
+                e.preventDefault();
+                this.view.showMessage(`Todo "${currentTodos[currentIndex].text}" selected. Use arrow keys to move.`, 'info');
+                return;
+        }
+
+        if (moved) {
+            e.preventDefault();
+            this.handleReorderTodo(todoId, newIndex);
+            
+            // Keep focus on the drag handle after reorder
+            setTimeout(() => {
+                const newTodoItem = document.querySelector(`[data-id="${todoId}"] .drag-handle`);
+                if (newTodoItem) {
+                    newTodoItem.focus();
+                }
+            }, 100);
         }
     }
 
@@ -450,5 +525,13 @@ class TodoController {
         dragOverItems.forEach(item => item.classList.remove('drag-over'));
 
         this.draggedId = null;
+    }
+
+    /**
+     * Get current todos based on search filter
+     * @returns {Array} Current filtered todos
+     */
+    getCurrentTodos() {
+        return this.searchTerm ? this.model.filterTodos(this.searchTerm) : this.model.getAllTodos();
     }
 }
