@@ -181,24 +181,25 @@ If you continue experiencing issues:
 AutoToDo supports several keyboard shortcuts to help you navigate and interact with the app more efficiently:
 
 ### General Navigation
-- **Enter** - Submit forms (add new todo, save edited todo)
-- **Tab** - Navigate between form elements and buttons
-- **Space** - Toggle checkboxes when focused
+- **Tab** - Navigate between form elements and interactive controls (standard browser behavior)
+- **Space** - Toggle checkboxes when focused on them
+
+### Adding Todos
+- **Enter** in "What needs to be done?" field - Add the new todo and automatically focus back on the input field for quick consecutive additions
 
 ### Editing Todos
-- **Escape** - Cancel edit mode and return to view mode
-- **Enter** - Save changes when editing a todo (submits the edit form)
+- **Enter** in edit mode - Save changes and return to view mode
+- **Escape** in edit mode - Cancel editing and discard changes, returning to the original text
 
-### Form Interactions
-- **Enter** in "What needs to be done?" field - Add the new todo
-- **Enter** in search field - Apply search filter (real-time search also works as you type)
-- **Enter** in edit field - Save the edited todo text
+### Search Functionality
+- **Enter** in search field - Apply search filter (though search works in real-time as you type)
 
 ### Tips for Efficient Use
-- After adding a todo, focus automatically returns to the input field for quick consecutive additions
+- After adding a todo, the input field automatically stays focused for adding more todos quickly
+- Use **Tab** to navigate to checkboxes and press **Space** to mark todos as completed
+- When editing a todo, press **Escape** to cancel changes if you make a mistake
 - Use the search field to quickly find specific todos in large lists
-- When editing a todo, press **Escape** to cancel changes and return to the original text
-- The app works entirely with keyboard navigation - you can use **Tab** to move between all interactive elements
+- The app is fully keyboard accessible - you can perform all actions using only the keyboard
 
 ## Bug Fix
 Fixed the issue where users were unable to delete todos using the graphical UI. The delete functionality now works correctly with:
