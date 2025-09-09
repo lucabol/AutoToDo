@@ -6,6 +6,7 @@ class TodoController {
         this.model = model;
         this.view = view;
         this.searchTerm = '';
+        this.keyboardManager = new KeyboardShortcutManager();
         this.init();
     }
 
@@ -15,6 +16,7 @@ class TodoController {
     init() {
         this.bindEvents();
         this.initializeTheme();
+        this.setupKeyboardShortcuts();
         this.render();
     }
 
@@ -71,6 +73,49 @@ class TodoController {
     toggleTheme() {
         const newTheme = this.currentTheme === 'dark' ? 'light' : 'dark';
         this.setTheme(newTheme);
+    }
+
+    /**
+     * Set up keyboard shortcuts using the KeyboardShortcutManager
+     */
+    setupKeyboardShortcuts() {
+        // Register editing context
+        this.keyboardManager.registerContext('editing', () => this.view.isEditing());
+        
+        // Register context handlers
+        this.keyboardManager.registerContextHandlers('editing', {
+            cancelEdit: () => this.handleCancelEdit(),
+            saveEdit: () => this.handleSaveEditFromShortcut()
+        });
+
+        // Register Escape key to cancel editing
+        this.keyboardManager.registerShortcut({
+            key: 'Escape',
+            context: 'editing',
+            action: () => this.handleCancelEdit(),
+            description: 'Cancel editing'
+        });
+
+        // Register Ctrl+S to save when editing
+        this.keyboardManager.registerShortcut({
+            key: 's',
+            ctrlKey: true,
+            context: 'editing',
+            action: () => this.handleSaveEditFromShortcut(),
+            preventDefault: true,
+            description: 'Save changes'
+        });
+    }
+
+    /**
+     * Handle save edit triggered by keyboard shortcut
+     */
+    handleSaveEditFromShortcut() {
+        const editingId = this.view.getEditingId();
+        const editForm = document.querySelector(`.edit-form[data-id="${editingId}"]`);
+        if (editForm) {
+            this.handleSaveEdit(editingId, editForm);
+        }
     }
 
     /**
@@ -151,7 +196,7 @@ class TodoController {
      */
     bindKeyboardShortcuts() {
         document.addEventListener('keydown', (e) => {
-            this.handleKeyboardShortcuts(e);
+            this.keyboardManager.handleKeyboard(e);
         });
     }
 
@@ -181,7 +226,7 @@ class TodoController {
      * @param {string} searchTerm - The search term
      */
     handleSearch(searchTerm) {
-        this.searchTerm = searchTerm;
+        this.searchTerm = searchTerm.toLowerCase().trim();
         this.render();
     }
 
@@ -236,23 +281,13 @@ class TodoController {
     }
 
     /**
-     * Handle keyboard shortcuts
-     * @param {Event} e - Keyboard event
+     * Handle save edit triggered by keyboard shortcut
      */
-    handleKeyboardShortcuts(e) {
-        // Escape key to cancel editing
-        if (e.key === 'Escape' && this.view.isEditing()) {
-            this.handleCancelEdit();
-        }
-        
-        // Ctrl+S to save when editing
-        if (e.key === 's' && e.ctrlKey && this.view.isEditing()) {
-            e.preventDefault(); // Prevent browser's default save dialog
-            const editingId = this.view.getEditingId();
-            const editForm = document.querySelector(`.edit-form[data-id="${editingId}"]`);
-            if (editForm) {
-                this.handleSaveEdit(editingId, editForm);
-            }
+    handleSaveEditFromShortcut() {
+        const editingId = this.view.getEditingId();
+        const editForm = document.querySelector(`.edit-form[data-id="${editingId}"]`);
+        if (editForm) {
+            this.handleSaveEdit(editingId, editForm);
         }
     }
 
