@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AutoToDo - Unit Tests</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f7;
+        }
+        
+        .test-container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+        }
+        
+        h1 {
+            color: #1d1d1f;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .test-results {
+            margin: 20px 0;
+        }
+        
+        .test-case {
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border-left: 4px solid;
+        }
+        
+        .test-pass {
+            background-color: #f0f9ff;
+            border-left-color: #34c759;
+            color: #1d4ed8;
+        }
+        
+        .test-fail {
+            background-color: #fef2f2;
+            border-left-color: #ff3b30;
+            color: #dc2626;
+        }
+        
+        .test-summary {
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            margin: 20px 0;
+            font-weight: 600;
+        }
+        
+        .test-summary.all-pass {
+            background-color: #f0f9ff;
+            color: #1d4ed8;
+        }
+        
+        .test-summary.has-failures {
+            background-color: #fef2f2;
+            color: #dc2626;
+        }
+        
+        .run-tests-btn {
+            background: #007aff;
+            color: white;
+            border: none;
+            padding: 14px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-bottom: 20px;
+            transition: background-color 0.3s ease;
+        }
+        
+        .run-tests-btn:hover {
+            background: #0056cc;
+        }
+        
+        .hidden-test-area {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>AutoToDo Search Functionality Unit Tests</h1>
+        
+        <button class="run-tests-btn" onclick="runAllTests()">Run All Tests</button>
+        
+        <div class="test-results" id="testResults"></div>
+        
+        <!-- Hidden test area for TodoApp testing -->
+        <div class="hidden-test-area">
+            <div id="testTodoList"></div>
+            <div id="testEmptyState"></div>
+            <div id="testNoResults"></div>
+            <input id="testSearchInput" />
+        </div>
+    </div>
+
+    <script>
+        // TodoApp class extracted for testing (same as in index.html but with test adaptations)
+        class TodoApp {
+            constructor(testMode = false) {
+                this.todos = testMode ? [] : this.loadTodos();
+                this.editingId = null;
+                this.searchQuery = '';
+                this.testMode = testMode;
+                if (!testMode) {
+                    this.init();
+                }
+            }
+
+            init() {
+                this.bindEvents();
+                this.render();
+            }
+
+            bindEvents() {
+                if (this.testMode) return;
+                
+                const form = document.getElementById('addTodoForm');
+                form.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.addTodo();
+                });
+
+                const searchInput = document.getElementById('searchInput');
+                searchInput.addEventListener('input', (e) => {
+                    this.handleSearch(e.target.value);
+                });
+            }
+
+            loadTodos() {
+                const saved = localStorage.getItem('todos');
+                return saved ? JSON.parse(saved) : [];
+            }
+
+            saveTodos() {
+                if (!this.testMode) {
+                    localStorage.setItem('todos', JSON.stringify(this.todos));
+                }
+            }
+
+            generateId() {
+                // Use modern crypto.randomUUID() if available (most modern browsers)
+                if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+                    return crypto.randomUUID();
+                }
+                
+                // Fallback: More robust custom implementation
+                // Combines timestamp, high-precision timer, and crypto-random values
+                const timestamp = Date.now().toString(36);
+                const performance = (typeof window !== 'undefined' && window.performance?.now() || Date.now()).toString(36);
+                
+                // Generate cryptographically random values if crypto.getRandomValues is available
+                let randomPart = '';
+                if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+                    const array = new Uint8Array(8);
+                    crypto.getRandomValues(array);
+                    randomPart = Array.from(array, byte => byte.toString(36)).join('');
+                } else {
+                    // Final fallback for very old browsers
+                    randomPart = Math.random().toString(36).substr(2) + Math.random().toString(36).substr(2);
+                }
+                
+                return timestamp + '-' + performance + '-' + randomPart;
+            }
+
+            addTodo() {
+                const input = document.getElementById('todoInput');
+                const text = input.value.trim();
+                
+                if (!text) return;
+
+                const todo = {
+                    id: this.generateId(),
+                    text: text,
+                    completed: false,
+                    createdAt: new Date().toISOString()
+                };
+
+                this.todos.unshift(todo);
+                this.saveTodos();
+                input.value = '';
+                this.render();
+            }
+
+            // Method to add todo in test mode
+            addTodoForTest(text, completed = false) {
+                const todo = {
+                    id: this.generateId(),
+                    text: text,
+                    completed: completed,
+                    createdAt: new Date().toISOString()
+                };
+                this.todos.unshift(todo);
+                return todo;
+            }
+
+            deleteTodo(id) {
+                if (!this.testMode && !confirm('Are you sure you want to delete this todo?')) {
+                    return;
+                }
+                this.todos = this.todos.filter(todo => todo.id !== id);
+                this.saveTodos();
+                this.render();
+            }
+
+            toggleTodo(id) {
+                const todo = this.todos.find(t => t.id === id);
+                if (todo) {
+                    todo.completed = !todo.completed;
+                    this.saveTodos();
+                    this.render();
+                }
+            }
+
+            startEdit(id) {
+                this.editingId = id;
+                this.render();
+            }
+
+            saveEdit(id, newText) {
+                const todo = this.todos.find(t => t.id === id);
+                if (todo && newText.trim()) {
+                    todo.text = newText.trim();
+                    this.editingId = null;
+                    this.saveTodos();
+                    this.render();
+                }
+            }
+
+            cancelEdit() {
+                this.editingId = null;
+                this.render();
+            }
+
+            handleSearch(query) {
+                this.searchQuery = query.toLowerCase().trim();
+                this.render();
+            }
+
+            filterTodos() {
+                if (!this.searchQuery) {
+                    return this.todos;
+                }
+                return this.todos.filter(todo => 
+                    todo.text.toLowerCase().includes(this.searchQuery)
+                );
+            }
+
+            render() {
+                const todoList = document.getElementById(this.testMode ? 'testTodoList' : 'todoList');
+                const emptyState = document.getElementById(this.testMode ? 'testEmptyState' : 'emptyState');
+                const noResults = document.getElementById(this.testMode ? 'testNoResults' : 'noResults');
+                
+                const filteredTodos = this.filterTodos();
+
+                // Hide all states initially
+                if (todoList) todoList.style.display = 'none';
+                if (emptyState) emptyState.style.display = 'none';
+                if (noResults) noResults.style.display = 'none';
+
+                if (this.todos.length === 0) {
+                    if (emptyState) emptyState.style.display = 'block';
+                    return;
+                }
+
+                if (filteredTodos.length === 0 && this.searchQuery) {
+                    if (noResults) noResults.style.display = 'block';
+                    return;
+                }
+
+                if (todoList) {
+                    todoList.style.display = 'block';
+                    todoList.innerHTML = filteredTodos.map(todo => {
+                        if (this.editingId === todo.id) {
+                            return this.renderEditForm(todo);
+                        }
+                        return this.renderTodoItem(todo);
+                    }).join('');
+                }
+
+                if (!this.testMode) {
+                    this.bindTodoEvents();
+                }
+            }
+
+            renderTodoItem(todo) {
+                return `
+                    <li class="todo-item" data-id="${todo.id}">
+                        <input 
+                            type="checkbox" 
+                            class="todo-checkbox" 
+                            ${todo.completed ? 'checked' : ''}
+                            onchange="app.toggleTodo('${todo.id}')"
+                        >
+                        <span class="todo-text ${todo.completed ? 'completed' : ''}">${this.escapeHtml(todo.text)}</span>
+                        <div class="todo-actions">
+                            <button class="edit-btn" onclick="app.startEdit('${todo.id}')">Edit</button>
+                            <button class="delete-btn" onclick="app.deleteTodo('${todo.id}')">Delete</button>
+                        </div>
+                    </li>
+                `;
+            }
+
+            renderEditForm(todo) {
+                return `
+                    <li class="todo-item" data-id="${todo.id}">
+                        <input type="checkbox" class="todo-checkbox" ${todo.completed ? 'checked' : ''} disabled>
+                        <form class="edit-form" onsubmit="event.preventDefault(); app.saveEdit('${todo.id}', this.querySelector('.edit-input').value)">
+                            <input 
+                                type="text" 
+                                class="edit-input" 
+                                value="${this.escapeHtml(todo.text)}"
+                                autofocus
+                            >
+                            <button type="submit" class="save-btn">Save</button>
+                            <button type="button" class="cancel-btn" onclick="app.cancelEdit()">Cancel</button>
+                        </form>
+                    </li>
+                `;
+            }
+
+            bindTodoEvents() {
+                // Events are bound using inline handlers in the HTML for simplicity
+            }
+
+            escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+        }
+
+        // Test Framework
+        class TestFramework {
+            constructor() {
+                this.tests = [];
+                this.results = [];
+            }
+
+            test(name, testFn) {
+                this.tests.push({ name, testFn });
+            }
+
+            assertEqual(actual, expected, message = '') {
+                if (JSON.stringify(actual) !== JSON.stringify(expected)) {
+                    throw new Error(`${message} Expected: ${JSON.stringify(expected)}, Got: ${JSON.stringify(actual)}`);
+                }
+            }
+
+            assertTrue(condition, message = '') {
+                if (!condition) {
+                    throw new Error(`${message} Expected: true, Got: false`);
+                }
+            }
+
+            assertFalse(condition, message = '') {
+                if (condition) {
+                    throw new Error(`${message} Expected: false, Got: true`);
+                }
+            }
+
+            assertContains(array, item, message = '') {
+                if (!array.includes(item)) {
+                    throw new Error(`${message} Expected array to contain: ${item}`);
+                }
+            }
+
+            async runTests() {
+                this.results = [];
+                
+                for (const test of this.tests) {
+                    try {
+                        await test.testFn();
+                        this.results.push({ name: test.name, status: 'pass', error: null });
+                    } catch (error) {
+                        this.results.push({ name: test.name, status: 'fail', error: error.message });
+                    }
+                }
+                
+                return this.results;
+            }
+
+            renderResults() {
+                const resultsDiv = document.getElementById('testResults');
+                const passCount = this.results.filter(r => r.status === 'pass').length;
+                const failCount = this.results.filter(r => r.status === 'fail').length;
+                
+                let html = `<div class="test-summary ${failCount === 0 ? 'all-pass' : 'has-failures'}">
+                    Tests completed: ${passCount} passed, ${failCount} failed
+                </div>`;
+                
+                this.results.forEach(result => {
+                    html += `<div class="test-case test-${result.status}">
+                        <strong>${result.name}</strong>: ${result.status.toUpperCase()}
+                        ${result.error ? `<br><small>${result.error}</small>` : ''}
+                    </div>`;
+                });
+                
+                resultsDiv.innerHTML = html;
+            }
+        }
+
+        // Initialize test framework
+        const testFramework = new TestFramework();
+
+        // Test Suite for Search Functionality
+        testFramework.test('handleSearch - should update searchQuery correctly', () => {
+            const app = new TodoApp(true);
+            app.handleSearch('Test Query');
+            testFramework.assertEqual(app.searchQuery, 'test query', 'Search query should be lowercase and trimmed');
+        });
+
+        testFramework.test('handleSearch - should handle empty search', () => {
+            const app = new TodoApp(true);
+            app.handleSearch('   ');
+            testFramework.assertEqual(app.searchQuery, '', 'Empty search should result in empty string');
+        });
+
+        testFramework.test('filterTodos - should return all todos when search is empty', () => {
+            const app = new TodoApp(true);
+            app.addTodoForTest('Buy groceries');
+            app.addTodoForTest('Walk the dog');
+            app.searchQuery = '';
+            
+            const filtered = app.filterTodos();
+            testFramework.assertEqual(filtered.length, 2, 'Should return all todos when search is empty');
+        });
+
+        testFramework.test('filterTodos - should filter todos by search query', () => {
+            const app = new TodoApp(true);
+            app.addTodoForTest('Buy groceries');
+            app.addTodoForTest('Walk the dog');
+            app.addTodoForTest('Call dentist');
+            app.searchQuery = 'buy';
+            
+            const filtered = app.filterTodos();
+            testFramework.assertEqual(filtered.length, 1, 'Should return only matching todos');
+            testFramework.assertEqual(filtered[0].text, 'Buy groceries', 'Should return the correct todo');
+        });
+
+        testFramework.test('filterTodos - should be case insensitive', () => {
+            const app = new TodoApp(true);
+            app.addTodoForTest('Buy GROCERIES');
+            app.addTodoForTest('walk the DOG');
+            app.searchQuery = 'buy groceries';
+            
+            const filtered = app.filterTodos();
+            testFramework.assertEqual(filtered.length, 1, 'Should match case insensitively');
+            testFramework.assertEqual(filtered[0].text, 'Buy GROCERIES', 'Should return case insensitive match');
+        });
+
+        testFramework.test('filterTodos - should handle partial matches', () => {
+            const app = new TodoApp(true);
+            app.addTodoForTest('Buy groceries for dinner');
+            app.addTodoForTest('Walk the dog');
+            app.searchQuery = 'grocer';
+            
+            const filtered = app.filterTodos();
+            testFramework.assertEqual(filtered.length, 1, 'Should match partial text');
+            testFramework.assertEqual(filtered[0].text, 'Buy groceries for dinner', 'Should return partial match');
+        });
+
+        testFramework.test('filterTodos - should return empty array when no matches', () => {
+            const app = new TodoApp(true);
+            app.addTodoForTest('Buy groceries');
+            app.addTodoForTest('Walk the dog');
+            app.searchQuery = 'nonexistent';
+            
+            const filtered = app.filterTodos();
+            testFramework.assertEqual(filtered.length, 0, 'Should return empty array when no matches');
+        });
+
+        testFramework.test('render - should show empty state when no todos exist', () => {
+            const app = new TodoApp(true);
+            app.render();
+            
+            const emptyState = document.getElementById('testEmptyState');
+            const noResults = document.getElementById('testNoResults');
+            const todoList = document.getElementById('testTodoList');
+            
+            testFramework.assertEqual(emptyState.style.display, 'block', 'Empty state should be visible');
+            testFramework.assertEqual(noResults.style.display, 'none', 'No results should be hidden');
+            testFramework.assertEqual(todoList.style.display, 'none', 'Todo list should be hidden');
+        });
+
+        testFramework.test('render - should show no results state when search has no matches', () => {
+            const app = new TodoApp(true);
+            app.addTodoForTest('Buy groceries');
+            app.searchQuery = 'nonexistent';
+            app.render();
+            
+            const emptyState = document.getElementById('testEmptyState');
+            const noResults = document.getElementById('testNoResults');
+            const todoList = document.getElementById('testTodoList');
+            
+            testFramework.assertEqual(emptyState.style.display, 'none', 'Empty state should be hidden');
+            testFramework.assertEqual(noResults.style.display, 'block', 'No results should be visible');
+            testFramework.assertEqual(todoList.style.display, 'none', 'Todo list should be hidden');
+        });
+
+        testFramework.test('render - should show filtered todos when search has matches', () => {
+            const app = new TodoApp(true);
+            app.addTodoForTest('Buy groceries');
+            app.addTodoForTest('Walk the dog');
+            app.searchQuery = 'buy';
+            app.render();
+            
+            const emptyState = document.getElementById('testEmptyState');
+            const noResults = document.getElementById('testNoResults');
+            const todoList = document.getElementById('testTodoList');
+            
+            testFramework.assertEqual(emptyState.style.display, 'none', 'Empty state should be hidden');
+            testFramework.assertEqual(noResults.style.display, 'none', 'No results should be hidden');
+            testFramework.assertEqual(todoList.style.display, 'block', 'Todo list should be visible');
+            testFramework.assertTrue(todoList.innerHTML.includes('Buy groceries'), 'Should render matching todo');
+            testFramework.assertFalse(todoList.innerHTML.includes('Walk the dog'), 'Should not render non-matching todo');
+        });
+
+        testFramework.test('search integration - should maintain search after todo operations', () => {
+            const app = new TodoApp(true);
+            const todo1 = app.addTodoForTest('Buy groceries');
+            const todo2 = app.addTodoForTest('Walk the dog');
+            app.searchQuery = 'buy';
+            
+            // Test toggle operation maintains search
+            app.toggleTodo(todo1.id);
+            const filtered = app.filterTodos();
+            testFramework.assertEqual(filtered.length, 1, 'Search should be maintained after toggle');
+            testFramework.assertTrue(filtered[0].completed, 'Todo should be toggled');
+            
+            // Test delete operation maintains search
+            app.deleteTodo(todo2.id);
+            testFramework.assertEqual(app.searchQuery, 'buy', 'Search query should be maintained after delete');
+            testFramework.assertEqual(app.todos.length, 1, 'Todo should be deleted');
+        });
+
+        testFramework.test('search edge cases - should handle special characters', () => {
+            const app = new TodoApp(true);
+            app.addTodoForTest('Buy groceries & milk');
+            app.addTodoForTest('Call mom @ 3pm');
+            app.searchQuery = '&';
+            
+            const filtered = app.filterTodos();
+            testFramework.assertEqual(filtered.length, 1, 'Should handle special characters');
+            testFramework.assertEqual(filtered[0].text, 'Buy groceries & milk', 'Should match special characters');
+        });
+
+        testFramework.test('search state management - should reset search correctly', () => {
+            const app = new TodoApp(true);
+            app.addTodoForTest('Buy groceries');
+            app.addTodoForTest('Walk the dog');
+            
+            // Set search and verify filtering
+            app.handleSearch('buy');
+            testFramework.assertEqual(app.filterTodos().length, 1, 'Should filter with search');
+            
+            // Clear search and verify all todos shown
+            app.handleSearch('');
+            testFramework.assertEqual(app.filterTodos().length, 2, 'Should show all todos when search cleared');
+        });
+
+        // Function to run all tests
+        async function runAllTests() {
+            const results = await testFramework.runTests();
+            testFramework.renderResults();
+        }
+
+        // Auto-run tests when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            runAllTests();
+        });
+    </script>
+</body>
+</html>
