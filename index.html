@@ -178,11 +178,50 @@
             background: #86868b;
             color: white;
         }
+
+        .search-form {
+            margin-bottom: 20px;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid #e5e5e7;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #007aff;
+        }
+
+        .search-input::placeholder {
+            color: #86868b;
+        }
+
+        .no-results {
+            text-align: center;
+            color: #86868b;
+            font-size: 16px;
+            padding: 20px;
+            font-style: italic;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>AutoToDo</h1>
+        
+        <div class="search-form">
+            <input 
+                type="text" 
+                class="search-input" 
+                id="searchInput" 
+                placeholder="Search todos..."
+            >
+        </div>
         
         <form class="add-todo-form" id="addTodoForm">
             <input 
@@ -202,6 +241,10 @@
         <div class="empty-state" id="emptyState" style="display: none;">
             No todos yet. Add one above to get started!
         </div>
+
+        <div class="no-results" id="noResults" style="display: none;">
+            No todos match your search. Try a different keyword.
+        </div>
     </div>
 
     <script>
@@ -209,6 +252,7 @@
             constructor() {
                 this.todos = this.loadTodos();
                 this.editingId = null;
+                this.searchQuery = '';
                 this.init();
             }
 
@@ -222,6 +266,11 @@
                 form.addEventListener('submit', (e) => {
                     e.preventDefault();
                     this.addTodo();
+                });
+
+                const searchInput = document.getElementById('searchInput');
+                searchInput.addEventListener('input', (e) => {
+                    this.handleSearch(e.target.value);
                 });
             }
 
@@ -294,20 +343,45 @@
                 this.render();
             }
 
+            handleSearch(query) {
+                this.searchQuery = query.toLowerCase().trim();
+                this.render();
+            }
+
+            filterTodos() {
+                if (!this.searchQuery) {
+                    return this.todos;
+                }
+                return this.todos.filter(todo => 
+                    todo.text.toLowerCase().includes(this.searchQuery)
+                );
+            }
+
             render() {
                 const todoList = document.getElementById('todoList');
                 const emptyState = document.getElementById('emptyState');
+                const noResults = document.getElementById('noResults');
+                
+                const filteredTodos = this.filterTodos();
+
+                // Hide all states initially
+                todoList.style.display = 'none';
+                emptyState.style.display = 'none';
+                noResults.style.display = 'none';
 
                 if (this.todos.length === 0) {
-                    todoList.style.display = 'none';
                     emptyState.style.display = 'block';
                     return;
                 }
 
-                todoList.style.display = 'block';
-                emptyState.style.display = 'none';
+                if (filteredTodos.length === 0 && this.searchQuery) {
+                    noResults.style.display = 'block';
+                    return;
+                }
 
-                todoList.innerHTML = this.todos.map(todo => {
+                todoList.style.display = 'block';
+
+                todoList.innerHTML = filteredTodos.map(todo => {
                     if (this.editingId === todo.id) {
                         return this.renderEditForm(todo);
                     }
