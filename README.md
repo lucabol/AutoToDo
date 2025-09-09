@@ -178,52 +178,62 @@ If you continue experiencing issues:
 6. Use Delete buttons to remove todos (with confirmation)
 
 ## Keyboard Shortcuts
-AutoToDo supports comprehensive keyboard shortcuts to help you navigate and interact with the app more efficiently:
+AutoToDo features a comprehensive keyboard shortcut system for efficient task management. Access the built-in help dialog anytime with **Ctrl+H**, **?**, or **F1**.
 
-### Adding Todos
-- **Enter** in "What needs to be done?" field - Add the new todo and automatically focus back to input field for quick consecutive additions
-- **Tab** from input field - Move focus to "Add Todo" button, then **Enter** or **Space** to add
+### Navigation Shortcuts
+- **Ctrl+N** - Focus new todo input field for quick task entry
+- **Ctrl+F** - Focus search input field to filter todos
+- **/** - Alternative shortcut to focus search field
+- **Tab** / **Shift+Tab** - Navigate between interactive elements
+
+### Todo Management Shortcuts
+- **Ctrl+Enter** - Add new todo (works when input field has focus)
+- **Enter** in "What needs to be done?" field - Add todo and stay focused for rapid entry
+- **Ctrl+T** - Toggle completion status of the first todo item
+- **Ctrl+Delete** - Delete the first todo item (with confirmation)
+- **Ctrl+A** - Select all todos (provides visual feedback)
+- **Ctrl+Shift+D** - Clear all completed todos at once
+
+### Editing Mode Shortcuts
+When editing a todo item:
+- **Escape** - Cancel editing and discard changes
+- **Ctrl+S** - Save changes and exit edit mode
+- **Enter** - Save changes and exit edit mode (alternative)
+- **Ctrl+A** - Select all text in edit field for quick replacement
+
+### General Application Shortcuts
+- **Ctrl+H** - Show keyboard shortcuts help dialog
+- **?** - Show help dialog (alternative shortcut)
+- **F1** - Show help dialog (traditional help key)
+- **Ctrl+M** - Toggle between light and dark themes
 
 ### Search and Filtering
-- **Tab** to search field or click directly to focus
-- Type to search (real-time filtering as you type)
-- **Ctrl+A** - Select all text in search field
-- **Backspace** or **Delete** - Clear search characters
-- **Enter** in search field - Apply search filter (though real-time search works automatically)
+- Real-time search as you type in the search field
+- **Ctrl+A** in search field - Select all search text
+- **Backspace** / **Delete** - Clear search characters
+- **Enter** in search field - Apply search filter
 
-### Todo List Navigation
-- **Tab** - Navigate between todo checkboxes, Edit buttons, and Delete buttons
-- **Shift+Tab** - Navigate backwards through elements
-- **Enter** or **Space** on focused buttons - Activate Edit/Delete actions
-- **Space** on focused checkbox - Toggle todo completion status
-- **Arrow keys** - Navigate within text when editing
-
-### Editing Todos
-- **Enter** or click "Edit" button - Enter edit mode for a todo
-- **Enter** in edit field - Save changes and return to view mode
-- **Escape** - Cancel edit mode and discard changes
-- **Tab** within edit mode - Move between edit input, Save, and Cancel buttons
-- **Ctrl+A** in edit field - Select all text for quick replacement
-
-### Text Selection and Editing
-- **Ctrl+A** - Select all text in any input field
-- **Ctrl+C** / **Ctrl+V** - Copy and paste text (standard browser shortcuts)
+### Standard Text Editing
+All standard browser text editing shortcuts work within input fields:
+- **Ctrl+C** / **Ctrl+V** - Copy and paste text
 - **Home** / **End** - Move cursor to beginning/end of text
 - **Ctrl+Left/Right** - Move cursor by word
 - **Shift+Arrow keys** - Select text while moving cursor
 
 ### Accessibility Features
-- All interactive elements are keyboard accessible via **Tab** navigation
-- Focus indicators clearly show which element is active
-- Screen readers can navigate the todo list structure
-- No mouse required - complete keyboard-only operation is supported
+- Complete keyboard-only operation supported
+- All interactive elements are accessible via **Tab** navigation
+- Clear focus indicators show which element is active
+- Screen reader compatible with proper ARIA labels
+- Context-aware shortcuts (e.g., edit mode shortcuts only work when editing)
 
-### Tips for Efficient Use
-- After adding a todo, focus automatically returns to the input field for rapid todo creation
-- Use the search field to quickly filter large todo lists
-- **Tab** through todos to quickly mark multiple items as complete using **Space**
-- The app maintains focus context - editing a todo and pressing **Escape** returns focus appropriately
-- All standard browser text editing shortcuts work within input fields
+### Pro Tips for Power Users
+- **Built-in Help**: Press **Ctrl+H** to see all available shortcuts organized by category
+- **Rapid Todo Entry**: After adding a todo, focus automatically returns to input for consecutive additions
+- **Quick Filtering**: Use **/** to instantly jump to search and filter large todo lists
+- **Batch Operations**: Use **Ctrl+A** to select all todos, then **Ctrl+Shift+D** to clear completed ones
+- **Theme Switching**: Press **Ctrl+M** to quickly toggle between light and dark modes
+- **Context Awareness**: The app intelligently handles shortcuts based on what you're doing (editing vs. browsing)
 
 ## Bug Fix
 Fixed the issue where users were unable to delete todos using the graphical UI. The delete functionality now works correctly with:
