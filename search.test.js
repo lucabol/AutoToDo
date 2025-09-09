@@ -131,6 +131,15 @@ class TodoController {
         this.render();
     }
 
+    handleClearSearch() {
+        const searchInput = global.document.getElementById('searchInput');
+        if (searchInput) {
+            searchInput.value = '';
+        }
+        this.searchTerm = '';
+        this.render();
+    }
+
     render() {
         const allTodos = this.model.getAllTodos();
         const filteredTodos = this.model.filterTodos(this.searchTerm);
@@ -392,6 +401,79 @@ testRunner.test('TodoModel generateId should generate valid string IDs', functio
         this.assertTrue(typeof id === 'string', 'ID should be a string');
         this.assertTrue(id.length > 0, 'ID should not be empty');
     }
+});
+
+testRunner.test('TodoController handleClearSearch should clear search field and term', function() {
+    const model = new TodoModel();
+    const view = new TodoView();
+    const controller = new TodoController(model, view);
+    
+    // Mock the search input element
+    const mockSearchInput = { value: 'test search' };
+    global.document.getElementById = function(id) {
+        if (id === 'searchInput') return mockSearchInput;
+        return {
+            addEventListener: function() {},
+            style: { display: 'none' },
+            innerHTML: '',
+            value: ''
+        };
+    };
+    
+    // Add test todos
+    model.addTodo('Buy groceries');
+    model.addTodo('Walk the dog');
+    
+    // Set a search term
+    controller.handleSearch('buy');
+    this.assertEqual(controller.searchTerm, 'buy', 'Search term should be set');
+    
+    // Clear the search
+    controller.handleClearSearch();
+    
+    // Verify search input is cleared
+    this.assertEqual(mockSearchInput.value, '', 'Search input should be cleared');
+    
+    // Verify search term is cleared
+    this.assertEqual(controller.searchTerm, '', 'Search term should be empty');
+    
+    // Verify all todos are shown
+    const filteredTodos = model.filterTodos(controller.searchTerm);
+    this.assertEqual(filteredTodos.length, 2, 'Should show all todos when search is cleared');
+});
+
+testRunner.test('TodoController handleClearSearch should work when no search term is set', function() {
+    const model = new TodoModel();
+    const view = new TodoView();
+    const controller = new TodoController(model, view);
+    
+    // Mock the search input element
+    const mockSearchInput = { value: '' };
+    global.document.getElementById = function(id) {
+        if (id === 'searchInput') return mockSearchInput;
+        return {
+            addEventListener: function() {},
+            style: { display: 'none' },
+            innerHTML: '',
+            value: ''
+        };
+    };
+    
+    // Add test todos
+    model.addTodo('Buy groceries');
+    
+    // Clear search when no search term is set (should not cause errors)
+    controller.handleClearSearch();
+    
+    // Verify search input remains empty
+    this.assertEqual(mockSearchInput.value, '', 'Search input should remain empty');
+    
+    // Verify search term is empty
+    this.assertEqual(controller.searchTerm, '', 'Search term should be empty');
+    
+    // Verify all todos are still shown
+    const filteredTodos = model.filterTodos(controller.searchTerm);
+    this.assertEqual(filteredTodos.length, 1, 'Should show all todos');
 });
 
 // Export for Node.js environment
