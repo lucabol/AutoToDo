@@ -2,30 +2,38 @@
   "name": "auto-todo",
   "version": "1.0.0",
   "description": "A complete todo application with CRUD operations, search functionality, and robust delete handling",
-  "main": "script.js",
+  "main": "index.html",
   "scripts": {
-    "test": "node test-delete-unit-tests.js",
-    "test:browser": "echo 'Open test-delete-unit-tests.html in your browser to run unit tests'",
+    "test": "node test-delete-unit-tests.js && node search.test.js",
+    "test:delete": "node test-delete-unit-tests.js",
+    "test:search": "node search.test.js",
+    "test:browser": "echo 'Open test-delete-unit-tests.html, test.html, and test-delete-functionality.html in your browser to run all tests'",
     "test:integration": "echo 'Open test-delete-functionality.html in your browser to run integration tests'",
     "start": "echo 'Open index.html in your browser to run the AutoToDo application'",
-    "test:all": "npm run test && echo '\\nTo run browser tests, open test-delete-unit-tests.html and test-delete-functionality.html in your browser'"
+    "test:all": "npm run test && echo '\\nTo run browser tests, open test-delete-unit-tests.html, test.html, and test-delete-functionality.html in your browser'"
   },
   "keywords": [
     "todo",
     "javascript",
     "crud",
+    "search",
     "web-application",
-    "unit-tests"
+    "unit-tests",
+    "productivity"
   ],
   "author": "AutoToDo Team",
   "license": "MIT",
   "files": [
     "index.html",
-    "script.js",
+    "js/",
     "styles.css",
     "test-delete-unit-tests.js",
     "test-delete-unit-tests.html",
-    "test-delete-functionality.html"
+    "test-delete-functionality.html",
+    "search.test.js",
+    "test.html",
+    "README-TESTING.md",
+    "TEST_README.md"
   ],
   "repository": {
     "type": "git",
@@ -34,5 +42,8 @@
   "bugs": {
     "url": "https://github.com/lucabol/AutoToDo/issues"
   },
-  "homepage": "https://github.com/lucabol/AutoToDo#readme"
+  "homepage": "https://github.com/lucabol/AutoToDo#readme",
+  "engines": {
+    "node": ">=12.0.0"
+  }
 }
