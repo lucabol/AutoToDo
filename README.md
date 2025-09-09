@@ -78,6 +78,29 @@ Your todos are automatically saved in your browser's local storage. Data persist
 5. Use Edit buttons to modify todo text
 6. Use Delete buttons to remove todos (with confirmation)
 
+## Keyboard Shortcuts
+AutoToDo supports several keyboard shortcuts to help you navigate and interact with the app more efficiently:
+
+### General Navigation
+- **Enter** - Submit forms (add new todo, save edited todo)
+- **Tab** - Navigate between form elements and buttons
+- **Space** - Toggle checkboxes when focused
+
+### Editing Todos
+- **Escape** - Cancel edit mode and return to view mode
+- **Enter** - Save changes when editing a todo (submits the edit form)
+
+### Form Interactions
+- **Enter** in "What needs to be done?" field - Add the new todo
+- **Enter** in search field - Apply search filter (real-time search also works as you type)
+- **Enter** in edit field - Save the edited todo text
+
+### Tips for Efficient Use
+- After adding a todo, focus automatically returns to the input field for quick consecutive additions
+- Use the search field to quickly find specific todos in large lists
+- When editing a todo, press **Escape** to cancel changes and return to the original text
+- The app works entirely with keyboard navigation - you can use **Tab** to move between all interactive elements
+
 ## Bug Fix
 Fixed the issue where users were unable to delete todos using the graphical UI. The delete functionality now works correctly with:
 - Proper event binding for delete buttons
