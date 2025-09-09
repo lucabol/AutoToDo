@@ -275,3 +275,256 @@ h1 {
     background: var(--text-secondary);
     color: white;
 }
+
+/* Keyboard Shortcuts Help Modal */
+.help-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+}
+
+.help-modal-content {
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    box-shadow: 0 20px 60px var(--shadow);
+    max-width: 600px;
+    max-height: 80vh;
+    width: 90%;
+    border: 1px solid var(--border-primary);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.help-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border-primary);
+    background: var(--bg-tertiary);
+}
+
+.help-header h2 {
+    color: var(--text-primary);
+    font-size: 24px;
+    font-weight: 600;
+    margin: 0;
+}
+
+.help-close-btn {
+    background: none;
+    border: none;
+    font-size: 24px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+}
+
+.help-close-btn:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+.help-body {
+    padding: 24px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.help-category {
+    margin-bottom: 32px;
+}
+
+.help-category:last-child {
+    margin-bottom: 0;
+}
+
+.help-category h3 {
+    color: var(--text-primary);
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    border-bottom: 2px solid var(--accent-primary);
+    padding-bottom: 8px;
+}
+
+.shortcuts-list {
+    display: grid;
+    gap: 12px;
+}
+
+.shortcut-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: var(--bg-tertiary);
+    border-radius: 8px;
+    border: 1px solid var(--border-primary);
+    transition: all 0.2s ease;
+}
+
+.shortcut-item:hover {
+    background: var(--bg-hover);
+    border-color: var(--border-hover);
+}
+
+.shortcut-keys {
+    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Consolas', monospace;
+    background: var(--bg-quaternary);
+    color: var(--text-primary);
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--border-primary);
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+    min-width: 80px;
+    text-align: center;
+}
+
+.shortcut-description {
+    color: var(--text-primary);
+    font-size: 14px;
+    flex: 1;
+    margin-left: 16px;
+}
+
+.help-footer {
+    padding: 16px 24px;
+    border-top: 1px solid var(--border-primary);
+    background: var(--bg-tertiary);
+    text-align: center;
+}
+
+.help-footer p {
+    color: var(--text-secondary);
+    font-size: 14px;
+    margin: 0;
+}
+
+.help-footer kbd {
+    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Consolas', monospace;
+    background: var(--bg-quaternary);
+    color: var(--text-primary);
+    padding: 2px 6px;
+    border-radius: 4px;
+    border: 1px solid var(--border-primary);
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* Visual feedback for shortcut actions */
+.todo-item.selected {
+    background: var(--accent-primary);
+    color: white;
+    transform: scale(1.02);
+    box-shadow: 0 4px 20px rgba(0, 122, 255, 0.3);
+}
+
+.todo-item.selected .todo-text {
+    color: white;
+}
+
+.todo-item.selected .todo-actions button {
+    color: white;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.todo-item.selected .todo-actions button:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+/* Smooth transitions for better UX */
+.todo-item {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Animation for help modal */
+.help-modal {
+    animation: fadeIn 0.2s ease-out;
+}
+
+.help-modal-content {
+    animation: slideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* Responsive design for help modal */
+@media (max-width: 768px) {
+    .help-modal-content {
+        max-width: 95%;
+        max-height: 90vh;
+        margin: 20px;
+    }
+    
+    .help-header {
+        padding: 16px 20px;
+    }
+    
+    .help-body {
+        padding: 20px;
+    }
+    
+    .shortcut-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+    
+    .shortcut-description {
+        margin-left: 0;
+        margin-top: 4px;
+    }
+    
+    .shortcut-keys {
+        min-width: auto;
+    }
+}
