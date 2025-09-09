@@ -11,11 +11,13 @@ class TodoView {
 
     /**
      * Render the complete todo list
-     * @param {Array} todos - Array of todo objects
+     * @param {Array} todos - Array of todo objects to display
+     * @param {Array} allTodos - Array of all todos (for search context)
+     * @param {string} searchTerm - Current search term
      */
-    render(todos) {
+    render(todos, allTodos = [], searchTerm = '') {
         if (todos.length === 0) {
-            this.showEmptyState();
+            this.showEmptyState(allTodos.length === 0, searchTerm);
             return;
         }
 
@@ -86,11 +88,19 @@ class TodoView {
     }
 
     /**
-     * Show empty state when no todos exist
+     * Show empty state when no todos exist or no search results
+     * @param {boolean} noTodosExist - True if no todos exist at all
+     * @param {string} searchTerm - Current search term
      */
-    showEmptyState() {
+    showEmptyState(noTodosExist = true, searchTerm = '') {
         this.todoList.style.display = 'none';
         this.emptyState.style.display = 'block';
+        
+        if (noTodosExist) {
+            this.emptyState.textContent = 'No todos yet. Add one above to get started!';
+        } else {
+            this.emptyState.textContent = 'No todos match your search.';
+        }
     }
 
     /**

@@ -122,6 +122,22 @@ class TodoModel {
     }
 
     /**
+     * Filter todos by search term
+     * @param {string} searchTerm - Term to search for in todo text
+     * @returns {Array} Array of filtered todos
+     */
+    filterTodos(searchTerm) {
+        if (!searchTerm || !searchTerm.trim()) {
+            return this.getAllTodos();
+        }
+        
+        const term = searchTerm.toLowerCase().trim();
+        return this.todos.filter(todo => 
+            todo.text.toLowerCase().includes(term)
+        );
+    }
+
+    /**
      * Get count of todos
      * @returns {Object} Object with total, completed, and pending counts
      */

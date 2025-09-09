@@ -5,6 +5,7 @@ class TodoController {
     constructor(model, view) {
         this.model = model;
         this.view = view;
+        this.searchTerm = '';
         this.init();
     }
 
@@ -25,6 +26,12 @@ class TodoController {
         addTodoForm.addEventListener('submit', (e) => {
             e.preventDefault();
             this.handleAddTodo();
+        });
+
+        // Search input handler
+        const searchInput = document.getElementById('searchInput');
+        searchInput.addEventListener('input', (e) => {
+            this.handleSearch(e.target.value);
         });
 
         // Event delegation for todo list interactions
@@ -67,6 +74,15 @@ class TodoController {
         } catch (error) {
             this.view.showMessage(error.message, 'error');
         }
+    }
+
+    /**
+     * Handle search input changes
+     * @param {string} searchTerm - The search term
+     */
+    handleSearch(searchTerm) {
+        this.searchTerm = searchTerm;
+        this.render();
     }
 
     /**
@@ -215,8 +231,9 @@ class TodoController {
      * Render the current state
      */
     render() {
-        const todos = this.model.getAllTodos();
-        this.view.render(todos);
+        const allTodos = this.model.getAllTodos();
+        const filteredTodos = this.model.filterTodos(this.searchTerm);
+        this.view.render(filteredTodos, allTodos, this.searchTerm);
     }
 
     /**
