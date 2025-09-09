@@ -86,7 +86,7 @@ class TodoController {
         const handlers = {
             // Navigation and focus shortcuts
             focusNewTodo: () => this.focusNewTodoInput(),
-            focusSearch: () => this.focusSearchInput(),
+            focusSearch: (event) => this.focusSearchInput(event),
             
             // Todo management shortcuts
             addTodo: () => this.handleAddTodoFromShortcut(),
@@ -134,13 +134,29 @@ class TodoController {
     }
 
     /**
-     * Focus the search input field
+     * Focus the search input field and handle the '/' character appropriately
+     * This is called when the '/' shortcut is triggered
      */
-    focusSearchInput() {
+    focusSearchInput(event) {
         const searchInput = document.getElementById('searchInput');
         if (searchInput) {
-            searchInput.focus();
-            searchInput.select(); // Select any existing text
+            const wasAlreadyFocused = document.activeElement === searchInput;
+            
+            if (!wasAlreadyFocused) {
+                // Prevent the default '/' from being typed since we'll handle it ourselves
+                if (event) {
+                    event.preventDefault();
+                }
+                
+                searchInput.focus();
+                // Clear any existing text and add the '/' character
+                searchInput.value = '/';
+                // Move cursor to end
+                searchInput.setSelectionRange(1, 1);
+                // Trigger input event to update search
+                searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+            // If already focused, don't prevent default - let the '/' be typed normally
         }
     }
 
