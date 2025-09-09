@@ -9,6 +9,7 @@ class KeyboardShortcutManager {
         this.shortcuts = new Map();
         this.contexts = new Map();
         this.contextHandlers = new Map();
+        this.debugMode = false; // Can be enabled for debugging shortcut matching
         this.setupDefaultShortcuts();
     }
 
@@ -98,6 +99,8 @@ class KeyboardShortcutManager {
         if (altKey) modifiers.push('alt');
         if (shiftKey) modifiers.push('shift');
         
+        // Return only the modifier portion for key generation - context and key
+        // are handled separately in generateShortcutKey() for proper separation of concerns
         return modifiers.length > 0 ? modifiers.join('+') + '+' : '';
     }
 
@@ -144,6 +147,11 @@ class KeyboardShortcutManager {
         
         // No matching shortcut found - this is expected behavior when
         // user presses keys that aren't configured as shortcuts
+        // Log for debugging purposes when needed
+        if (this.debugMode) {
+            console.debug(`KeyboardShortcutManager: No shortcut matches key combination: ${event.key} (Ctrl: ${event.ctrlKey}, Alt: ${event.altKey}, Shift: ${event.shiftKey})`);
+        }
+        
         return null;
     }
 
@@ -163,7 +171,7 @@ class KeyboardShortcutManager {
             shortcut.action(event);
             return true; // Shortcut was handled
         } catch (error) {
-            this.handleShortcutError(error);
+            this.handleShortcutError(error, shortcut);
             return false;
         }
     }
@@ -171,11 +179,16 @@ class KeyboardShortcutManager {
     /**
      * Handle errors that occur during shortcut execution
      * @param {Error} error - The error that occurred
+     * @param {Object} shortcut - The shortcut configuration that caused the error
      * @private
      */
-    handleShortcutError(error) {
-        // Log error with consistent format for better debugging
-        console.error('KeyboardShortcutManager: Error executing shortcut:', error.message || error);
+    handleShortcutError(error, shortcut) {
+        // Log error with specific shortcut information for better troubleshooting
+        const shortcutInfo = shortcut ? 
+            `${shortcut.context}:${this.createModifierString(shortcut.ctrlKey, shortcut.altKey, shortcut.shiftKey)}${shortcut.key}` :
+            'unknown shortcut';
+        
+        console.error(`KeyboardShortcutManager: Error executing shortcut '${shortcutInfo}':`, error.message || error);
         
         // In production, you might want to send this to an error reporting service
         // or display a user-friendly message
