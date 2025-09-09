@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AutoToDo - Todo Application</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>AutoToDo</h1>
+            <p>A simple todo application with full CRUD functionality</p>
+        </header>
+
+        <main>
+            <!-- Add new todo form -->
+            <section class="add-todo-section">
+                <h2>Add New Todo</h2>
+                <form id="todo-form">
+                    <input type="text" id="todo-input" placeholder="Enter your todo..." required>
+                    <button type="submit">Add Todo</button>
+                </form>
+            </section>
+
+            <!-- Todo list -->
+            <section class="todo-list-section">
+                <h2>Your Todos</h2>
+                <div id="todo-list" class="todo-list">
+                    <!-- Todos will be dynamically added here -->
+                </div>
+                <div id="empty-state" class="empty-state">
+                    <p>No todos yet. Add one above to get started!</p>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
