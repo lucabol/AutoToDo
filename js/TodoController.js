@@ -144,6 +144,16 @@ class TodoController {
         if (e.key === 'Escape' && this.view.isEditing()) {
             this.handleCancelEdit();
         }
+        
+        // Ctrl+S to save when editing
+        if (e.key === 's' && e.ctrlKey && this.view.isEditing()) {
+            e.preventDefault(); // Prevent browser's default save dialog
+            const editingId = this.view.getEditingId();
+            const editForm = document.querySelector(`.edit-form[data-id="${editingId}"]`);
+            if (editForm) {
+                this.handleSaveEdit(editingId, editForm);
+            }
+        }
     }
 
     /**
