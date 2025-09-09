@@ -82,28 +82,32 @@ class TodoController {
         // Register editing context
         this.keyboardManager.registerContext('editing', () => this.view.isEditing());
         
-        // Register context handlers
-        this.keyboardManager.registerContextHandlers('editing', {
+        // Create handler functions for all shortcuts
+        const handlers = {
+            // Navigation and focus shortcuts
+            focusNewTodo: () => this.focusNewTodoInput(),
+            focusSearch: () => this.focusSearchInput(),
+            
+            // Todo management shortcuts
+            addTodo: () => this.handleAddTodoFromShortcut(),
+            toggleFirstTodo: () => this.handleToggleFirstTodo(),
+            deleteFirstTodo: () => this.handleDeleteFirstTodo(),
+            selectAll: () => this.handleSelectAllTodos(),
+            clearCompleted: () => this.handleClearCompleted(),
+            
+            // Editing shortcuts
             cancelEdit: () => this.handleCancelEdit(),
-            saveEdit: () => this.handleSaveEditFromShortcut()
-        });
+            saveEdit: () => this.handleSaveEditFromShortcut(),
+            
+            // General shortcuts
+            showHelp: () => this.showKeyboardHelp(),
+            toggleTheme: () => this.toggleTheme()
+        };
 
-        // Register Escape key to cancel editing
-        this.keyboardManager.registerShortcut({
-            key: 'Escape',
-            context: 'editing',
-            action: () => this.handleCancelEdit(),
-            description: 'Cancel editing'
-        });
-
-        // Register Ctrl+S to save when editing
-        this.keyboardManager.registerShortcut({
-            key: 's',
-            ctrlKey: true,
-            context: 'editing',
-            action: () => this.handleSaveEditFromShortcut(),
-            preventDefault: true,
-            description: 'Save changes'
+        // Get shortcuts configuration and register all shortcuts
+        const shortcuts = ShortcutsConfig.getShortcuts(handlers);
+        shortcuts.forEach(shortcut => {
+            this.keyboardManager.registerShortcut(shortcut);
         });
     }
 
@@ -116,6 +120,216 @@ class TodoController {
         if (editForm) {
             this.handleSaveEdit(editingId, editForm);
         }
+    }
+
+    /**
+     * Focus the new todo input field
+     */
+    focusNewTodoInput() {
+        const todoInput = document.getElementById('todoInput');
+        if (todoInput) {
+            todoInput.focus();
+            todoInput.select(); // Select any existing text
+        }
+    }
+
+    /**
+     * Focus the search input field
+     */
+    focusSearchInput() {
+        const searchInput = document.getElementById('searchInput');
+        if (searchInput) {
+            searchInput.focus();
+            searchInput.select(); // Select any existing text
+        }
+    }
+
+    /**
+     * Handle adding todo from keyboard shortcut
+     */
+    handleAddTodoFromShortcut() {
+        const todoInput = document.getElementById('todoInput');
+        if (todoInput && todoInput.value.trim()) {
+            // If there's text in the input, add it as a todo
+            this.handleAddTodo();
+        } else {
+            // Otherwise, just focus the input
+            this.focusNewTodoInput();
+        }
+    }
+
+    /**
+     * Toggle the first (topmost) todo item
+     */
+    handleToggleFirstTodo() {
+        const allTodos = this.model.getAllTodos();
+        if (allTodos.length > 0) {
+            const firstTodo = allTodos[0];
+            this.handleToggleTodo(firstTodo.id);
+            this.view.showMessage(`${firstTodo.completed ? 'Unchecked' : 'Checked'} "${firstTodo.text}"`, 'success');
+        } else {
+            this.view.showMessage('No todos to toggle', 'info');
+        }
+    }
+
+    /**
+     * Delete the first (topmost) todo item
+     */
+    handleDeleteFirstTodo() {
+        const allTodos = this.model.getAllTodos();
+        if (allTodos.length > 0) {
+            const firstTodo = allTodos[0];
+            this.handleDeleteTodo(firstTodo.id);
+        } else {
+            this.view.showMessage('No todos to delete', 'info');
+        }
+    }
+
+    /**
+     * Handle select all todos (visual feedback only)
+     */
+    handleSelectAllTodos() {
+        const todoItems = document.querySelectorAll('.todo-item');
+        todoItems.forEach(item => {
+            item.classList.add('selected');
+        });
+        
+        // Remove selection after a short delay
+        setTimeout(() => {
+            todoItems.forEach(item => {
+                item.classList.remove('selected');
+            });
+        }, 1000);
+        
+        const todoCount = this.model.getAllTodos().length;
+        this.view.showMessage(`Selected ${todoCount} todo${todoCount !== 1 ? 's' : ''}`, 'info');
+    }
+
+    /**
+     * Clear all completed todos
+     */
+    handleClearCompleted() {
+        const completedTodos = this.model.getAllTodos().filter(todo => todo.completed);
+        if (completedTodos.length === 0) {
+            this.view.showMessage('No completed todos to clear', 'info');
+            return;
+        }
+
+        const confirmMessage = `Are you sure you want to delete ${completedTodos.length} completed todo${completedTodos.length !== 1 ? 's' : ''}?`;
+        if (this.view.showConfirmation(confirmMessage)) {
+            let deletedCount = 0;
+            completedTodos.forEach(todo => {
+                if (this.model.deleteTodo(todo.id)) {
+                    deletedCount++;
+                }
+            });
+            
+            // If we were editing a deleted todo, cancel the edit
+            const editingId = this.view.getEditingId();
+            if (editingId && completedTodos.some(todo => todo.id === editingId)) {
+                this.view.cancelEdit();
+            }
+            
+            this.render();
+            this.view.showMessage(`Cleared ${deletedCount} completed todo${deletedCount !== 1 ? 's' : ''}`, 'success');
+        }
+    }
+
+    /**
+     * Show keyboard shortcuts help modal
+     */
+    showKeyboardHelp() {
+        // Check if help modal already exists
+        let helpModal = document.getElementById('keyboardHelpModal');
+        
+        if (!helpModal) {
+            helpModal = this.createKeyboardHelpModal();
+            document.body.appendChild(helpModal);
+        }
+        
+        helpModal.style.display = 'flex';
+        
+        // Focus the close button for accessibility
+        const closeButton = helpModal.querySelector('.help-close-btn');
+        if (closeButton) {
+            closeButton.focus();
+        }
+    }
+
+    /**
+     * Create the keyboard help modal
+     */
+    createKeyboardHelpModal() {
+        const modal = document.createElement('div');
+        modal.id = 'keyboardHelpModal';
+        modal.className = 'help-modal';
+        
+        // Get all shortcuts and group by category
+        const allShortcuts = this.keyboardManager.getAllShortcuts();
+        const groupedShortcuts = ShortcutsConfig.groupByCategory(allShortcuts);
+        
+        let helpContent = `
+            <div class="help-modal-content">
+                <div class="help-header">
+                    <h2>Keyboard Shortcuts</h2>
+                    <button class="help-close-btn" onclick="this.closest('.help-modal').style.display='none'">
+                        <span aria-hidden="true">&times;</span>
+                        <span class="sr-only">Close</span>
+                    </button>
+                </div>
+                <div class="help-body">
+        `;
+        
+        // Add shortcuts by category
+        const categoryOrder = ['Navigation', 'Todo Management', 'Editing', 'General'];
+        
+        categoryOrder.forEach(categoryName => {
+            if (groupedShortcuts[categoryName]) {
+                helpContent += `<div class="help-category">
+                    <h3>${categoryName}</h3>
+                    <div class="shortcuts-list">`;
+                
+                groupedShortcuts[categoryName].forEach(shortcut => {
+                    const keyCombo = ShortcutsConfig.formatKeyCombo(shortcut);
+                    const description = shortcut.description.replace(/\s*\([^)]*\)\s*$/, ''); // Remove key combo from description
+                    
+                    helpContent += `
+                        <div class="shortcut-item">
+                            <kbd class="shortcut-keys">${keyCombo}</kbd>
+                            <span class="shortcut-description">${description}</span>
+                        </div>
+                    `;
+                });
+                
+                helpContent += `</div></div>`;
+            }
+        });
+        
+        helpContent += `
+                </div>
+                <div class="help-footer">
+                    <p>Press <kbd>Escape</kbd> or click outside to close this help dialog.</p>
+                </div>
+            </div>
+        `;
+        
+        modal.innerHTML = helpContent;
+        
+        // Add click outside to close
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.style.display = 'none';
+            }
+        });
+        
+        // Add escape key to close
+        modal.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                modal.style.display = 'none';
+            }
+        });
+        
+        return modal;
     }
 
     /**
@@ -277,17 +491,6 @@ class TodoController {
 
         if (action === 'toggle' && id) {
             this.handleToggleTodo(id);
-        }
-    }
-
-    /**
-     * Handle save edit triggered by keyboard shortcut
-     */
-    handleSaveEditFromShortcut() {
-        const editingId = this.view.getEditingId();
-        const editForm = document.querySelector(`.edit-form[data-id="${editingId}"]`);
-        if (editForm) {
-            this.handleSaveEdit(editingId, editForm);
         }
     }
 
