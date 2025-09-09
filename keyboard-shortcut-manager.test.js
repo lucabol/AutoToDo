@@ -49,16 +49,30 @@ class KeyboardShortcutManager {
     }
 
     generateShortcutKey(key, ctrlKey, altKey, shiftKey, context) {
+        const modifierStr = this.createModifierString(ctrlKey, altKey, shiftKey);
+        return `${context}:${modifierStr}${key.toLowerCase()}`;
+    }
+
+    createModifierString(ctrlKey, altKey, shiftKey) {
         const modifiers = [];
         if (ctrlKey) modifiers.push('ctrl');
         if (altKey) modifiers.push('alt');
         if (shiftKey) modifiers.push('shift');
         
-        const modifierStr = modifiers.length > 0 ? modifiers.join('+') + '+' : '';
-        return `${context}:${modifierStr}${key.toLowerCase()}`;
+        return modifiers.length > 0 ? modifiers.join('+') + '+' : '';
     }
 
     handleKeyboard(event) {
+        const matchingShortcut = this.findMatchingShortcut(event);
+        
+        if (matchingShortcut) {
+            return this.executeShortcut(matchingShortcut, event);
+        }
+        
+        return false;
+    }
+
+    findMatchingShortcut(event) {
         const activeContexts = this.getActiveContexts();
         const contextOrder = [...activeContexts, 'global'];
         
@@ -73,21 +87,29 @@ class KeyboardShortcutManager {
 
             const shortcut = this.shortcuts.get(shortcutKey);
             if (shortcut) {
-                if (shortcut.preventDefault) {
-                    event.preventDefault();
-                }
-                
-                try {
-                    shortcut.action(event);
-                    return true;
-                } catch (error) {
-                    console.error('Error executing keyboard shortcut:', error);
-                }
-                break;
+                return shortcut;
             }
         }
         
-        return false;
+        return null;
+    }
+
+    executeShortcut(shortcut, event) {
+        if (shortcut.preventDefault) {
+            event.preventDefault();
+        }
+        
+        try {
+            shortcut.action(event);
+            return true;
+        } catch (error) {
+            this.handleShortcutError(error);
+            return false;
+        }
+    }
+
+    handleShortcutError(error) {
+        console.error('Error executing keyboard shortcut:', error);
     }
 
     getActiveContexts() {
@@ -124,23 +146,41 @@ class KeyboardShortcutManager {
         
         for (const shortcut of this.shortcuts.values()) {
             if (shortcut.description) {
-                const modifiers = [];
-                if (shortcut.ctrlKey) modifiers.push('Ctrl');
-                if (shortcut.altKey) modifiers.push('Alt');
-                if (shortcut.shiftKey) modifiers.push('Shift');
-                
-                const keyCombo = modifiers.length > 0 
-                    ? `${modifiers.join('+')}+${shortcut.key}`
-                    : shortcut.key;
-                
-                descriptions.push({
-                    keys: keyCombo,
-                    description: shortcut.description,
-                    context: shortcut.context
-                });
+                const formattedDescription = this.formatShortcutDescription(shortcut);
+                descriptions.push(formattedDescription);
             }
         }
         
+        return this.sortShortcutDescriptions(descriptions);
+    }
+
+    formatShortcutDescription(shortcut) {
+        const keyCombo = this.createKeyComboString(shortcut);
+        
+        return {
+            keys: keyCombo,
+            description: shortcut.description,
+            context: shortcut.context
+        };
+    }
+
+    createKeyComboString(shortcut) {
+        const modifiers = this.getModifierStrings(shortcut);
+        
+        return modifiers.length > 0 
+            ? `${modifiers.join('+')}+${shortcut.key}`
+            : shortcut.key;
+    }
+
+    getModifierStrings(shortcut) {
+        const modifiers = [];
+        if (shortcut.ctrlKey) modifiers.push('Ctrl');
+        if (shortcut.altKey) modifiers.push('Alt');
+        if (shortcut.shiftKey) modifiers.push('Shift');
+        return modifiers;
+    }
+
+    sortShortcutDescriptions(descriptions) {
         return descriptions.sort((a, b) => {
             if (a.context !== b.context) {
                 return a.context.localeCompare(b.context);
@@ -422,6 +462,202 @@ function runKeyboardShortcutManagerTests() {
         assert(globalShortcuts[0].key === 'Enter', 'Should return correct global shortcut');
     }
 
+    // Test 13: createModifierString helper method
+    function testCreateModifierString() {
+        const manager = new KeyboardShortcutManager();
+        
+        // Test no modifiers
+        const noMods = manager.createModifierString(false, false, false);
+        assert(noMods === '', 'Should return empty string for no modifiers');
+        
+        // Test single modifier
+        const ctrlOnly = manager.createModifierString(true, false, false);
+        assert(ctrlOnly === 'ctrl+', 'Should return ctrl+ for ctrl only');
+        
+        // Test multiple modifiers
+        const ctrlAlt = manager.createModifierString(true, true, false);
+        assert(ctrlAlt === 'ctrl+alt+', 'Should return ctrl+alt+ for ctrl and alt');
+        
+        // Test all modifiers
+        const allMods = manager.createModifierString(true, true, true);
+        assert(allMods === 'ctrl+alt+shift+', 'Should return all modifiers in order');
+    }
+
+    // Test 14: findMatchingShortcut helper method
+    function testFindMatchingShortcut() {
+        const manager = new KeyboardShortcutManager();
+        let actionCalled = false;
+        
+        manager.registerShortcut({
+            key: 'Escape',
+            context: 'editing',
+            action: () => { actionCalled = true; }
+        });
+        
+        // Mock editing context
+        manager.registerContext('editing', () => true);
+        
+        const mockEvent = {
+            key: 'Escape',
+            ctrlKey: false,
+            altKey: false,
+            shiftKey: false
+        };
+        
+        const shortcut = manager.findMatchingShortcut(mockEvent);
+        assert(shortcut !== null, 'Should find matching shortcut');
+        assert(shortcut.key === 'Escape', 'Should return the correct shortcut');
+        assert(shortcut.context === 'editing', 'Should return shortcut with correct context');
+        
+        // Test no match
+        const noMatchEvent = {
+            key: 'x',
+            ctrlKey: false,
+            altKey: false,
+            shiftKey: false
+        };
+        
+        const noMatch = manager.findMatchingShortcut(noMatchEvent);
+        assert(noMatch === null, 'Should return null when no shortcut matches');
+    }
+
+    // Test 15: executeShortcut helper method
+    function testExecuteShortcut() {
+        const manager = new KeyboardShortcutManager();
+        let actionCalled = false;
+        let preventDefaultCalled = false;
+        
+        const mockEvent = {
+            preventDefault: () => { preventDefaultCalled = true; }
+        };
+        
+        const shortcut = {
+            action: () => { actionCalled = true; },
+            preventDefault: true
+        };
+        
+        const result = manager.executeShortcut(shortcut, mockEvent);
+        assert(result === true, 'Should return true when shortcut executes successfully');
+        assert(actionCalled === true, 'Should execute the action');
+        assert(preventDefaultCalled === true, 'Should call preventDefault when configured');
+    }
+
+    // Test 16: executeShortcut error handling
+    function testExecuteShortcutError() {
+        const manager = new KeyboardShortcutManager();
+        let errorLogged = false;
+        
+        // Mock console.error to check if error was logged
+        const originalConsoleError = console.error;
+        console.error = () => { errorLogged = true; };
+        
+        const mockEvent = {
+            preventDefault: () => {}
+        };
+        
+        const shortcut = {
+            action: () => { throw new Error('Test error'); },
+            preventDefault: false
+        };
+        
+        const result = manager.executeShortcut(shortcut, mockEvent);
+        assert(result === false, 'Should return false when shortcut execution fails');
+        assert(errorLogged === true, 'Should log error when execution fails');
+        
+        // Restore console.error
+        console.error = originalConsoleError;
+    }
+
+    // Test 17: formatShortcutDescription helper method
+    function testFormatShortcutDescription() {
+        const manager = new KeyboardShortcutManager();
+        
+        const shortcut = {
+            key: 's',
+            ctrlKey: true,
+            altKey: false,
+            shiftKey: false,
+            context: 'editing',
+            description: 'Save changes'
+        };
+        
+        const formatted = manager.formatShortcutDescription(shortcut);
+        assert(formatted.keys === 'Ctrl+s', 'Should format key combination correctly');
+        assert(formatted.description === 'Save changes', 'Should preserve description');
+        assert(formatted.context === 'editing', 'Should preserve context');
+    }
+
+    // Test 18: createKeyComboString helper method
+    function testCreateKeyComboString() {
+        const manager = new KeyboardShortcutManager();
+        
+        // Test simple key
+        const simpleShortcut = {
+            key: 'Escape',
+            ctrlKey: false,
+            altKey: false,
+            shiftKey: false
+        };
+        
+        const simpleCombo = manager.createKeyComboString(simpleShortcut);
+        assert(simpleCombo === 'Escape', 'Should return simple key for no modifiers');
+        
+        // Test key with modifiers
+        const modifiedShortcut = {
+            key: 's',
+            ctrlKey: true,
+            altKey: true,
+            shiftKey: false
+        };
+        
+        const modifiedCombo = manager.createKeyComboString(modifiedShortcut);
+        assert(modifiedCombo === 'Ctrl+Alt+s', 'Should format key with modifiers');
+    }
+
+    // Test 19: getModifierStrings helper method
+    function testGetModifierStrings() {
+        const manager = new KeyboardShortcutManager();
+        
+        // Test no modifiers
+        const noMods = manager.getModifierStrings({
+            ctrlKey: false,
+            altKey: false,
+            shiftKey: false
+        });
+        assert(noMods.length === 0, 'Should return empty array for no modifiers');
+        
+        // Test all modifiers
+        const allMods = manager.getModifierStrings({
+            ctrlKey: true,
+            altKey: true,
+            shiftKey: true
+        });
+        assert(allMods.length === 3, 'Should return three modifiers');
+        assert(allMods.includes('Ctrl'), 'Should include Ctrl');
+        assert(allMods.includes('Alt'), 'Should include Alt');
+        assert(allMods.includes('Shift'), 'Should include Shift');
+    }
+
+    // Test 20: sortShortcutDescriptions helper method
+    function testSortShortcutDescriptions() {
+        const manager = new KeyboardShortcutManager();
+        
+        const descriptions = [
+            { keys: 'z', context: 'global', description: 'Test Z' },
+            { keys: 'a', context: 'editing', description: 'Test A' },
+            { keys: 'b', context: 'editing', description: 'Test B' },
+            { keys: 'y', context: 'global', description: 'Test Y' }
+        ];
+        
+        const sorted = manager.sortShortcutDescriptions(descriptions);
+        
+        // Should sort by context first (editing before global), then by keys
+        assert(sorted[0].context === 'editing' && sorted[0].keys === 'a', 'Should sort editing context first, then by keys');
+        assert(sorted[1].context === 'editing' && sorted[1].keys === 'b', 'Should maintain key order within context');
+        assert(sorted[2].context === 'global' && sorted[2].keys === 'y', 'Should sort global context after editing');
+        assert(sorted[3].context === 'global' && sorted[3].keys === 'z', 'Should maintain key order in global context');
+    }
+
     // Run all tests
     console.log('============================================================');
     testManagerCreation();
@@ -436,6 +672,14 @@ function runKeyboardShortcutManagerTests() {
     testGetShortcutDescriptions();
     testInvalidShortcutRegistration();
     testGetShortcutsForContext();
+    testCreateModifierString();
+    testFindMatchingShortcut();
+    testExecuteShortcut();
+    testExecuteShortcutError();
+    testFormatShortcutDescription();
+    testCreateKeyComboString();
+    testGetModifierStrings();
+    testSortShortcutDescriptions();
     console.log('============================================================');
 
     // Print summary
