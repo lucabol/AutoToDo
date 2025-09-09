@@ -80,13 +80,25 @@ class KeyboardShortcutManager {
      * @private
      */
     generateShortcutKey(key, ctrlKey, altKey, shiftKey, context) {
+        const modifierStr = this.createModifierString(ctrlKey, altKey, shiftKey);
+        return `${context}:${modifierStr}${key.toLowerCase()}`;
+    }
+
+    /**
+     * Create a modifier string for shortcut key generation
+     * @param {boolean} ctrlKey - Whether Ctrl key is required
+     * @param {boolean} altKey - Whether Alt key is required
+     * @param {boolean} shiftKey - Whether Shift key is required
+     * @returns {string} Modifier string with trailing '+' if modifiers exist
+     * @private
+     */
+    createModifierString(ctrlKey, altKey, shiftKey) {
         const modifiers = [];
         if (ctrlKey) modifiers.push('ctrl');
         if (altKey) modifiers.push('alt');
         if (shiftKey) modifiers.push('shift');
         
-        const modifierStr = modifiers.length > 0 ? modifiers.join('+') + '+' : '';
-        return `${context}:${modifierStr}${key.toLowerCase()}`;
+        return modifiers.length > 0 ? modifiers.join('+') + '+' : '';
     }
 
     /**
@@ -94,6 +106,22 @@ class KeyboardShortcutManager {
      * @param {KeyboardEvent} event - The keyboard event
      */
     handleKeyboard(event) {
+        const matchingShortcut = this.findMatchingShortcut(event);
+        
+        if (matchingShortcut) {
+            return this.executeShortcut(matchingShortcut, event);
+        }
+        
+        return false; // No shortcut was handled
+    }
+
+    /**
+     * Find the first matching shortcut for the given keyboard event
+     * @param {KeyboardEvent} event - The keyboard event
+     * @returns {Object|null} The matching shortcut configuration or null
+     * @private
+     */
+    findMatchingShortcut(event) {
         const activeContexts = this.getActiveContexts();
         
         // Check shortcuts in order of context specificity (most specific first)
@@ -110,22 +138,41 @@ class KeyboardShortcutManager {
 
             const shortcut = this.shortcuts.get(shortcutKey);
             if (shortcut) {
-                if (shortcut.preventDefault) {
-                    event.preventDefault();
-                }
-                
-                // Execute the action
-                try {
-                    shortcut.action(event);
-                    return true; // Shortcut was handled
-                } catch (error) {
-                    console.error('Error executing keyboard shortcut:', error);
-                }
-                break; // Stop checking after first match
+                return shortcut;
             }
         }
         
-        return false; // No shortcut was handled
+        return null;
+    }
+
+    /**
+     * Execute a shortcut action with proper error handling
+     * @param {Object} shortcut - The shortcut configuration
+     * @param {KeyboardEvent} event - The keyboard event
+     * @returns {boolean} True if shortcut was executed successfully
+     * @private
+     */
+    executeShortcut(shortcut, event) {
+        if (shortcut.preventDefault) {
+            event.preventDefault();
+        }
+        
+        try {
+            shortcut.action(event);
+            return true; // Shortcut was handled
+        } catch (error) {
+            this.handleShortcutError(error);
+            return false;
+        }
+    }
+
+    /**
+     * Handle errors that occur during shortcut execution
+     * @param {Error} error - The error that occurred
+     * @private
+     */
+    handleShortcutError(error) {
+        console.error('Error executing keyboard shortcut:', error);
     }
 
     /**
@@ -203,23 +250,65 @@ class KeyboardShortcutManager {
         
         for (const shortcut of this.shortcuts.values()) {
             if (shortcut.description) {
-                const modifiers = [];
-                if (shortcut.ctrlKey) modifiers.push('Ctrl');
-                if (shortcut.altKey) modifiers.push('Alt');
-                if (shortcut.shiftKey) modifiers.push('Shift');
-                
-                const keyCombo = modifiers.length > 0 
-                    ? `${modifiers.join('+')}+${shortcut.key}`
-                    : shortcut.key;
-                
-                descriptions.push({
-                    keys: keyCombo,
-                    description: shortcut.description,
-                    context: shortcut.context
-                });
+                const formattedDescription = this.formatShortcutDescription(shortcut);
+                descriptions.push(formattedDescription);
             }
         }
         
+        return this.sortShortcutDescriptions(descriptions);
+    }
+
+    /**
+     * Format a single shortcut into a description object
+     * @param {Object} shortcut - The shortcut configuration
+     * @returns {Object} Formatted description object
+     * @private
+     */
+    formatShortcutDescription(shortcut) {
+        const keyCombo = this.createKeyComboString(shortcut);
+        
+        return {
+            keys: keyCombo,
+            description: shortcut.description,
+            context: shortcut.context
+        };
+    }
+
+    /**
+     * Create a formatted key combination string
+     * @param {Object} shortcut - The shortcut configuration
+     * @returns {string} Formatted key combination string
+     * @private
+     */
+    createKeyComboString(shortcut) {
+        const modifiers = this.getModifierStrings(shortcut);
+        
+        return modifiers.length > 0 
+            ? `${modifiers.join('+')}+${shortcut.key}`
+            : shortcut.key;
+    }
+
+    /**
+     * Get modifier strings for a shortcut
+     * @param {Object} shortcut - The shortcut configuration
+     * @returns {Array} Array of modifier strings
+     * @private
+     */
+    getModifierStrings(shortcut) {
+        const modifiers = [];
+        if (shortcut.ctrlKey) modifiers.push('Ctrl');
+        if (shortcut.altKey) modifiers.push('Alt');
+        if (shortcut.shiftKey) modifiers.push('Shift');
+        return modifiers;
+    }
+
+    /**
+     * Sort shortcut descriptions by context and key combination
+     * @param {Array} descriptions - Array of description objects
+     * @returns {Array} Sorted array of descriptions
+     * @private
+     */
+    sortShortcutDescriptions(descriptions) {
         return descriptions.sort((a, b) => {
             // Sort by context first, then by key combination
             if (a.context !== b.context) {
