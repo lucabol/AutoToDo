@@ -14,7 +14,63 @@ class TodoController {
      */
     init() {
         this.bindEvents();
+        this.initializeTheme();
         this.render();
+    }
+
+    /**
+     * Initialize theme management
+     */
+    initializeTheme() {
+        // Check for saved theme preference or system preference
+        const savedTheme = localStorage.getItem('todo-theme');
+        const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        
+        const initialTheme = savedTheme || (systemPrefersDark ? 'dark' : 'light');
+        this.setTheme(initialTheme, false); // false = don't save to localStorage on init
+        
+        // Listen for system theme changes
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+            if (!localStorage.getItem('todo-theme')) {
+                this.setTheme(e.matches ? 'dark' : 'light', false);
+            }
+        });
+    }
+
+    /**
+     * Set the application theme
+     * @param {string} theme - 'light' or 'dark'
+     * @param {boolean} save - Whether to save preference to localStorage
+     */
+    setTheme(theme, save = true) {
+        const body = document.body;
+        const themeToggle = document.getElementById('themeToggle');
+        const themeIcon = themeToggle?.querySelector('.theme-icon');
+        const themeText = themeToggle?.querySelector('.theme-text');
+
+        if (theme === 'dark') {
+            body.classList.add('dark-theme');
+            if (themeIcon) themeIcon.textContent = '☀️';
+            if (themeText) themeText.textContent = 'Light';
+        } else {
+            body.classList.remove('dark-theme');
+            if (themeIcon) themeIcon.textContent = '🌙';
+            if (themeText) themeText.textContent = 'Dark';
+        }
+
+        if (save) {
+            localStorage.setItem('todo-theme', theme);
+        }
+
+        this.currentTheme = theme;
+    }
+
+    /**
+     * Toggle between light and dark themes
+     */
+    toggleTheme() {
+        const newTheme = this.currentTheme === 'dark' ? 'light' : 'dark';
+        this.setTheme(newTheme);
     }
 
     /**
@@ -26,7 +82,20 @@ class TodoController {
         this.bindTodoListClick();
         this.bindTodoListSubmit();
         this.bindTodoListChange();
+        this.bindThemeToggle();
         this.bindKeyboardShortcuts();
+    }
+
+    /**
+     * Bind theme toggle button event
+     */
+    bindThemeToggle() {
+        const themeToggle = document.getElementById('themeToggle');
+        if (themeToggle) {
+            themeToggle.addEventListener('click', () => {
+                this.toggleTheme();
+            });
+        }
     }
 
     /**
