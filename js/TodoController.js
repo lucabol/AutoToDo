@@ -338,6 +338,7 @@ class TodoController {
     bindEvents() {
         this.bindAddTodoForm();
         this.bindSearchInput();
+        this.bindClearSearchButton();
         this.bindTodoListClick();
         this.bindTodoListSubmit();
         this.bindTodoListChange();
@@ -375,6 +376,16 @@ class TodoController {
         const searchInput = document.getElementById('searchInput');
         searchInput.addEventListener('input', (e) => {
             this.handleSearch(e.target.value);
+        });
+    }
+
+    /**
+     * Bind clear search button event handler
+     */
+    bindClearSearchButton() {
+        const clearSearchBtn = document.getElementById('clearSearchBtn');
+        clearSearchBtn.addEventListener('click', () => {
+            this.handleClearSearch();
         });
     }
 
@@ -440,7 +451,17 @@ class TodoController {
      * @param {string} searchTerm - The search term
      */
     handleSearch(searchTerm) {
-        this.searchTerm = searchTerm.toLowerCase().trim();
+        this.searchTerm = searchTerm;
+        this.render();
+    }
+
+    /**
+     * Handle clearing the search input
+     */
+    handleClearSearch() {
+        const searchInput = document.getElementById('searchInput');
+        searchInput.value = '';
+        this.searchTerm = '';
         this.render();
     }
 
