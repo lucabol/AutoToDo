@@ -181,7 +181,7 @@ class TodoController {
      * @param {string} searchTerm - The search term
      */
     handleSearch(searchTerm) {
-        this.searchTerm = searchTerm.toLowerCase().trim();
+        this.searchTerm = searchTerm;
         this.render();
     }
 
