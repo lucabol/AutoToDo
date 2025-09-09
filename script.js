@@ -1,47 +1,73 @@
-// Todo Application JavaScript
+/**
+ * AutoToDo Application - Enhanced with Search Functionality
+ * A complete todo app with CRUD operations, search, and persistent storage
+ */
 class TodoApp {
     constructor() {
-        this.todos = JSON.parse(localStorage.getItem('todos')) || [];
-        this.nextId = parseInt(localStorage.getItem('nextId')) || 1;
+        this.todos = this.loadTodos();
         this.editingId = null;
-        
-        this.initializeElements();
+        this.searchTerm = '';
+        this.init();
+    }
+
+    init() {
         this.bindEvents();
         this.render();
     }
 
-    initializeElements() {
-        this.todoForm = document.getElementById('todo-form');
-        this.todoInput = document.getElementById('todo-input');
-        this.todoList = document.getElementById('todo-list');
-        this.emptyState = document.getElementById('empty-state');
-    }
-
     bindEvents() {
-        this.todoForm.addEventListener('submit', (e) => this.handleAddTodo(e));
+        const form = document.getElementById('addTodoForm');
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.addTodo();
+        });
+
+        const searchInput = document.getElementById('searchInput');
+        searchInput.addEventListener('input', (e) => {
+            this.setSearchTerm(e.target.value);
+        });
     }
 
-    handleAddTodo(e) {
-        e.preventDefault();
-        const text = this.todoInput.value.trim();
+    loadTodos() {
+        const saved = localStorage.getItem('todos');
+        return saved ? JSON.parse(saved) : [];
+    }
+
+    saveTodos() {
+        localStorage.setItem('todos', JSON.stringify(this.todos));
+    }
+
+    generateId() {
+        return Date.now().toString(36) + Math.random().toString(36).substr(2);
+    }
+
+    addTodo() {
+        const input = document.getElementById('todoInput');
+        const text = input.value.trim();
         
-        if (text) {
-            this.addTodo(text);
-            this.todoInput.value = '';
-        }
-    }
+        if (!text) return;
 
-    addTodo(text) {
         const todo = {
-            id: this.nextId++,
+            id: this.generateId(),
             text: text,
             completed: false,
             createdAt: new Date().toISOString()
         };
-        
-        this.todos.push(todo);
+
+        this.todos.unshift(todo);
         this.saveTodos();
+        input.value = '';
         this.render();
+        console.log('Todo added successfully:', todo);
+    }
+
+    deleteTodo(id) {
+        if (confirm('Are you sure you want to delete this todo?')) {
+            this.todos = this.todos.filter(todo => todo.id !== id);
+            this.saveTodos();
+            this.render();
+            console.log(`Todo with id ${id} deleted successfully`);
+        }
     }
 
     toggleTodo(id) {
@@ -50,30 +76,22 @@ class TodoApp {
             todo.completed = !todo.completed;
             this.saveTodos();
             this.render();
-        }
-    }
-
-    deleteTodo(id) {
-        // Show confirmation dialog before deleting
-        if (confirm('Are you sure you want to delete this todo?')) {
-            const index = this.todos.findIndex(t => t.id === id);
-            if (index !== -1) {
-                this.todos.splice(index, 1);
-                this.saveTodos();
-                this.render();
-                console.log(`Todo with id ${id} deleted successfully`);
-            }
+            console.log(`Todo ${id} toggled to ${todo.completed ? 'completed' : 'incomplete'}`);
         }
     }
 
     startEdit(id) {
         this.editingId = id;
         this.render();
-    }
-
-    cancelEdit() {
-        this.editingId = null;
-        this.render();
+        
+        // Focus on the edit input after rendering
+        setTimeout(() => {
+            const editInput = document.querySelector('.edit-input');
+            if (editInput) {
+                editInput.focus();
+                editInput.select();
+            }
+        }, 0);
     }
 
     saveEdit(id, newText) {
@@ -83,93 +101,99 @@ class TodoApp {
             this.editingId = null;
             this.saveTodos();
             this.render();
+            console.log(`Todo ${id} updated to: "${newText}"`);
         }
     }
 
-    saveTodos() {
-        localStorage.setItem('todos', JSON.stringify(this.todos));
-        localStorage.setItem('nextId', this.nextId.toString());
+    cancelEdit() {
+        this.editingId = null;
+        this.render();
+    }
+
+    setSearchTerm(term) {
+        this.searchTerm = term.toLowerCase();
+        this.render();
+    }
+
+    filterTodos() {
+        if (!this.searchTerm) {
+            return this.todos;
+        }
+        return this.todos.filter(todo => 
+            todo.text.toLowerCase().includes(this.searchTerm)
+        );
     }
 
     render() {
-        // Clear the todo list
-        this.todoList.innerHTML = '';
-        
-        // Show/hide empty state
-        if (this.todos.length === 0) {
-            this.emptyState.style.display = 'block';
+        const todoList = document.getElementById('todoList');
+        const emptyState = document.getElementById('emptyState');
+        const filteredTodos = this.filterTodos();
+
+        if (filteredTodos.length === 0) {
+            todoList.style.display = 'none';
+            if (this.todos.length === 0) {
+                emptyState.textContent = 'No todos yet. Add one above to get started!';
+            } else {
+                emptyState.textContent = 'No todos match your search.';
+            }
+            emptyState.style.display = 'block';
             return;
-        } else {
-            this.emptyState.style.display = 'none';
         }
 
-        // Render each todo
-        this.todos.forEach(todo => {
-            const todoElement = this.createTodoElement(todo);
-            this.todoList.appendChild(todoElement);
-        });
+        todoList.style.display = 'block';
+        emptyState.style.display = 'none';
+
+        todoList.innerHTML = filteredTodos.map(todo => {
+            if (this.editingId === todo.id) {
+                return this.renderEditForm(todo);
+            }
+            return this.renderTodoItem(todo);
+        }).join('');
+
+        // Bind event listeners for the newly rendered elements
+        this.bindTodoEvents();
     }
 
-    createTodoElement(todo) {
-        const div = document.createElement('div');
-        div.className = `todo-item ${todo.completed ? 'completed' : ''}`;
-        div.dataset.id = todo.id;
-
-        if (this.editingId === todo.id) {
-            // Render edit mode
-            div.innerHTML = `
-                <input type="checkbox" class="todo-checkbox" ${todo.completed ? 'checked' : ''}>
-                <input type="text" class="todo-text" value="${this.escapeHtml(todo.text)}" autofocus>
+    renderTodoItem(todo) {
+        return `
+            <li class="todo-item" data-id="${todo.id}">
+                <input 
+                    type="checkbox" 
+                    class="todo-checkbox" 
+                    ${todo.completed ? 'checked' : ''}
+                    onchange="app.toggleTodo('${todo.id}')"
+                >
+                <span class="todo-text ${todo.completed ? 'completed' : ''}">${this.escapeHtml(todo.text)}</span>
                 <div class="todo-actions">
-                    <button class="save-btn">Save</button>
-                    <button class="cancel-btn">Cancel</button>
+                    <button class="edit-btn" onclick="app.startEdit('${todo.id}')">Edit</button>
+                    <button class="delete-btn" onclick="app.deleteTodo('${todo.id}')">Delete</button>
                 </div>
-            `;
+            </li>
+        `;
+    }
 
-            // Bind edit mode events
-            const checkbox = div.querySelector('.todo-checkbox');
-            const textInput = div.querySelector('.todo-text');
-            const saveBtn = div.querySelector('.save-btn');
-            const cancelBtn = div.querySelector('.cancel-btn');
+    renderEditForm(todo) {
+        return `
+            <li class="todo-item" data-id="${todo.id}">
+                <input type="checkbox" class="todo-checkbox" ${todo.completed ? 'checked' : ''} disabled>
+                <form class="edit-form" onsubmit="event.preventDefault(); app.saveEdit('${todo.id}', this.querySelector('.edit-input').value)">
+                    <input 
+                        type="text" 
+                        class="edit-input" 
+                        value="${this.escapeHtml(todo.text)}"
+                        autofocus
+                        onkeydown="if(event.key==='Escape') app.cancelEdit()"
+                    >
+                    <button type="submit" class="save-btn">Save</button>
+                    <button type="button" class="cancel-btn" onclick="app.cancelEdit()">Cancel</button>
+                </form>
+            </li>
+        `;
+    }
 
-            checkbox.addEventListener('change', () => this.toggleTodo(todo.id));
-            
-            saveBtn.addEventListener('click', () => {
-                this.saveEdit(todo.id, textInput.value);
-            });
-            
-            cancelBtn.addEventListener('click', () => this.cancelEdit());
-            
-            textInput.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter') {
-                    this.saveEdit(todo.id, textInput.value);
-                } else if (e.key === 'Escape') {
-                    this.cancelEdit();
-                }
-            });
-
-        } else {
-            // Render view mode
-            div.innerHTML = `
-                <input type="checkbox" class="todo-checkbox" ${todo.completed ? 'checked' : ''}>
-                <div class="todo-text">${this.escapeHtml(todo.text)}</div>
-                <div class="todo-actions">
-                    <button class="edit-btn">Edit</button>
-                    <button class="delete-btn">Delete</button>
-                </div>
-            `;
-
-            // Bind view mode events
-            const checkbox = div.querySelector('.todo-checkbox');
-            const editBtn = div.querySelector('.edit-btn');
-            const deleteBtn = div.querySelector('.delete-btn');
-
-            checkbox.addEventListener('change', () => this.toggleTodo(todo.id));
-            editBtn.addEventListener('click', () => this.startEdit(todo.id));
-            deleteBtn.addEventListener('click', () => this.deleteTodo(todo.id));
-        }
-
-        return div;
+    bindTodoEvents() {
+        // Events are bound using inline handlers in the HTML for simplicity
+        // This ensures they work correctly when the DOM is updated
     }
 
     escapeHtml(text) {
@@ -177,10 +201,25 @@ class TodoApp {
         div.textContent = text;
         return div.innerHTML;
     }
+
+    // Utility method for debugging
+    getStats() {
+        const total = this.todos.length;
+        const completed = this.todos.filter(t => t.completed).length;
+        const pending = total - completed;
+        
+        return {
+            total,
+            completed,
+            pending,
+            todos: this.todos
+        };
+    }
 }
 
 // Initialize the app when the page loads
+let app;
 document.addEventListener('DOMContentLoaded', () => {
-    window.todoApp = new TodoApp();
+    app = new TodoApp();
     console.log('AutoToDo app initialized successfully');
 });
