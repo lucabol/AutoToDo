@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AutoToDo Archive Functionality Test</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: #f9f9f9;
+        }
+        .test-title {
+            font-weight: bold;
+            font-size: 1.1em;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        .test-description {
+            margin-bottom: 15px;
+            color: #666;
+        }
+        .test-controls {
+            margin: 10px 0;
+        }
+        .test-button {
+            margin: 5px;
+            padding: 8px 15px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .test-button:hover {
+            background: #0056b3;
+        }
+        .performance-info {
+            background: #e7f3ff;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>AutoToDo Archive Functionality Test</h1>
+        <p>This page tests the archive functionality with a focus on performance with large datasets (500+ todos).</p>
+        
+        <div class="test-section">
+            <div class="test-title">Test 1: Basic Archive Controls</div>
+            <div class="test-description">
+                Add some todos, mark them complete, then test the archive controls.
+            </div>
+            <!-- Include the main todo app -->
+            <div class="search-container">
+                <input 
+                    type="text" 
+                    id="searchInput" 
+                    class="search-input" 
+                    placeholder="Search todos..."
+                    aria-label="Search todos"
+                >
+                <button class="clear-search-btn" id="clearSearchBtn" type="button">Clear</button>
+            </div>
+
+            <div class="archive-controls">
+                <button class="archive-btn" id="archiveCompletedBtn" type="button">Archive Completed</button>
+                <button class="view-toggle-btn" id="viewToggleBtn" type="button">Show Archived</button>
+                <label class="search-archived-toggle">
+                    <input type="checkbox" id="searchArchivedToggle" /> Include archived in search
+                </label>
+            </div>
+            
+            <form class="add-todo-form" id="addTodoForm">
+                <input 
+                    type="text" 
+                    id="todoInput" 
+                    class="todo-input" 
+                    placeholder="Add a new todo..."
+                    required
+                    maxlength="500"
+                    aria-label="New todo text"
+                >
+                <button type="submit" class="add-btn">Add Todo</button>
+            </form>
+
+            <div class="todo-stats" id="todoStats"></div>
+            <ul class="todo-list" id="todoList"></ul>
+        </div>
+
+        <div class="test-section">
+            <div class="test-title">Test 2: Performance Test with 500+ Todos</div>
+            <div class="test-description">
+                Generate a large number of todos to test performance. This simulates the real-world scenario mentioned in the issue (500+ todos on Safari 14+).
+            </div>
+            <div class="test-controls">
+                <button class="test-button" id="generateTodosBtn">Generate 500 Todos</button>
+                <button class="test-button" id="completeRandomBtn">Complete Random 50%</button>
+                <button class="test-button" id="archiveAllCompletedBtn">Archive All Completed</button>
+                <button class="test-button" id="testSearchBtn">Test Search Performance</button>
+                <button class="test-button" id="clearAllBtn">Clear All Todos</button>
+            </div>
+            <div class="performance-info" id="performanceInfo">
+                Click "Generate 500 Todos" to start the performance test.
+            </div>
+        </div>
+
+        <div class="test-section">
+            <div class="test-title">Test 3: Archive Search Integration</div>
+            <div class="test-description">
+                Test that search works correctly with both active and archived todos.
+            </div>
+            <div class="test-controls">
+                <button class="test-button" id="setupArchiveSearchBtn">Setup Archive Search Test</button>
+                <button class="test-button" id="testActiveSearchBtn">Search Active Only</button>
+                <button class="test-button" id="testArchivedSearchBtn">Search Including Archived</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Include all necessary JavaScript files -->
+    <script src="js/StorageManager.js"></script>
+    <script src="js/TodoModel.js"></script>
+    <script src="js/TodoView.js"></script>
+    <script src="js/VirtualScrollManager.js"></script>
+    <script src="js/PerformanceUtils.js"></script>
+    <script src="js/KeyboardShortcutManager.js"></script>
+    <script src="js/KeyboardHandlers.js"></script>
+    <script src="js/ShortcutsConfig.js"></script>
+    <script src="js/TodoController.js"></script>
+
+    <script>
+        // Initialize the todo controller
+        const controller = new TodoController();
+        
+        // Performance test functions
+        function generateTodos() {
+            const startTime = performance.now();
+            const performanceInfo = document.getElementById('performanceInfo');
+            
+            performanceInfo.innerHTML = 'Generating 500 todos...';
+            
+            // Use setTimeout to avoid blocking the UI
+            setTimeout(() => {
+                for (let i = 1; i <= 500; i++) {
+                    controller.model.addTodo(`Performance Test Todo ${i}`);
+                }
+                const endTime = performance.now();
+                const duration = endTime - startTime;
+                
+                performanceInfo.innerHTML = `✅ Generated 500 todos in ${duration.toFixed(2)}ms`;
+                controller.render();
+            }, 10);
+        }
+        
+        function completeRandomTodos() {
+            const startTime = performance.now();
+            const todos = controller.model.getAllTodos();
+            const performanceInfo = document.getElementById('performanceInfo');
+            
+            let completed = 0;
+            todos.forEach((todo, index) => {
+                if (Math.random() > 0.5 && !todo.completed) {
+                    controller.model.toggleTodo(todo.id);
+                    completed++;
+                }
+            });
+            
+            const endTime = performance.now();
+            const duration = endTime - startTime;
+            
+            performanceInfo.innerHTML += `<br>✅ Completed ${completed} todos in ${duration.toFixed(2)}ms`;
+            controller.render();
+        }
+        
+        function archiveAllCompleted() {
+            const startTime = performance.now();
+            const performanceInfo = document.getElementById('performanceInfo');
+            
+            const archivedCount = controller.model.archiveCompleted();
+            
+            const endTime = performance.now();
+            const duration = endTime - startTime;
+            
+            performanceInfo.innerHTML += `<br>✅ Archived ${archivedCount} completed todos in ${duration.toFixed(2)}ms`;
+            controller.render();
+        }
+        
+        function testSearchPerformance() {
+            const startTime = performance.now();
+            const performanceInfo = document.getElementById('performanceInfo');
+            
+            // Test search without archived
+            const activeResults = controller.model.filterTodos('Performance', false);
+            const midTime = performance.now();
+            
+            // Test search with archived
+            const allResults = controller.model.filterTodos('Performance', true);
+            const endTime = performance.now();
+            
+            const activeDuration = midTime - startTime;
+            const allDuration = endTime - midTime;
+            
+            performanceInfo.innerHTML += `<br>✅ Search active (${activeResults.length} results): ${activeDuration.toFixed(2)}ms`;
+            performanceInfo.innerHTML += `<br>✅ Search all (${allResults.length} results): ${allDuration.toFixed(2)}ms`;
+        }
+        
+        function clearAllTodos() {
+            const startTime = performance.now();
+            const todos = [...controller.model.getAllTodos()];
+            
+            todos.forEach(todo => {
+                controller.model.deleteTodo(todo.id);
+            });
+            
+            const endTime = performance.now();
+            const duration = endTime - startTime;
+            
+            document.getElementById('performanceInfo').innerHTML = `✅ Cleared ${todos.length} todos in ${duration.toFixed(2)}ms`;
+            controller.render();
+        }
+
+        function setupArchiveSearchTest() {
+            // Clear existing todos
+            const todos = [...controller.model.getAllTodos()];
+            todos.forEach(todo => controller.model.deleteTodo(todo.id));
+            
+            // Add specific test todos
+            const todo1 = controller.model.addTodo('Active searchable todo');
+            const todo2 = controller.model.addTodo('Archived searchable todo'); 
+            const todo3 = controller.model.addTodo('Another active item');
+            
+            // Complete and archive the second todo
+            controller.model.toggleTodo(todo2.id);
+            controller.model.archiveTodo(todo2.id);
+            
+            controller.render();
+            alert('Setup complete! You now have 2 active todos and 1 archived todo.');
+        }
+        
+        function testActiveSearch() {
+            const searchInput = document.getElementById('searchInput');
+            const searchArchivedToggle = document.getElementById('searchArchivedToggle');
+            
+            searchArchivedToggle.checked = false;
+            searchInput.value = 'searchable';
+            
+            controller.handleSearch();
+            alert('Searching active only - should find 1 result');
+        }
+        
+        function testArchivedSearch() {
+            const searchInput = document.getElementById('searchInput');
+            const searchArchivedToggle = document.getElementById('searchArchivedToggle');
+            
+            searchArchivedToggle.checked = true;
+            searchInput.value = 'searchable';
+            
+            controller.handleSearch();
+            alert('Searching including archived - should find 2 results');
+        }
+        
+        // Bind test buttons
+        document.getElementById('generateTodosBtn').addEventListener('click', generateTodos);
+        document.getElementById('completeRandomBtn').addEventListener('click', completeRandomTodos);
+        document.getElementById('archiveAllCompletedBtn').addEventListener('click', archiveAllCompleted);
+        document.getElementById('testSearchBtn').addEventListener('click', testSearchPerformance);
+        document.getElementById('clearAllBtn').addEventListener('click', clearAllTodos);
+        document.getElementById('setupArchiveSearchBtn').addEventListener('click', setupArchiveSearchTest);
+        document.getElementById('testActiveSearchBtn').addEventListener('click', testActiveSearch);
+        document.getElementById('testArchivedSearchBtn').addEventListener('click', testArchivedSearch);
+        
+        // Initial render
+        controller.render();
+    </script>
+</body>
+</html>
