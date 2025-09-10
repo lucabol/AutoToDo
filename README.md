@@ -191,7 +191,29 @@ If you continue experiencing issues:
 
 AutoToDo features a comprehensive keyboard shortcut system designed for efficient task management. All shortcuts are context-aware and work intelligently based on your current activity.
 
-> **💡 Quick Help**: Press **Ctrl+H**, **?**, or **F1** anytime to view the built-in shortcuts reference dialog.
+### How to Access Keyboard Shortcuts in the Application
+
+AutoToDo provides multiple ways to access and view available keyboard shortcuts directly within the application:
+
+#### Built-in Help Dialog
+- **Primary access**: Press **Ctrl+H** at any time to open the comprehensive shortcuts reference dialog
+- **Alternative access**: Press **?** (question mark) for quick help access
+- **Traditional help**: Press **F1** (standard help key across applications)
+
+#### Help Dialog Features
+The built-in help system provides:
+- **Categorized shortcuts** - All shortcuts organized by function (Navigation, Todo Management, etc.)
+- **Visual key representations** - Clear display of key combinations with proper formatting
+- **Context information** - Which shortcuts work in different application states (global vs. editing mode)
+- **Real-time availability** - Dialog shows only shortcuts that are currently relevant
+- **Accessible design** - Full keyboard navigation and screen reader compatibility
+
+#### Quick Discovery Tips
+- **Visual indicators**: Look for subtle focus outlines when using Tab navigation
+- **Status feedback**: Many shortcuts provide immediate visual or audio feedback when triggered
+- **Progressive discovery**: Start with basic shortcuts (Ctrl+N, Ctrl+F) and gradually learn advanced combinations
+
+> **💡 Pro Tip**: The help dialog remains accessible even when editing todos - press **Ctrl+H** anytime to reference shortcuts without losing your work.
 
 ### Navigation Shortcuts
 These shortcuts help you move between different parts of the application:
@@ -666,6 +688,33 @@ The application provides clear visual feedback for all keyboard actions:
 #### Current Capabilities
 AutoToDo currently supports keyboard shortcuts through its built-in system, but **user-level customization requires browser-based solutions** since the application doesn't include a settings interface for modifying shortcuts.
 
+#### Visual Cues and Tooltips
+
+**Current Visual Feedback:**
+- **Focus indicators**: Clear visual outlines show which element has keyboard focus
+- **Button states**: Hover effects provide visual feedback for interactive elements
+- **Status messages**: Success/error notifications appear for user actions
+- **Help dialog**: Comprehensive shortcuts reference accessible via Ctrl+H
+
+**Future Enhancement Possibilities:**
+AutoToDo could benefit from enhanced visual cues such as:
+- **Hover tooltips**: Small popup hints showing available shortcuts when hovering over buttons or input fields
+- **Keyboard navigation hints**: Visual indicators showing which elements can be accessed via Tab key
+- **Shortcut badges**: Small key combination displays on relevant UI elements
+
+**Implementation Considerations for Tooltips:**
+While not currently implemented, tooltip functionality could be added through:
+- CSS-based tooltips using `::before` and `::after` pseudo-elements
+- JavaScript tooltip libraries for dynamic content
+- HTML `title` attributes for basic browser tooltips
+- ARIA labels for accessibility compliance
+
+**Recommended Tooltip Locations:**
+- **Add button**: Show "Ctrl+Enter to add" on hover
+- **Search field**: Display "Ctrl+F to focus" tooltip
+- **Todo items**: Show available actions (Ctrl+T to toggle, Ctrl+Delete to remove)
+- **Theme toggle**: Indicate "Ctrl+M" shortcut
+
 #### Browser-Based Customization Options
 
 **Option 1: Browser Extensions**
@@ -723,6 +772,77 @@ When customizing shortcuts:
 - **🎯 Batch Operations**: Combine **Ctrl+A** (select all) with **Ctrl+Shift+D** (clear completed) for quick cleanup
 - **🌙 Theme Switching**: Press **Ctrl+M** to quickly toggle between light and dark modes based on your environment
 - **🧠 Context Awareness**: The application intelligently handles shortcuts based on your current activity (editing vs. browsing)
+
+### Troubleshooting Keyboard Shortcuts
+
+If you're experiencing issues with keyboard shortcuts, try these solutions:
+
+#### Common Issues and Solutions
+
+**Shortcuts Not Working:**
+- **Browser focus issue**: Click anywhere in the AutoToDo application area to ensure it has focus
+- **Input field conflicts**: Some shortcuts only work when specific fields are focused (e.g., Ctrl+Enter requires focus on the todo input)
+- **Browser conflicts**: Check if browser extensions are intercepting shortcuts (disable extensions temporarily to test)
+- **Modifier key detection**: Ensure Ctrl, Shift, and Alt keys are functioning properly - test with system shortcuts first
+
+**Context-Specific Problems:**
+- **Edit mode shortcuts**: Shortcuts like Ctrl+S and Escape only work when actively editing a todo item
+- **Search shortcuts**: Ctrl+F and "/" work globally, but some shortcuts change behavior when search field is focused
+- **Modal dialogs**: When help dialog is open, only Escape and dialog-specific shortcuts are active
+
+**Browser-Specific Issues:**
+- **Firefox**: Some shortcuts may conflict with Firefox's built-in shortcuts - try different key combinations
+- **Chrome**: Extensions like Vimium or Chrome shortcuts may override AutoToDo shortcuts
+- **Safari**: Ensure "Develop" menu shortcuts aren't conflicting (Safari > Preferences > Advanced)
+- **Edge**: Check for Windows system shortcuts that might take precedence
+
+**Performance-Related Issues:**
+- **Large todo lists**: With 100+ todos, some shortcuts may have slight delays - this is normal
+- **Low memory**: Close other browser tabs if shortcuts become unresponsive
+- **Background processes**: Other applications consuming resources may affect responsiveness
+
+#### Diagnostic Steps
+
+**Step 1: Test Basic Functionality**
+1. Press **Ctrl+H** - Help dialog should appear immediately
+2. Press **Escape** - Dialog should close
+3. Press **Ctrl+N** - Input field should gain focus
+4. Type test text and press **Enter** - Todo should be added
+
+**Step 2: Check Browser Console**
+1. Open Developer Tools (F12)
+2. Check Console tab for JavaScript errors
+3. Try shortcuts while monitoring for error messages
+
+**Step 3: Test in Incognito/Private Mode**
+1. Open AutoToDo in incognito/private browsing mode
+2. Test problematic shortcuts
+3. If working in incognito, disable browser extensions one by one
+
+**Step 4: Verify Keyboard Hardware**
+1. Test modifier keys (Ctrl, Shift, Alt) in other applications
+2. Try alternative shortcut combinations (e.g., use ? instead of Ctrl+H for help)
+3. Test with an external keyboard if using a laptop
+
+#### Getting Help
+
+**If shortcuts still don't work:**
+- **Clear browser cache**: Hard refresh with Ctrl+Shift+R
+- **Try different browser**: Test in Chrome, Firefox, Safari, or Edge
+- **Check accessibility settings**: Ensure browser accessibility features aren't interfering
+- **Use alternative shortcuts**: Most functions have multiple shortcut options (e.g., Ctrl+H, ?, or F1 for help)
+
+**Compatibility Notes:**
+- All shortcuts work in modern browsers (Chrome 80+, Firefox 75+, Safari 13+, Edge 80+)
+- Some shortcuts may conflict with screen reader software - use alternative combinations
+- Virtual keyboards may not support all modifier key combinations
+
+**Reporting Issues:**
+If you encounter persistent shortcut problems:
+1. Note your browser version and operating system
+2. List which specific shortcuts aren't working
+3. Describe the expected vs. actual behavior
+4. Include any console error messages
 
 ## Technical Information
 
