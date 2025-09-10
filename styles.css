@@ -126,6 +126,76 @@ h1 {
 }
 
 .clear-search-btn {
+    padding: 10px 16px;
+    margin-left: 8px;
+    border: 1px solid var(--border-primary);
+    border-radius: 6px;
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.3s ease;
+}
+
+.clear-search-btn:hover {
+    background-color: var(--bg-hover);
+    border-color: var(--border-hover);
+}
+
+/* Archive Controls */
+.archive-controls {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+    justify-content: center;
+}
+
+.archive-btn, .toggle-archived-btn, .unarchive-btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.archive-btn, .unarchive-btn {
+    background: var(--accent-primary);
+    color: white;
+}
+
+.archive-btn:hover, .unarchive-btn:hover {
+    background: var(--accent-hover);
+}
+
+.toggle-archived-btn {
+    background: var(--bg-quaternary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-primary);
+}
+
+.toggle-archived-btn:hover {
+    background: var(--bg-hover);
+    border-color: var(--border-hover);
+}
+
+.toggle-archived-btn.active {
+    background: var(--accent-primary);
+    color: white;
+    border-color: var(--accent-primary);
+}
+
+/* Archived Todo Styles */
+.todo-item.archived {
+    opacity: 0.6;
+    border-left: 4px solid var(--text-secondary);
+}
+
+.todo-item.archived .todo-text {
+    font-style: italic;
+}
+
+.clear-search-btn-old {
     background: var(--bg-tertiary);
     border: 2px solid var(--border-primary);
     border-radius: 8px;
@@ -230,7 +300,7 @@ h1 {
     gap: 8px;
 }
 
-.edit-btn, .delete-btn {
+.edit-btn, .delete-btn, .archive-btn, .unarchive-btn {
     padding: 8px 12px;
     border: none;
     border-radius: 6px;

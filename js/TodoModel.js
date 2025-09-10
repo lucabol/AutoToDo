@@ -7,12 +7,22 @@ class TodoModel {
     }
 
     /**
-     * Load todos from localStorage
+     * Load todos from localStorage with data migration
      * @returns {Array} Array of todo objects
      */
     loadTodos() {
         const saved = localStorage.getItem('todos');
-        return saved ? JSON.parse(saved) : [];
+        if (!saved) return [];
+        
+        const todos = JSON.parse(saved);
+        
+        // Data migration: add archived property to existing todos
+        const migrated = todos.map(todo => ({
+            ...todo,
+            archived: todo.archived !== undefined ? todo.archived : false
+        }));
+        
+        return migrated;
     }
 
     /**
@@ -76,6 +86,7 @@ class TodoModel {
             id: this.generateId(),
             text: text.trim(),
             completed: false,
+            archived: false,
             createdAt: new Date().toISOString()
         };
 
@@ -154,19 +165,84 @@ class TodoModel {
     }
 
     /**
-     * Filter todos by search term with enhanced matching
-     * @param {string} searchTerm - Term to search for in todo text
+     * Archive a completed todo by ID
+     * @param {string} id - Todo ID to archive
+     * @returns {Object|null} Archived todo object or null if not found
+     */
+    archiveTodo(id) {
+        const todo = this.todos.find(t => t.id === id);
+        if (todo && todo.completed) {
+            todo.archived = true;
+            this.saveTodos();
+            return todo;
+        }
+        return null;
+    }
+
+    /**
+     * Unarchive a todo by ID
+     * @param {string} id - Todo ID to unarchive
+     * @returns {Object|null} Unarchived todo object or null if not found
+     */
+    unarchiveTodo(id) {
+        const todo = this.todos.find(t => t.id === id);
+        if (todo && todo.archived) {
+            todo.archived = false;
+            this.saveTodos();
+            return todo;
+        }
+        return null;
+    }
+
+    /**
+     * Archive all completed todos for better performance
+     * @returns {number} Number of todos archived
+     */
+    archiveCompletedTodos() {
+        let archived = 0;
+        this.todos.forEach(todo => {
+            if (todo.completed && !todo.archived) {
+                todo.archived = true;
+                archived++;
+            }
+        });
+        
+        if (archived > 0) {
+            this.saveTodos();
+        }
+        
+        return archived;
+    }
+
+    /**
+     * Get todos filtered by completion and archive status
+     * @param {boolean} includeArchived - Whether to include archived todos
      * @returns {Array} Array of filtered todos
      */
-    filterTodos(searchTerm) {
+    getTodosFiltered(includeArchived = false) {
+        if (includeArchived) {
+            return [...this.todos];
+        }
+        return this.todos.filter(todo => !todo.archived);
+    }
+
+    /**
+     * Filter todos by search term with enhanced matching and archive filtering
+     * @param {string} searchTerm - Term to search for in todo text
+     * @param {boolean} includeArchived - Whether to include archived todos in results
+     * @returns {Array} Array of filtered todos
+     */
+    filterTodos(searchTerm, includeArchived = false) {
+        let todosToSearch = includeArchived ? this.todos : this.todos.filter(todo => !todo.archived);
+        
         if (!searchTerm || !searchTerm.trim()) {
-            return this.getAllTodos();
+            return [...todosToSearch];
         }
         
         // Normalize the search term: trim and collapse multiple spaces
         const normalizedTerm = searchTerm.toLowerCase().trim().replace(/\s+/g, ' ');
         
-        return this.todos.filter(todo => {
+        return todosToSearch.filter(todo => {
             const todoText = todo.text.toLowerCase();
             
             // If the search term contains multiple words, check if all words are present
@@ -182,14 +258,25 @@ class TodoModel {
     }
 
     /**
-     * Get count of todos
-     * @returns {Object} Object with total, completed, and pending counts
+     * Legacy method for backward compatibility - Get all todos
+     * @returns {Array} Array of all todos (non-archived only for performance)
      */
-    getStats() {
-        const total = this.todos.length;
-        const completed = this.todos.filter(t => t.completed).length;
+    getAllTodos() {
+        return this.getTodosFiltered(false); // Show only active todos by default for performance
+    }
+
+    /**
+     * Get count of todos with archive information
+     * @param {boolean} includeArchived - Whether to include archived todos in count
+     * @returns {Object} Object with total, completed, pending, and archived counts
+     */
+    getStats(includeArchived = false) {
+        const activeTodos = includeArchived ? this.todos : this.todos.filter(todo => !todo.archived);
+        const total = activeTodos.length;
+        const completed = activeTodos.filter(t => t.completed).length;
         const pending = total - completed;
+        const archived = this.todos.filter(t => t.archived).length;
         
-        return { total, completed, pending };
+        return { total, completed, pending, archived };
     }
 }

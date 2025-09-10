@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AutoToDo Performance Test</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .performance-controls {
+            background: var(--bg-secondary);
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            border: 1px solid var(--border-primary);
+        }
+        .performance-metrics {
+            background: var(--bg-tertiary);
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 6px;
+            font-family: monospace;
+        }
+        .test-button {
+            background: var(--accent-primary);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .test-button:hover {
+            background: var(--accent-hover);
+        }
+        .results {
+            margin: 10px 0;
+            padding: 10px;
+            background: var(--bg-quaternary);
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>AutoToDo Performance Test</h1>
+            <button class="theme-toggle" id="themeToggle">
+                <span class="theme-icon">🌙</span>
+                <span class="theme-text">Dark</span>
+            </button>
+        </div>
+
+        <div class="performance-controls">
+            <h2>Performance Testing Controls</h2>
+            <button class="test-button" onclick="generateTestTodos(100)">Generate 100 Todos</button>
+            <button class="test-button" onclick="generateTestTodos(500)">Generate 500 Todos</button>
+            <button class="test-button" onclick="generateTestTodos(1000)">Generate 1000 Todos</button>
+            <button class="test-button" onclick="clearAllTodos()">Clear All Todos</button>
+            <button class="test-button" onclick="runSearchPerformanceTest()">Test Search Performance</button>
+            
+            <div class="performance-metrics" id="performanceMetrics">
+                <div>Total Todos: <span id="totalCount">0</span></div>
+                <div>Active Todos: <span id="activeCount">0</span></div>
+                <div>Completed Todos: <span id="completedCount">0</span></div>
+                <div>Last Render Time: <span id="renderTime">-</span>ms</div>
+                <div>Last Search Time: <span id="searchTime">-</span>ms</div>
+            </div>
+
+            <div class="results" id="testResults"></div>
+        </div>
+        
+        <div class="search-container">
+            <input 
+                type="search" 
+                class="search-input" 
+                id="searchInput" 
+                placeholder="Search todos..."
+            >
+            <button class="clear-search-btn" id="clearSearchBtn" type="button">Clear</button>
+        </div>
+        
+        <form class="add-todo-form" id="addTodoForm">
+            <input 
+                type="text" 
+                class="todo-input" 
+                id="todoInput" 
+                placeholder="What needs to be done?"
+                required
+            >
+            <button type="submit" class="add-btn">Add Todo</button>
+        </form>
+
+        <ul class="todo-list" id="todoList">
+            <!-- Todos will be dynamically inserted here -->
+        </ul>
+
+        <div class="empty-state" id="emptyState" style="display: none;">
+            No todos yet. Add one above to get started!
+        </div>
+    </div>
+
+    <!-- JavaScript Modules -->
+    <script src="js/ShortcutsConfig.js"></script>
+    <script src="js/KeyboardShortcutManager.js"></script>
+    <script src="js/HelpModalBuilder.js"></script>
+    <script src="js/KeyboardHandlers.js"></script>
+    <script src="js/TodoModel.js"></script>
+    <script src="js/TodoView.js"></script>
+    <script src="js/TodoController.js"></script>
+    <script>
+        // Performance testing utilities
+        let performanceApp = null;
+        
+        // Sample todo texts for realistic testing
+        const sampleTodos = [
+            "Buy groceries for the week including milk, eggs, and bread",
+            "Schedule dentist appointment for next month",
+            "Review quarterly financial reports and prepare summary",
+            "Plan weekend camping trip with family",
+            "Update website content and fix broken links",
+            "Organize home office and declutter desk area",
+            "Research new project management tools for team",
+            "Call mom to check on her health status",
+            "Prepare presentation for Monday morning meeting",
+            "Book vacation flights and hotel reservations",
+            "Complete online course module about data analysis",
+            "Fix leaky faucet in the kitchen sink",
+            "Write blog post about productivity tips",
+            "Schedule car maintenance and oil change",
+            "Organize photos from last year's vacation",
+            "Learn new programming language or framework",
+            "Plan healthy meal prep for the upcoming week",
+            "Clean and organize garage storage area",
+            "Update resume and LinkedIn profile",
+            "Research investment options for retirement planning"
+        ];
+
+        function initializePerformanceApp() {
+            const model = new TodoModel();
+            const view = new TodoView();
+            const controller = new TodoController(model, view);
+            
+            // Override render method to measure performance
+            const originalRender = controller.render.bind(controller);
+            controller.render = function() {
+                const startTime = performance.now();
+                originalRender();
+                const endTime = performance.now();
+                const renderTime = endTime - startTime;
+                
+                document.getElementById('renderTime').textContent = renderTime.toFixed(2);
+                updateMetrics();
+            };
+
+            // Override search method to measure performance
+            const originalHandleSearch = controller.handleSearch.bind(controller);
+            controller.handleSearch = function(searchTerm) {
+                const startTime = performance.now();
+                originalHandleSearch(searchTerm);
+                const endTime = performance.now();
+                const searchTime = endTime - startTime;
+                
+                document.getElementById('searchTime').textContent = searchTime.toFixed(2);
+            };
+
+            performanceApp = { model, view, controller };
+            window.performanceApp = performanceApp;
+            
+            updateMetrics();
+            return performanceApp;
+        }
+
+        function generateTestTodos(count) {
+            if (!performanceApp) return;
+            
+            const startTime = performance.now();
+            
+            for (let i = 0; i < count; i++) {
+                const randomIndex = Math.floor(Math.random() * sampleTodos.length);
+                const todoText = `${sampleTodos[randomIndex]} (${i + 1})`;
+                performanceApp.model.addTodo(todoText);
+                
+                // Randomly complete some todos (about 30%)
+                if (Math.random() < 0.3) {
+                    const todos = performanceApp.model.getAllTodos();
+                    const lastTodo = todos[0]; // Most recent todo
+                    performanceApp.model.toggleTodo(lastTodo.id);
+                }
+            }
+            
+            const endTime = performance.now();
+            const generationTime = endTime - startTime;
+            
+            performanceApp.controller.render();
+            
+            addTestResult(`Generated ${count} todos in ${generationTime.toFixed(2)}ms`);
+        }
+
+        function clearAllTodos() {
+            if (!performanceApp) return;
+            
+            const startTime = performance.now();
+            performanceApp.model.todos = [];
+            performanceApp.model.saveTodos();
+            const endTime = performance.now();
+            
+            performanceApp.controller.render();
+            
+            addTestResult(`Cleared all todos in ${(endTime - startTime).toFixed(2)}ms`);
+        }
+
+        function runSearchPerformanceTest() {
+            if (!performanceApp) return;
+            
+            const searchTerms = ['plan', 'update', 'schedule', 'organize', 'research'];
+            const results = [];
+            
+            searchTerms.forEach(term => {
+                const startTime = performance.now();
+                const filtered = performanceApp.model.filterTodos(term);
+                const endTime = performance.now();
+                
+                results.push({
+                    term,
+                    time: endTime - startTime,
+                    results: filtered.length
+                });
+            });
+            
+            const avgTime = results.reduce((sum, r) => sum + r.time, 0) / results.length;
+            addTestResult(`Search performance test completed. Average time: ${avgTime.toFixed(2)}ms`);
+            
+            results.forEach(r => {
+                addTestResult(`  "${r.term}": ${r.time.toFixed(2)}ms (${r.results} results)`);
+            });
+        }
+
+        function updateMetrics() {
+            if (!performanceApp) return;
+            
+            const stats = performanceApp.model.getStats();
+            document.getElementById('totalCount').textContent = stats.total;
+            document.getElementById('activeCount').textContent = stats.pending;
+            document.getElementById('completedCount').textContent = stats.completed;
+        }
+
+        function addTestResult(message) {
+            const results = document.getElementById('testResults');
+            const timestamp = new Date().toLocaleTimeString();
+            results.innerHTML += `<div>[${timestamp}] ${message}</div>`;
+            results.scrollTop = results.scrollHeight;
+        }
+
+        // Initialize when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializePerformanceApp);
+        } else {
+            initializePerformanceApp();
+        }
+    </script>
+</body>
+</html>

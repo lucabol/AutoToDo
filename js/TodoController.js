@@ -6,6 +6,8 @@ class TodoController {
         this.model = model;
         this.view = view;
         this.searchTerm = '';
+        this.searchDebounceTimer = null;
+        this.showArchived = false; // New flag for showing archived todos
         this.keyboardManager = new KeyboardShortcutManager({
             debug: false, // Set to true for debugging
             enableLogging: false,
@@ -241,6 +243,7 @@ class TodoController {
         this.bindTodoListChange();
         this.bindThemeToggle();
         this.bindKeyboardShortcuts();
+        this.bindArchiveControls();
     }
 
     /**
@@ -314,6 +317,78 @@ class TodoController {
     }
 
     /**
+     * Bind archive control events
+     */
+    bindArchiveControls() {
+        // Archive completed todos button
+        const archiveBtn = document.getElementById('archiveCompletedBtn');
+        if (archiveBtn) {
+            archiveBtn.addEventListener('click', () => {
+                this.handleArchiveCompleted();
+            });
+        }
+
+        // Toggle archived todos view
+        const toggleArchivedBtn = document.getElementById('toggleArchivedBtn');
+        if (toggleArchivedBtn) {
+            toggleArchivedBtn.addEventListener('click', () => {
+                this.handleToggleArchived();
+            });
+        }
+    }
+
+    /**
+     * Handle archiving all completed todos
+     */
+    handleArchiveCompleted() {
+        const archived = this.model.archiveCompletedTodos();
+        if (archived > 0) {
+            this.view.showMessage(`Archived ${archived} completed todo(s)`, 'success');
+            this.render();
+        } else {
+            this.view.showMessage('No completed todos to archive', 'info');
+        }
+    }
+
+    /**
+     * Handle toggling archived todos view
+     */
+    handleToggleArchived() {
+        this.showArchived = !this.showArchived;
+        
+        // Update button text
+        const toggleBtn = document.getElementById('toggleArchivedBtn');
+        if (toggleBtn) {
+            toggleBtn.textContent = this.showArchived ? 'Show Active' : 'Show Archived';
+            toggleBtn.classList.toggle('active', this.showArchived);
+        }
+        
+        this.render();
+    }
+
+    /**
+     * Handle archiving individual todo
+     * @param {string} id - Todo ID
+     */
+    handleArchiveTodo(id) {
+        const archivedTodo = this.model.archiveTodo(id);
+        if (archivedTodo) {
+            this.render();
+        }
+    }
+
+    /**
+     * Handle unarchiving individual todo
+     * @param {string} id - Todo ID
+     */
+    handleUnarchiveTodo(id) {
+        const unarchivedTodo = this.model.unarchiveTodo(id);
+        if (unarchivedTodo) {
+            this.render();
+        }
+    }
+
+    /**
      * Bind keyboard shortcuts event handler
      */
     bindKeyboardShortcuts() {
@@ -344,12 +419,20 @@ class TodoController {
     }
 
     /**
-     * Handle search input changes
+     * Handle search input changes with debouncing for better performance
      * @param {string} searchTerm - The search term
      */
     handleSearch(searchTerm) {
-        this.searchTerm = searchTerm;
-        this.render();
+        // Clear previous timer
+        if (this.searchDebounceTimer) {
+            clearTimeout(this.searchDebounceTimer);
+        }
+        
+        // Debounce search for performance with large datasets
+        this.searchDebounceTimer = setTimeout(() => {
+            this.searchTerm = searchTerm;
+            this.render();
+        }, 150); // 150ms debounce delay
     }
 
     /**
@@ -381,6 +464,12 @@ class TodoController {
                 break;
             case 'cancel-edit':
                 this.handleCancelEdit();
+                break;
+            case 'archive':
+                this.handleArchiveTodo(id);
+                break;
+            case 'unarchive':
+                this.handleUnarchiveTodo(id);
                 break;
         }
     }
@@ -494,19 +583,19 @@ class TodoController {
     }
 
     /**
-     * Render the current state
+     * Render the current state with archive filtering
      */
     render() {
-        const allTodos = this.model.getAllTodos();
-        const filteredTodos = this.model.filterTodos(this.searchTerm);
-        this.view.render(filteredTodos, allTodos, this.searchTerm);
+        const allTodos = this.model.getTodosFiltered(this.showArchived);
+        const filteredTodos = this.model.filterTodos(this.searchTerm, this.showArchived);
+        this.view.render(filteredTodos, allTodos, this.searchTerm, this.showArchived);
     }
 
     /**
-     * Get application statistics
-     * @returns {Object} Stats object with todo counts
+     * Get application statistics with archive information
+     * @returns {Object} Stats object with todo counts including archived
      */
     getStats() {
-        return this.model.getStats();
+        return this.model.getStats(this.showArchived);
     }
 }

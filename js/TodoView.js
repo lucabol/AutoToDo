@@ -10,42 +10,50 @@ class TodoView {
     }
 
     /**
-     * Render the complete todo list
+     * Render the complete todo list with archive support
      * @param {Array} todos - Array of todo objects to display
      * @param {Array} allTodos - Array of all todos (for search context)
      * @param {string} searchTerm - Current search term
+     * @param {boolean} showArchived - Whether archived todos are being shown
      */
-    render(todos, allTodos = [], searchTerm = '') {
+    render(todos, allTodos = [], searchTerm = '', showArchived = false) {
         if (todos.length === 0) {
-            this.showEmptyState(allTodos.length === 0, searchTerm);
+            this.showEmptyState(allTodos.length === 0, searchTerm, showArchived);
             return;
         }
 
         this.hideEmptyState();
-        this.renderTodoList(todos);
+        this.renderTodoList(todos, showArchived);
     }
 
     /**
-     * Render the todo list items
+     * Render the todo list items with archive support
      * @param {Array} todos - Array of todo objects
+     * @param {boolean} showArchived - Whether archived todos are being shown
      */
-    renderTodoList(todos) {
+    renderTodoList(todos, showArchived = false) {
         this.todoList.innerHTML = todos.map(todo => {
             if (this.editingId === todo.id) {
-                return this.renderEditForm(todo);
+                return this.renderEditForm(todo, showArchived);
             }
-            return this.renderTodoItem(todo);
+            return this.renderTodoItem(todo, showArchived);
         }).join('');
     }
 
     /**
-     * Render a single todo item
+     * Render a single todo item with archive support
      * @param {Object} todo - Todo object
+     * @param {boolean} showArchived - Whether archived todos are being shown
      * @returns {string} HTML string for the todo item
      */
-    renderTodoItem(todo) {
+    renderTodoItem(todo, showArchived = false) {
+        const isArchived = todo.archived || false;
+        const archiveButton = isArchived ? 
+            `<button class="unarchive-btn" data-action="unarchive" data-id="${todo.id}">Unarchive</button>` :
+            (todo.completed ? `<button class="archive-btn" data-action="archive" data-id="${todo.id}">Archive</button>` : '');
+        
         return `
-            <li class="todo-item" data-id="${todo.id}">
+            <li class="todo-item ${isArchived ? 'archived' : ''}" data-id="${todo.id}">
                 <input 
                     type="checkbox" 
                     class="todo-checkbox" 
@@ -56,6 +64,7 @@ class TodoView {
                 <span class="todo-text ${todo.completed ? 'completed' : ''}">${this.escapeHtml(todo.text)}</span>
                 <div class="todo-actions">
                     <button class="edit-btn" data-action="edit" data-id="${todo.id}">Edit</button>
+                    ${archiveButton}
                     <button class="delete-btn" data-action="delete" data-id="${todo.id}">Delete</button>
                 </div>
             </li>
@@ -63,13 +72,14 @@ class TodoView {
     }
 
     /**
-     * Render the edit form for a todo
+     * Render the edit form for a todo with archive support
      * @param {Object} todo - Todo object being edited
+     * @param {boolean} showArchived - Whether archived todos are being shown
      * @returns {string} HTML string for the edit form
      */
-    renderEditForm(todo) {
+    renderEditForm(todo, showArchived = false) {
         return `
-            <li class="todo-item" data-id="${todo.id}">
+            <li class="todo-item ${todo.archived ? 'archived' : ''}" data-id="${todo.id}">
                 <input type="checkbox" class="todo-checkbox" ${todo.completed ? 'checked' : ''} disabled>
                 <form class="edit-form" data-action="save-edit" data-id="${todo.id}">
                     <input 
@@ -88,18 +98,24 @@ class TodoView {
     }
 
     /**
-     * Show empty state when no todos exist or no search results
+     * Show empty state when no todos exist or no search results with archive context
      * @param {boolean} noTodosExist - True if no todos exist at all
      * @param {string} searchTerm - Current search term
+     * @param {boolean} showArchived - Whether archived todos are being shown
      */
-    showEmptyState(noTodosExist = true, searchTerm = '') {
+    showEmptyState(noTodosExist = true, searchTerm = '', showArchived = false) {
         this.todoList.style.display = 'none';
         this.emptyState.style.display = 'block';
         
         if (noTodosExist) {
-            this.emptyState.textContent = 'No todos yet. Add one above to get started!';
+            if (showArchived) {
+                this.emptyState.textContent = 'No archived todos found.';
+            } else {
+                this.emptyState.textContent = 'No todos yet. Add one above to get started!';
+            }
         } else {
-            this.emptyState.textContent = 'No todos match your search.';
+            const archiveText = showArchived ? ' (including archived)' : '';
+            this.emptyState.textContent = `No todos match your search${archiveText}.`;
         }
     }
 
