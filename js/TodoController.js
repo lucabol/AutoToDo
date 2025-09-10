@@ -2,16 +2,26 @@
  * TodoController - Handles user interactions and coordinates between Model and View
  */
 class TodoController {
-    constructor(model, view) {
+    constructor(model, view, options = {}) {
         this.model = model;
         this.view = view;
         this.searchTerm = '';
         this.searchDebounceTimer = null;
         this.showArchived = false; // New flag for showing archived todos
+        
+        // Configuration options with defaults
+        this.options = {
+            searchDebounceDelay: 150, // Default 150ms debounce delay
+            keyboardDebug: false,
+            keyboardLogging: false,
+            keyboardValidateConflicts: true,
+            ...options
+        };
+        
         this.keyboardManager = new KeyboardShortcutManager({
-            debug: false, // Set to true for debugging
-            enableLogging: false,
-            validateConflicts: true
+            debug: this.options.keyboardDebug,
+            enableLogging: this.options.keyboardLogging,
+            validateConflicts: this.options.keyboardValidateConflicts
         });
         this.keyboardHandlers = new KeyboardHandlers(this);
         this.init();
@@ -429,10 +439,29 @@ class TodoController {
         }
         
         // Debounce search for performance with large datasets
+        // Use configurable delay (default 150ms)
         this.searchDebounceTimer = setTimeout(() => {
             this.searchTerm = searchTerm;
             this.render();
-        }, 150); // 150ms debounce delay
+        }, this.options.searchDebounceDelay);
+    }
+
+    /**
+     * Set the search debounce delay (useful for testing and customization)
+     * @param {number} delay - The debounce delay in milliseconds
+     */
+    setSearchDebounceDelay(delay) {
+        if (typeof delay === 'number' && delay >= 0) {
+            this.options.searchDebounceDelay = delay;
+        }
+    }
+
+    /**
+     * Get the current search debounce delay
+     * @returns {number} The current debounce delay in milliseconds
+     */
+    getSearchDebounceDelay() {
+        return this.options.searchDebounceDelay;
     }
 
     /**
