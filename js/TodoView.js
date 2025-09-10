@@ -15,13 +15,21 @@ class TodoView {
         this.virtualScrollManager = null;
         this.renderMonitor = PerformanceUtils.createMonitor('TodoView Render');
         
+        // Safari-specific performance monitoring
+        this.safariMonitor = PerformanceUtils.isSafari() ? PerformanceUtils.createSafariMonitor() : null;
+        
         // DOM element pool for reusing elements
         this.elementPool = PerformanceUtils.createObjectPool(
             () => this.createTodoElement(),
             (element) => this.resetTodoElement(element)
         );
         
+        // Archive UI state
+        this.showArchived = false;
+        this.archiveButton = null;
+        
         this.initializePerformanceOptimizations();
+        this.setupArchiveUI();
     }
 
     
@@ -74,7 +82,14 @@ class TodoView {
                 this.renderTraditional(todos, dragDropSupported);
             }
         } finally {
+            const renderDuration = performance.now() - renderStart;
             this.renderMonitor.end();
+            
+            // Safari performance monitoring
+            if (this.safariMonitor) {
+                this.safariMonitor.recordRender(renderDuration);
+                this.safariMonitor.checkMemory();
+            }
         }
     }
     
@@ -441,15 +456,154 @@ class TodoView {
     }
     
     /**
-     * Get performance statistics
+     * Setup archive UI controls
+     */
+    setupArchiveUI() {
+        // Create archive controls if they don't exist
+        if (!document.getElementById('archiveControls')) {
+            const controlsContainer = document.createElement('div');
+            controlsContainer.id = 'archiveControls';
+            controlsContainer.className = 'archive-controls';
+            controlsContainer.innerHTML = `
+                <div class="archive-buttons">
+                    <button id="archiveBtn" class="archive-btn" title="Archive completed todos">
+                        📦 Archive Completed
+                    </button>
+                    <button id="toggleArchiveBtn" class="toggle-archive-btn" title="Show/hide archived todos">
+                        👁️ Show Archive
+                    </button>
+                    <span id="archiveStats" class="archive-stats"></span>
+                </div>
+            `;
+            
+            // Insert after search container
+            const searchContainer = document.querySelector('.search-container');
+            if (searchContainer) {
+                searchContainer.parentNode.insertBefore(controlsContainer, searchContainer.nextSibling);
+            }
+        }
+        
+        this.archiveButton = document.getElementById('archiveBtn');
+        this.toggleArchiveButton = document.getElementById('toggleArchiveBtn');
+        this.archiveStats = document.getElementById('archiveStats');
+    }
+
+    /**
+     * Update archive statistics display
+     * @param {Object} stats - Todo statistics including archive count
+     */
+    updateArchiveStats(stats) {
+        if (this.archiveStats) {
+            const { total, completed, archived } = stats;
+            this.archiveStats.textContent = archived > 0 
+                ? `${archived} archived • ${total} active` 
+                : `${total} active todos`;
+        }
+        
+        // Update archive button state
+        if (this.archiveButton) {
+            this.archiveButton.disabled = completed === 0;
+            this.archiveButton.title = completed > 0 
+                ? `Archive ${completed} completed todos` 
+                : 'No completed todos to archive';
+        }
+    }
+
+    /**
+     * Show archived todos in a modal or separate view
+     * @param {Array} archivedTodos - Array of archived todos
+     */
+    showArchivedTodos(archivedTodos) {
+        // Create or update archived todos modal
+        let modal = document.getElementById('archivedTodosModal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'archivedTodosModal';
+            modal.className = 'modal archive-modal';
+            document.body.appendChild(modal);
+        }
+        
+        const archivedCount = archivedTodos.length;
+        modal.innerHTML = `
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>📦 Archived Todos (${archivedCount})</h3>
+                    <button class="close-modal" id="closeArchivedModal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    ${archivedCount > 0 
+                        ? `<ul class="archived-todo-list">
+                            ${archivedTodos.map(todo => `
+                                <li class="archived-todo-item" data-id="${todo.id}">
+                                    <span class="todo-text">${this.escapeHtml(todo.text)}</span>
+                                    <small class="archive-date">Archived: ${new Date(todo.archivedAt).toLocaleDateString()}</small>
+                                    <div class="archived-todo-actions">
+                                        <button class="unarchive-btn" data-id="${todo.id}" title="Restore to active todos">
+                                            ↩️ Restore
+                                        </button>
+                                        <button class="delete-archived-btn" data-id="${todo.id}" title="Permanently delete">
+                                            🗑️ Delete
+                                        </button>
+                                    </div>
+                                </li>
+                            `).join('')}
+                           </ul>`
+                        : '<p class="empty-archive">No archived todos</p>'
+                    }
+                </div>
+            </div>
+        `;
+        
+        modal.style.display = 'block';
+        
+        // Bind close event
+        document.getElementById('closeArchivedModal').onclick = () => {
+            modal.style.display = 'none';
+        };
+        
+        // Close on outside click
+        modal.onclick = (e) => {
+            if (e.target === modal) {
+                modal.style.display = 'none';
+            }
+        };
+    }
+
+    /**
+     * Show archive success message
+     * @param {number} archivedCount - Number of todos archived
+     */
+    showArchiveSuccess(archivedCount) {
+        this.showMessage(`✅ Archived ${archivedCount} completed todo${archivedCount !== 1 ? 's' : ''}`, 'success');
+    }
+
+    /**
+     * Show performance improvement notification
+     * @param {Object} improvement - Performance improvement data
+     */
+    showPerformanceImprovement(improvement) {
+        if (improvement.archived > 0) {
+            const message = `🚀 Performance improved! ${improvement.archived} todos archived. List is now ${improvement.percentImprovement}% smaller.`;
+            this.showMessage(message, 'success', 5000); // Show for 5 seconds
+        }
+    }
+
+    /**
+     * Get performance statistics including Safari-specific metrics
      * @returns {Object} Performance statistics
      */
     getPerformanceStats() {
-        return {
+        const baseStats = {
             renderStats: this.renderMonitor.getStats(),
             isUsingVirtualScrolling: !!this.virtualScrollManager,
             poolSize: this.elementPool.size()
         };
+        
+        if (this.safariMonitor) {
+            baseStats.safari = this.safariMonitor.getReport();
+        }
+        
+        return baseStats;
     }
     
     /**

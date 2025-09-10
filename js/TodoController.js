@@ -14,7 +14,11 @@ class TodoController {
         
         // Performance optimizations
         this.searchMonitor = PerformanceUtils.createMonitor('Search Performance');
+        // Debounced search: Prevents excessive search operations during fast typing (300ms delay)
         this.debouncedSearch = PerformanceUtils.debounce(this.performSearch.bind(this), 300);
+        
+        // Safari notification system state management
+        this.safariNotificationShown = false;
         
         this.keyboardManager = new KeyboardShortcutManager({
             debug: false, // Set to true for debugging
@@ -589,7 +593,38 @@ class TodoController {
         this.bindTodoListChange();
         this.bindDragAndDrop();
         this.bindThemeToggle();
+        this.bindArchiveEvents();
         this.bindKeyboardShortcuts();
+    }
+
+    /**
+     * Bind archive-related events
+     */
+    bindArchiveEvents() {
+        // Archive completed todos button
+        const archiveBtn = document.getElementById('archiveBtn');
+        if (archiveBtn) {
+            archiveBtn.addEventListener('click', () => {
+                this.handleArchiveCompleted();
+            });
+        }
+        
+        // Toggle archive view button
+        const toggleArchiveBtn = document.getElementById('toggleArchiveBtn');
+        if (toggleArchiveBtn) {
+            toggleArchiveBtn.addEventListener('click', () => {
+                this.handleToggleArchive();
+            });
+        }
+        
+        // Archive modal events (delegated)
+        document.addEventListener('click', (e) => {
+            if (e.target.classList.contains('unarchive-btn')) {
+                this.handleUnarchiveTodo(e.target.dataset.id);
+            } else if (e.target.classList.contains('delete-archived-btn')) {
+                this.handleDeleteArchivedTodo(e.target.dataset.id);
+            }
+        });
     }
 
     /**
