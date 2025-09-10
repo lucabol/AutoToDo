@@ -268,8 +268,13 @@ class KeyboardShortcutManager {
     }
 
     /**
-     * Start a debug session for performance tracking
-     * @returns {Object|null} Debug session object or null if debug is disabled
+     * Start a debug session for performance tracking and timing measurement.
+     * Creates a session object with the current timestamp to measure execution time
+     * of keyboard shortcut processing. Only creates the session if debug mode is enabled.
+     * 
+     * @returns {Object|null} Debug session object containing startTime property if debug 
+     *                        mode is enabled, null otherwise. The startTime is captured 
+     *                        using performance.now() for high-precision timing.
      * @private
      */
     _startDebugSession() {
@@ -277,10 +282,21 @@ class KeyboardShortcutManager {
     }
 
     /**
-     * End a debug session and log performance metrics
-     * @param {Object|null} debugSession - Debug session object
-     * @param {Object} [shortcut] - The executed shortcut (if any)
-     * @param {KeyboardEvent} [event] - The keyboard event (if shortcut was executed)
+     * End a debug session and log performance metrics to the console.
+     * Calculates the elapsed time since the debug session started and logs timing
+     * information. If a shortcut was executed, logs the specific shortcut and its
+     * execution time. If no shortcut matched, logs general keyboard handling completion time.
+     * Only performs logging if debug mode is enabled and a valid session object is provided.
+     * 
+     * @param {Object|null} debugSession - Debug session object returned from _startDebugSession().
+     *                                     Should contain a startTime property with the session 
+     *                                     start timestamp. Pass null if no session was created.
+     * @param {Object} [shortcut] - Optional. The executed shortcut configuration object.
+     *                              If provided along with event, logs specific shortcut timing.
+     *                              Contains properties like context, key, ctrlKey, etc.
+     * @param {KeyboardEvent} [event] - Optional. The keyboard event that triggered the shortcut.
+     *                                  Used with shortcut parameter to generate the shortcut key
+     *                                  for detailed logging. Contains key, ctrlKey, altKey, shiftKey.
      * @private
      */
     _endDebugSession(debugSession, shortcut = null, event = null) {
