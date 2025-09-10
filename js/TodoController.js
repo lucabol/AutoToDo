@@ -266,8 +266,6 @@ class TodoController {
     }
 
     /**
-<<<<<<< HEAD
-=======
      * Initialize keyboard context for editing
      * @private
      */
@@ -395,14 +393,6 @@ class TodoController {
     }
 
     /**
-     * Show keyboard shortcuts help modal
-     */
-    showKeyboardHelp() {
-        HelpModalBuilder.showHelpModal(this.keyboardManager);
-    }
-
-    /**
->>>>>>> e698d9ffd0eb807023312a4b6f35294330b5944a
      * Set up all event listeners using event delegation
      */
     bindEvents() {
