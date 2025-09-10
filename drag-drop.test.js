@@ -5,7 +5,10 @@
 
 // Mock DOM and localStorage for testing
 if (typeof window === 'undefined') {
-    global.window = {};
+    global.window = {
+        performance: { now: () => Date.now() },
+        requestAnimationFrame: (cb) => setTimeout(cb, 16)
+    };
     global.localStorage = {
         store: {},
         getItem: function(key) {
@@ -21,6 +24,10 @@ if (typeof window === 'undefined') {
     global.crypto = {
         randomUUID: () => Math.random().toString(36).substr(2, 9)
     };
+    global.navigator = {
+        userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36'
+    };
+    global.performance = { now: () => Date.now() };
     
     // Mock StorageManager for Node.js testing
     global.storageManager = {
@@ -30,8 +37,21 @@ if (typeof window === 'undefined') {
         setItem: function(key, value) {
             global.localStorage.setItem(key, value);
             return true;
+        },
+        getStorageInfo: function() {
+            return { type: 'localStorage', available: true };
         }
     };
+    
+    // Load required modules for TodoModel dependencies
+    const PerformanceUtils = require('./js/PerformanceUtils.js');
+    const SearchOptimizer = require('./js/SearchOptimizer.js');
+    
+    // Make them globally available
+    global.PerformanceUtils = PerformanceUtils;
+    global.SearchOptimizer = SearchOptimizer;
+    global.window.PerformanceUtils = PerformanceUtils;
+    global.window.SearchOptimizer = SearchOptimizer;
 }
 
 // Load the TodoModel

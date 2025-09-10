@@ -5,7 +5,8 @@
   "main": "index.html",
   "scripts": {
     "test": "node test-delete-unit-tests.js && node search.test.js && node drag-drop.test.js && node search-integration.test.js && node theme.test.js && node keyboard-shortcuts.test.js && node keyboard-shortcut-manager.test.js && node shortcuts-config.test.js && node search-focus-fix.test.js && node keyboard-handlers.test.js && node help-modal-builder.test.js && node search-focus-shortcuts.test.js && node keyboard-shortcut-refactoring.test.js && node shortcut-modules.test.js && node shortcut-utilities.test.js && node storage-manager.test.js",
-    "test:performance": "node performance.test.js",
+    "test:performance": "node search-performance.test.js",
+    "test:comprehensive": "node comprehensive-performance.test.js",
     "test:delete": "node test-delete-unit-tests.js",
     "test:search": "node search.test.js",
     "test:search:integration": "node search-integration.test.js",
@@ -16,8 +17,8 @@
     "test:integration": "echo 'Open test-delete-functionality.html and test-drag-drop-integration.html in your browser to run integration tests'",
     "test:drag-drop-integration": "echo 'Open test-drag-drop-integration.html in your browser to run drag & drop integration tests'",
     "start": "echo 'Open index.html in your browser to run the AutoToDo application'",
-    "test:all": "npm run test && echo '\\nTo run browser tests, open test-delete-unit-tests.html, test.html, test-delete-functionality.html, and test-drag-drop-integration.html in your browser'",
-    "performance": "npm run test:performance"
+    "test:all": "npm run test && npm run test:comprehensive && echo '\\nTo run browser tests, open test-delete-unit-tests.html, test.html, test-delete-functionality.html, and test-drag-drop-integration.html in your browser'",
+    "performance": "npm run test:performance && npm run test:comprehensive"
   },
   "keywords": [
     "todo",

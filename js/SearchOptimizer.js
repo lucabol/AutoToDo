@@ -331,6 +331,57 @@ class SearchOptimizer {
     }
     
     /**
+     * Highlight search terms in text with minimal DOM manipulation
+     * @param {string} text - Text to highlight
+     * @param {string} query - Search query to highlight
+     * @returns {string} HTML string with highlighted terms
+     */
+    highlightSearchTerms(text, query) {
+        if (!query || !query.trim()) {
+            return text;
+        }
+        
+        const normalizedQuery = query.toLowerCase().trim();
+        
+        // Extract words from query
+        const queryWords = this.extractWords(normalizedQuery);
+        if (queryWords.length === 0) {
+            return text;
+        }
+        
+        // Build regex pattern for highlighting
+        // Escape special regex characters and create word boundary matches
+        const escapedWords = queryWords.map(word => 
+            word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+        );
+        
+        const pattern = new RegExp(`(${escapedWords.join('|')})`, 'gi');
+        
+        // Replace matches with highlighted spans
+        return text.replace(pattern, '<mark class="search-highlight">$1</mark>');
+    }
+    
+    /**
+     * Search with highlighting support
+     * @param {string} query - Search query
+     * @param {boolean} includeHighlights - Whether to include highlights in results
+     * @returns {Array} Array of matching items with optional highlights
+     */
+    searchWithHighlights(query, includeHighlights = true) {
+        const results = this.search(query);
+        
+        if (!includeHighlights || !query || !query.trim()) {
+            return results;
+        }
+        
+        // Add highlights to each result
+        return results.map(item => ({
+            ...item,
+            highlightedText: this.highlightSearchTerms(item.text, query)
+        }));
+    }
+    
+    /**
      * Get search statistics
      * @returns {Object} Performance and usage statistics
      */
@@ -341,7 +392,14 @@ class SearchOptimizer {
             cacheSize: this.searchCache.size,
             lastIndexTime: this.lastIndexTime,
             performance: this.performanceMonitor.getStats(),
-            safariOptimizations: this.safariOptimizations
+            safariOptimizations: this.safariOptimizations,
+            features: {
+                caching: true,
+                indexing: this.searchIndex.size > 0,
+                fuzzySearch: this.options.fuzzySearch,
+                highlighting: true,
+                safariOptimized: this.safariOptimizations
+            }
         };
     }
     

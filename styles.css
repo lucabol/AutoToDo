@@ -930,3 +930,43 @@ h1 {
         min-width: auto;
     }
 }
+
+/* Search Highlighting Styles */
+.search-highlight {
+    background-color: var(--accent-primary);
+    color: white;
+    padding: 1px 2px;
+    border-radius: 3px;
+    font-weight: 500;
+    transition: background-color 0.2s ease;
+}
+
+/* Dark mode specific highlight colors */
+.dark-theme .search-highlight {
+    background-color: #4a9eff;
+    color: #000;
+}
+
+/* Safari-specific optimizations for highlighting */
+@supports (-webkit-backdrop-filter: blur(1px)) {
+    .search-highlight {
+        -webkit-font-smoothing: antialiased;
+        text-rendering: optimizeLegibility;
+    }
+}
+
+/* High contrast mode support for search highlights */
+@media (prefers-contrast: high) {
+    .search-highlight {
+        border: 1px solid;
+        background-color: highlight;
+        color: highlighttext;
+    }
+}
+
+/* Reduced motion preferences for highlighting animations */
+@media (prefers-reduced-motion: reduce) {
+    .search-highlight {
+        transition: none;
+    }
+}
