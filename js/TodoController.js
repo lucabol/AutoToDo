@@ -35,15 +35,15 @@ class TodoController {
      */
     initializeTheme() {
         // Check for saved theme preference or system preference
-        const savedTheme = localStorage.getItem('todo-theme');
+        const savedTheme = this.model.storageManager.getItem('todo-theme');
         const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
         
         const initialTheme = savedTheme || (systemPrefersDark ? 'dark' : 'light');
-        this.setTheme(initialTheme, false); // false = don't save to localStorage on init
+        this.setTheme(initialTheme, false); // false = don't save to storage on init
         
         // Listen for system theme changes
         window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
-            if (!localStorage.getItem('todo-theme')) {
+            if (!this.model.storageManager.getItem('todo-theme')) {
                 this.setTheme(e.matches ? 'dark' : 'light', false);
             }
         });
@@ -52,7 +52,7 @@ class TodoController {
     /**
      * Set the application theme
      * @param {string} theme - 'light' or 'dark'
-     * @param {boolean} save - Whether to save preference to localStorage
+     * @param {boolean} save - Whether to save preference to storage
      */
     setTheme(theme, save = true) {
         const body = document.body;
@@ -71,7 +71,11 @@ class TodoController {
         }
 
         if (save) {
-            localStorage.setItem('todo-theme', theme);
+            try {
+                this.model.storageManager.setItem('todo-theme', theme);
+            } catch (error) {
+                console.warn('Failed to save theme preference:', error.message);
+            }
         }
 
         this.currentTheme = theme;

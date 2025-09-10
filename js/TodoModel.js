@@ -3,23 +3,38 @@
  */
 class TodoModel {
     constructor() {
+        this.storageManager = new StorageManager();
         this.todos = this.loadTodos();
     }
 
     /**
-     * Load todos from localStorage
+     * Load todos from storage using StorageManager
      * @returns {Array} Array of todo objects
      */
     loadTodos() {
-        const saved = localStorage.getItem('todos');
-        return saved ? JSON.parse(saved) : [];
+        try {
+            const saved = this.storageManager.getItem('todos');
+            return saved ? JSON.parse(saved) : [];
+        } catch (error) {
+            console.warn('Failed to load todos from storage:', error.message);
+            return [];
+        }
     }
 
     /**
-     * Save todos to localStorage
+     * Save todos to storage using StorageManager
      */
     saveTodos() {
-        localStorage.setItem('todos', JSON.stringify(this.todos));
+        try {
+            this.storageManager.setItem('todos', JSON.stringify(this.todos));
+        } catch (error) {
+            console.error('Failed to save todos to storage:', error.message);
+            
+            // Show user-friendly error message if storage fails
+            if (typeof window !== 'undefined' && window.todoApp && window.todoApp.view) {
+                window.todoApp.view.showMessage('Unable to save changes. Data may not persist.', 'error');
+            }
+        }
     }
 
     /**
@@ -190,6 +205,19 @@ class TodoModel {
         const completed = this.todos.filter(t => t.completed).length;
         const pending = total - completed;
         
-        return { total, completed, pending };
+        return { 
+            total, 
+            completed, 
+            pending,
+            storage: this.storageManager.getStorageInfo()
+        };
+    }
+
+    /**
+     * Get storage information
+     * @returns {Object} Storage status and type information
+     */
+    getStorageInfo() {
+        return this.storageManager.getStorageInfo();
     }
 }
