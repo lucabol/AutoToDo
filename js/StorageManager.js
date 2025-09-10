@@ -259,7 +259,7 @@ class StorageManager {
                 hasLocalStorage: this.hasLocalStorage,
                 hasSessionStorage: this.hasSessionStorage,
                 isPrivateMode: this.isPrivateMode,
-                memoryItems: this.memoryStorage.size,
+                memoryItems: this.memoryStorage ? this.memoryStorage.size : 0,
                 
                 // Enhanced information from modules
                 ...baseInfo,
@@ -290,7 +290,7 @@ class StorageManager {
                 hasLocalStorage: this.hasLocalStorage,
                 hasSessionStorage: this.hasSessionStorage,
                 isPrivateMode: this.isPrivateMode,
-                memoryItems: this.memoryStorage.size,
+                memoryItems: this.memoryStorage ? this.memoryStorage.size : 0,
                 error: 'Failed to get detailed storage info'
             };
         }

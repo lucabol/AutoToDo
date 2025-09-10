@@ -122,7 +122,6 @@ class TodoController {
                 console.warn('Failed to save theme preference:', e);
             }
         }
-        }
 
         this.currentTheme = theme;
     }
@@ -598,7 +597,9 @@ class TodoController {
     bindThemeToggle() {
         const themeToggle = document.getElementById('themeToggle');
         if (themeToggle) {
-            themeToggle.addEventListener('click', () => {
+            themeToggle.addEventListener('click', (e) => {
+                // Skip if handled by touch event
+                if (this.touchHandled) return;
                 this.toggleTheme();
             });
         }
@@ -611,6 +612,8 @@ class TodoController {
         const addTodoForm = document.getElementById('addTodoForm');
         addTodoForm.addEventListener('submit', (e) => {
             e.preventDefault();
+            // Skip if handled by touch event
+            if (this.touchHandled) return;
             this.handleAddTodo();
         });
     }
@@ -630,7 +633,9 @@ class TodoController {
      */
     bindClearSearchButton() {
         const clearSearchBtn = document.getElementById('clearSearchBtn');
-        clearSearchBtn.addEventListener('click', () => {
+        clearSearchBtn.addEventListener('click', (e) => {
+            // Skip if handled by touch event
+            if (this.touchHandled) return;
             this.handleClearSearch();
         });
     }
@@ -642,6 +647,132 @@ class TodoController {
         this.view.todoList.addEventListener('click', (e) => {
             this.handleTodoListClick(e);
         });
+        
+        // Add touch events for faster mobile response
+        this.bindTouchEvents();
+    }
+
+    /**
+     * Bind touch events for improved mobile interaction
+     */
+    bindTouchEvents() {
+        // Track touch state to prevent duplicate events
+        this.touchHandled = false;
+        
+        // Touch events for faster response on mobile devices
+        this.view.todoList.addEventListener('touchend', (e) => {
+            this.handleTouchEnd(e);
+        });
+        
+        this.view.todoList.addEventListener('touchstart', (e) => {
+            this.handleTouchStart(e);
+        });
+        
+        // Add touch events to other interactive elements
+        this.bindButtonTouchEvents();
+    }
+
+    /**
+     * Bind touch events to buttons for faster response
+     */
+    bindButtonTouchEvents() {
+        // Theme toggle button
+        const themeToggle = document.getElementById('themeToggle');
+        if (themeToggle) {
+            this.addFastTouch(themeToggle, () => this.toggleTheme());
+        }
+        
+        // Clear search button  
+        const clearSearchBtn = document.getElementById('clearSearchBtn');
+        if (clearSearchBtn) {
+            this.addFastTouch(clearSearchBtn, () => this.handleClearSearch());
+        }
+        
+        // Add todo form
+        const addTodoForm = document.getElementById('addTodoForm');
+        if (addTodoForm) {
+            addTodoForm.addEventListener('touchend', (e) => {
+                if (e.target.type === 'submit') {
+                    e.preventDefault();
+                    this.handleAddTodo();
+                    this.touchHandled = true;
+                }
+            });
+        }
+    }
+
+    /**
+     * Add fast touch response to an element
+     * @param {Element} element - Element to add touch handling to
+     * @param {Function} handler - Function to call on touch
+     */
+    addFastTouch(element, handler) {
+        let touchHandled = false;
+        
+        element.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            if (!touchHandled) {
+                handler();
+                touchHandled = true;
+                // Reset flag after a short delay
+                setTimeout(() => touchHandled = false, 300);
+            }
+        });
+        
+        element.addEventListener('touchstart', (e) => {
+            touchHandled = false;
+        });
+    }
+
+    /**
+     * Handle touch start events
+     * @param {TouchEvent} e - Touch event
+     */
+    handleTouchStart(e) {
+        this.touchHandled = false;
+        // Add visual feedback for touch start
+        if (e.target.dataset.action) {
+            e.target.style.transform = 'scale(0.95)';
+        }
+    }
+
+    /**
+     * Handle touch end events for faster mobile response
+     * @param {TouchEvent} e - Touch event
+     */
+    handleTouchEnd(e) {
+        // Remove visual feedback
+        if (e.target.dataset.action) {
+            e.target.style.transform = '';
+        }
+        
+        // Only handle if we haven't already processed this touch
+        if (this.touchHandled) return;
+        
+        const action = e.target.dataset.action;
+        const id = e.target.dataset.id;
+
+        if (!action || !id) return;
+
+        // Prevent the subsequent click event
+        e.preventDefault();
+        this.touchHandled = true;
+        
+        // Reset touch handled flag after delay to allow click fallback
+        setTimeout(() => this.touchHandled = false, 300);
+
+        // Handle the action immediately for fast response
+        switch (action) {
+            case 'edit':
+                this.handleEditTodo(id);
+                break;
+            case 'delete':
+                this.handleDeleteTodo(id);
+                break;
+            case 'cancel-edit':
+                this.handleCancelEdit();
+                break;
+        }
     }
 
     /**
@@ -776,6 +907,11 @@ class TodoController {
      * @param {Event} e - Click event
      */
     handleTodoListClick(e) {
+        // Skip if this was already handled by touch event
+        if (this.touchHandled) {
+            return;
+        }
+        
         const action = e.target.dataset.action;
         const id = e.target.dataset.id;
 
