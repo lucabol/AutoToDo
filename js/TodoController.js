@@ -364,15 +364,26 @@ class TodoController {
      * Handle toggling archived todos view
      */
     handleToggleArchived() {
+        // Toggle between showing active todos and archived todos
+        // This is a mutually exclusive view - users see either active OR archived, not both
         this.showArchived = !this.showArchived;
         
-        // Update button text
+        // Update the toggle button to reflect current state
+        // The button text changes to indicate what action it will perform next
         const toggleBtn = document.getElementById('toggleArchivedBtn');
         if (toggleBtn) {
+            // Button text shows the opposite of current state (what clicking will do)
+            // When showing archived: button says "Show Active" (to switch back)
+            // When showing active: button says "Show Archived" (to view archive)
             toggleBtn.textContent = this.showArchived ? 'Show Active' : 'Show Archived';
+            
+            // Visual indicator: add 'active' class when viewing archived todos
+            // This helps users understand which view mode they're currently in
             toggleBtn.classList.toggle('active', this.showArchived);
         }
         
+        // Re-render the view to show the appropriate todo set (active or archived)
+        // The render method will filter todos based on this.showArchived flag
         this.render();
     }
 
@@ -433,14 +444,20 @@ class TodoController {
      * @param {string} searchTerm - The search term
      */
     handleSearch(searchTerm) {
-        // Clear previous timer
+        // Clear any existing debounce timer to reset the delay
+        // This prevents multiple rapid searches from executing simultaneously
         if (this.searchDebounceTimer) {
             clearTimeout(this.searchDebounceTimer);
         }
         
-        // Debounce search for performance with large datasets
-        // Use configurable delay (default 150ms)
+        // Implement debounced search to optimize performance with large datasets
+        // The delay prevents excessive DOM updates during rapid typing
+        // The configurable delay allows customization for different use cases:
+        // - Lower delay (50-100ms) for responsive UX with smaller lists
+        // - Higher delay (200-300ms) for performance with very large lists
         this.searchDebounceTimer = setTimeout(() => {
+            // Update the search term and trigger a re-render
+            // This happens only after the user stops typing for the configured delay
             this.searchTerm = searchTerm;
             this.render();
         }, this.options.searchDebounceDelay);

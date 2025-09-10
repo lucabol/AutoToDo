@@ -17,8 +17,12 @@ class TodoModel {
         const todos = JSON.parse(saved);
         
         // Data migration: add archived property to existing todos
+        // This ensures backward compatibility with todos created before the archive feature
+        // was implemented. Existing todos will be treated as non-archived (active) by default.
         const migrated = todos.map(todo => ({
             ...todo,
+            // Check if archived property exists, if not, default to false (active todo)
+            // This maintains compatibility with existing todo data structures
             archived: todo.archived !== undefined ? todo.archived : false
         }));
         
@@ -200,17 +204,25 @@ class TodoModel {
      */
     archiveCompletedTodos() {
         let archived = 0;
+        
+        // Iterate through all todos to find completed, non-archived ones
+        // This is a bulk operation that processes multiple todos at once
         this.todos.forEach(todo => {
+            // Only archive todos that are both completed AND not already archived
+            // Prevents double-archiving and ensures we only process relevant todos
             if (todo.completed && !todo.archived) {
                 todo.archived = true;
-                archived++;
+                archived++; // Track how many todos we're archiving for user feedback
             }
         });
         
+        // Only save to localStorage if we actually archived something
+        // This avoids unnecessary write operations when there's nothing to archive
         if (archived > 0) {
             this.saveTodos();
         }
         
+        // Return count for user feedback (e.g., "Archived 3 completed todos")
         return archived;
     }
 
@@ -233,26 +245,33 @@ class TodoModel {
      * @returns {Array} Array of filtered todos
      */
     filterTodos(searchTerm, includeArchived = false) {
+        // First, determine which todos to search based on archive preference
+        // This allows users to search within active todos or include archived ones
         let todosToSearch = includeArchived ? this.todos : this.todos.filter(todo => !todo.archived);
         
+        // Early return for empty search - show all todos in the current view
         if (!searchTerm || !searchTerm.trim()) {
             return [...todosToSearch];
         }
         
-        // Normalize the search term: trim and collapse multiple spaces
+        // Normalize the search term: trim whitespace and collapse multiple spaces
+        // This ensures consistent search behavior regardless of input formatting
         const normalizedTerm = searchTerm.toLowerCase().trim().replace(/\s+/g, ' ');
         
         return todosToSearch.filter(todo => {
             const todoText = todo.text.toLowerCase();
             
-            // If the search term contains multiple words, check if all words are present
+            // Multi-word search logic: supports searching for multiple terms
+            // Example: "buy milk" will match todos containing both "buy" and "milk"
             const searchWords = normalizedTerm.split(' ');
             if (searchWords.length > 1) {
-                // All words must be present in the todo text
+                // All words must be present in the todo text (order doesn't matter)
+                // This allows flexible matching: "buy milk" matches "I need to buy some milk"
                 return searchWords.every(word => todoText.includes(word));
             }
             
-            // Single word or phrase search - use original substring matching
+            // Single word search - simple substring match for performance
+            // Case-insensitive matching for user convenience
             return todoText.includes(normalizedTerm);
         });
     }
