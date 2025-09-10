@@ -270,11 +270,49 @@ h1 {
     margin-bottom: 8px;
     background: var(--bg-tertiary);
     transition: all 0.3s ease;
+    cursor: move;
 }
 
 .todo-item:hover {
     background: var(--bg-hover);
     border-color: var(--border-hover);
+}
+
+.todo-item.dragging {
+    opacity: 0.5;
+    transform: scale(1.05);
+    z-index: 1000;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.todo-item.drag-over {
+    border-color: #007aff;
+    background: #e3f2fd;
+    transform: translateY(-2px);
+}
+
+.drag-handle {
+    color: #86868b;
+    font-size: 18px;
+    cursor: grab;
+    user-select: none;
+    padding: 4px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.drag-handle:hover {
+    color: #007aff;
+}
+
+.drag-handle:focus {
+    outline: 2px solid #007aff;
+    outline-offset: 2px;
+    color: #007aff;
+}
+
+.drag-handle:active {
+    cursor: grabbing;
 }
 
 .todo-checkbox {
@@ -369,6 +407,47 @@ h1 {
 .cancel-btn {
     background: var(--text-secondary);
     color: white;
+}
+
+/* Drag handle styles for unsupported browsers */
+.drag-handle-disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+    color: #999;
+    font-weight: bold;
+    font-size: 14px;
+    user-select: none;
+    padding: 0 8px;
+    border-radius: 4px;
+}
+
+.drag-handle-disabled:focus {
+    outline: 2px solid #999;
+    outline-offset: 2px;
+}
+
+/* Accessibility Media Queries */
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .drag-handle, .drag-handle-disabled {
+        border: 1px solid;
+    }
+    
+    .todo-item:focus-within {
+        border: 2px solid;
+    }
+}
+
+/* Reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+    .todo-item.dragging,
+    .todo-item.drag-over,
+    .drag-handle {
+        transition: none !important;
+        transform: none !important;
+        animation: none !important;
+    }
 }
 
 /* Keyboard Shortcuts Help Modal */
