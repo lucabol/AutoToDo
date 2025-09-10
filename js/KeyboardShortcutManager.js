@@ -99,7 +99,8 @@ class KeyboardShortcutManager {
             action: config.action,
             preventDefault: config.preventDefault || false,
             description: config.description || '',
-            category: config.category || 'Other'
+            category: config.category || 'Other',
+            registeredAt: new Date().toISOString()
         };
     }
 
