@@ -21,6 +21,17 @@ if (typeof window === 'undefined') {
     global.crypto = {
         randomUUID: () => Math.random().toString(36).substr(2, 9)
     };
+    
+    // Mock StorageManager for Node.js testing
+    global.storageManager = {
+        getItem: function(key) {
+            return global.localStorage.getItem(key);
+        },
+        setItem: function(key, value) {
+            global.localStorage.setItem(key, value);
+            return true;
+        }
+    };
 }
 
 // Load the TodoModel
