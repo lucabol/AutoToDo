@@ -1006,3 +1006,99 @@ If you encounter persistent shortcut problems:
 - Correct removal from both display and localStorage
 - Immediate UI updates after deletion
 - Consistent behavior across all browsers
+
+## Feedback and Suggestions
+
+We value your input and actively encourage community engagement to improve AutoToDo's usability and functionality. Your feedback helps us prioritize new features and enhancements.
+
+### How to Provide Feedback
+
+#### Suggesting New Keyboard Shortcuts
+Have an idea for a useful keyboard shortcut? We'd love to hear from you! When suggesting new shortcuts:
+
+1. **Check existing shortcuts first**: Review the comprehensive [Keyboard Shortcuts](#keyboard-shortcuts) section to ensure your suggestion doesn't conflict with existing functionality
+2. **Consider accessibility**: Think about how your suggestion would work across different keyboard layouts and accessibility needs
+3. **Provide use case context**: Explain when and why the shortcut would be useful in typical workflows
+
+#### Reporting Issues or Bugs
+If you encounter problems with existing keyboard shortcuts or other functionality:
+
+1. **Describe the issue clearly**: Include what you expected to happen vs. what actually occurred
+2. **Provide browser information**: Include your browser version and operating system
+3. **Include reproduction steps**: Help us understand how to reproduce the issue
+
+#### General Feature Requests
+Beyond keyboard shortcuts, we welcome suggestions for any app improvements:
+
+- User interface enhancements
+- New todo management features
+- Performance optimizations
+- Accessibility improvements
+- Mobile experience enhancements
+
+### Where to Submit Feedback
+
+#### GitHub Issues (Recommended)
+- **New Feature Requests**: [Create a Feature Request](https://github.com/lucabol/AutoToDo/issues/new?labels=enhancement&template=feature_request.md)
+- **Bug Reports**: [Report a Bug](https://github.com/lucabol/AutoToDo/issues/new?labels=bug&template=bug_report.md)
+- **Keyboard Shortcut Suggestions**: [Suggest a Shortcut](https://github.com/lucabol/AutoToDo/issues/new?labels=keyboard-shortcuts,enhancement&title=[Shortcut%20Suggestion])
+
+#### GitHub Discussions
+For broader conversations about the project's direction, usage tips, or community collaboration:
+- **General Discussion**: [Join the Conversation](https://github.com/lucabol/AutoToDo/discussions)
+- **Show and Tell**: Share your customizations or interesting use cases
+- **Q&A**: Ask questions about usage or development
+
+### Community Guidelines
+
+When providing feedback, please:
+
+#### Be Constructive and Specific
+- Focus on specific improvements rather than general complaints
+- Provide concrete examples and use cases
+- Suggest solutions when possible
+
+#### Follow Project Standards
+- Review existing documentation before submitting suggestions
+- Consider compatibility with the project's vanilla JavaScript approach
+- Respect the application's focus on simplicity and performance
+
+#### Engage Respectfully
+- Be patient with response times - this is a community-driven project
+- Provide additional clarification when requested
+- Help test proposed solutions when possible
+
+### Response Expectations
+
+#### Timeline
+- **Bug reports**: We aim to acknowledge within 48 hours
+- **Feature requests**: Initial review within one week
+- **Implementation**: Depends on complexity and community priority
+
+#### Prioritization Factors
+- **User impact**: How many users would benefit?
+- **Accessibility**: Does it improve accessibility or international support?
+- **Maintenance burden**: Can it be implemented without adding complexity?
+- **Community support**: Are multiple users requesting similar functionality?
+
+### Contributing Beyond Feedback
+
+#### Code Contributions
+If you're technically inclined, consider contributing directly:
+- Review the [Community Contributions](#community-contributions) section for development guidelines
+- Fork the repository and submit pull requests
+- Help review and test other community contributions
+
+#### Documentation Improvements
+- Suggest clarifications or additions to documentation
+- Help translate or improve international keyboard layout support
+- Share usage tips and workflow examples
+
+### Recognition
+
+Contributors who provide valuable feedback or suggestions will be:
+- Acknowledged in release notes when their suggestions are implemented
+- Invited to test new features before public release
+- Given priority consideration for future feature discussions
+
+Your engagement helps make AutoToDo better for everyone. Thank you for being part of our community!
