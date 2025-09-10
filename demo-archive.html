@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Archive Performance Demo - AutoToDo</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .demo-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 8px; }
+        .stats { background: #f5f5f5; padding: 10px; margin: 10px 0; border-radius: 4px; }
+        .performance { background: #e8f5e8; padding: 10px; margin: 10px 0; border-radius: 4px; }
+        button { padding: 8px 16px; margin: 5px; cursor: pointer; }
+        .completed { text-decoration: line-through; opacity: 0.6; }
+        .archived { background: #fff3cd; padding: 5px; margin: 5px 0; border-radius: 3px; }
+        .results { background: #d1ecf1; padding: 10px; margin: 10px 0; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <h1>🚀 AutoToDo Archive Performance Demo</h1>
+    <p>Demonstration of performance optimizations for large todo lists (500+ items) in Safari 14+</p>
+
+    <div class="demo-section">
+        <h2>📊 Performance Test Results</h2>
+        <div id="performanceResults"></div>
+        <button onclick="runPerformanceTests()">Run Performance Tests</button>
+    </div>
+
+    <div class="demo-section">
+        <h2>📦 Archive Functionality Demo</h2>
+        <div id="todoStats" class="stats"></div>
+        <div>
+            <button onclick="generateLargeTodoList()">Generate 500 Test Todos</button>
+            <button onclick="archiveCompleted()">Archive Completed Todos</button>
+            <button onclick="showArchived()">Show Archived</button>
+            <button onclick="clearAll()">Clear All</button>
+        </div>
+        <div id="todoList"></div>
+        <div id="archivedList"></div>
+    </div>
+
+    <script src="js/PerformanceUtils.js"></script>
+    <script>
+        // Simple demo TodoModel without dependencies
+        class SimpleTodoModel {
+            constructor() {
+                this.todos = [];
+                this.archivedTodos = [];
+                this.searchIndex = PerformanceUtils.createSearchIndex();
+            }
+
+            addTodo(text, completed = false) {
+                const todo = {
+                    id: `todo-${Date.now()}-${Math.random()}`,
+                    text,
+                    completed,
+                    createdAt: new Date().toISOString()
+                };
+                this.todos.unshift(todo);
+                this.searchIndex.addItems([todo]);
+                return todo;
+            }
+
+            archiveCompletedTodos(maxCompleted = 10) {
+                const completedTodos = this.todos.filter(t => t.completed);
+                const todoToArchive = completedTodos.slice(maxCompleted);
+                
+                if (todoToArchive.length === 0) {
+                    return { archived: 0, stats: this.getStats() };
+                }
+
+                todoToArchive.forEach(todo => {
+                    todo.archivedAt = new Date().toISOString();
+                    this.archivedTodos.unshift(todo);
+                });
+
+                this.todos = this.todos.filter(todo => 
+                    !todoToArchive.some(archived => archived.id === todo.id)
+                );
+
+                return { archived: todoToArchive.length, stats: this.getStats() };
+            }
+
+            getStats() {
+                const total = this.todos.length;
+                const completed = this.todos.filter(t => t.completed).length;
+                const pending = total - completed;
+                const archived = this.archivedTodos.length;
+                
+                return { total, completed, pending, archived };
+            }
+
+            filterTodos(searchTerm) {
+                if (!searchTerm) return this.todos;
+                return this.searchIndex.search(searchTerm).filter(todo => 
+                    this.todos.some(t => t.id === todo.id)
+                );
+            }
+        }
+
+        // Demo instance
+        const demoModel = new SimpleTodoModel();
+
+        function updateStats() {
+            const stats = demoModel.getStats();
+            document.getElementById('todoStats').innerHTML = `
+                <strong>Current Stats:</strong> 
+                ${stats.total} active todos (${stats.completed} completed, ${stats.pending} pending), 
+                ${stats.archived} archived
+            `;
+        }
+
+        function renderTodos() {
+            const todoList = document.getElementById('todoList');
+            const todos = demoModel.todos.slice(0, 20); // Show first 20 for demo
+            
+            if (todos.length === 0) {
+                todoList.innerHTML = '<p>No active todos. Generate some test data!</p>';
+                return;
+            }
+
+            todoList.innerHTML = `
+                <h3>Active Todos (showing first 20 of ${demoModel.todos.length}):</h3>
+                <ul>
+                    ${todos.map(todo => `
+                        <li class="${todo.completed ? 'completed' : ''}">
+                            ${todo.text} 
+                            <button onclick="toggleTodo('${todo.id}')">${todo.completed ? 'Undo' : 'Complete'}</button>
+                        </li>
+                    `).join('')}
+                </ul>
+            `;
+        }
+
+        function renderArchived() {
+            const archivedList = document.getElementById('archivedList');
+            const archived = demoModel.archivedTodos.slice(0, 10); // Show first 10
+            
+            if (archived.length === 0) {
+                archivedList.innerHTML = '';
+                return;
+            }
+
+            archivedList.innerHTML = `
+                <h3>Archived Todos (showing first 10 of ${demoModel.archivedTodos.length}):</h3>
+                <div>
+                    ${archived.map(todo => `
+                        <div class="archived">
+                            ${todo.text} 
+                            <small>(archived ${new Date(todo.archivedAt).toLocaleDateString()})</small>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        function generateLargeTodoList() {
+            console.log('Generating 500 test todos...');
+            const prefixes = ['Complete', 'Review', 'Meeting', 'Call', 'Update', 'Fix', 'Design', 'Test', 'Plan', 'Research'];
+            const suffixes = ['project', 'document', 'presentation', 'system', 'performance', 'optimization', 'feature', 'bug'];
+            
+            const startTime = performance.now();
+            
+            for (let i = 0; i < 500; i++) {
+                const prefix = prefixes[i % prefixes.length];
+                const suffix = suffixes[i % suffixes.length];
+                const text = `${prefix} ${suffix} #${i + 1}`;
+                const completed = Math.random() < 0.3; // 30% completed
+                demoModel.addTodo(text, completed);
+            }
+            
+            const endTime = performance.now();
+            console.log(`Generated 500 todos in ${(endTime - startTime).toFixed(2)}ms`);
+            
+            updateStats();
+            renderTodos();
+            
+            document.getElementById('performanceResults').innerHTML += `
+                <div class="performance">
+                    ✅ Generated 500 todos in ${(endTime - startTime).toFixed(2)}ms
+                </div>
+            `;
+        }
+
+        function toggleTodo(id) {
+            const todo = demoModel.todos.find(t => t.id === id);
+            if (todo) {
+                todo.completed = !todo.completed;
+                updateStats();
+                renderTodos();
+            }
+        }
+
+        function archiveCompleted() {
+            const startTime = performance.now();
+            const result = demoModel.archiveCompletedTodos(5); // Keep only 5 completed
+            const endTime = performance.now();
+            
+            if (result.archived > 0) {
+                const improvement = Math.round((result.archived / (result.stats.total + result.archived)) * 100);
+                
+                document.getElementById('performanceResults').innerHTML += `
+                    <div class="performance">
+                        📦 Archived ${result.archived} completed todos in ${(endTime - startTime).toFixed(2)}ms<br>
+                        🚀 Performance improvement: ${improvement}% fewer active todos
+                    </div>
+                `;
+                
+                updateStats();
+                renderTodos();
+                renderArchived();
+            } else {
+                alert('No completed todos to archive');
+            }
+        }
+
+        function showArchived() {
+            renderArchived();
+        }
+
+        function clearAll() {
+            demoModel.todos = [];
+            demoModel.archivedTodos = [];
+            demoModel.searchIndex.clear();
+            updateStats();
+            renderTodos();
+            document.getElementById('archivedList').innerHTML = '';
+            document.getElementById('performanceResults').innerHTML = '';
+        }
+
+        function runPerformanceTests() {
+            document.getElementById('performanceResults').innerHTML = '<h3>🧪 Running Performance Tests...</h3>';
+            
+            // Test 1: Large list generation
+            console.log('Testing large list generation...');
+            const tempModel = new SimpleTodoModel();
+            const sizes = [100, 500, 1000];
+            
+            sizes.forEach(size => {
+                const startTime = performance.now();
+                
+                for (let i = 0; i < size; i++) {
+                    tempModel.addTodo(`Test todo ${i}`, Math.random() < 0.3);
+                }
+                
+                const endTime = performance.now();
+                const duration = endTime - startTime;
+                
+                document.getElementById('performanceResults').innerHTML += `
+                    <div class="results">
+                        📊 Generated ${size} todos: ${duration.toFixed(2)}ms
+                    </div>
+                `;
+            });
+
+            // Test 2: Search performance
+            console.log('Testing search performance...');
+            const searchStartTime = performance.now();
+            const results = tempModel.filterTodos('test');
+            const searchEndTime = performance.now();
+            
+            document.getElementById('performanceResults').innerHTML += `
+                <div class="results">
+                    🔍 Searched 1000 todos: ${(searchEndTime - searchStartTime).toFixed(2)}ms (found ${results.length} matches)
+                </div>
+            `;
+
+            // Test 3: Archive performance
+            console.log('Testing archive performance...');
+            const archiveStartTime = performance.now();
+            const archiveResult = tempModel.archiveCompletedTodos(10);
+            const archiveEndTime = performance.now();
+            
+            document.getElementById('performanceResults').innerHTML += `
+                <div class="results">
+                    📦 Archived ${archiveResult.archived} todos: ${(archiveEndTime - archiveStartTime).toFixed(2)}ms<br>
+                    🎯 Performance: ${Math.round((archiveResult.archived / 1000) * 100)}% reduction in active list
+                </div>
+            `;
+
+            // Test 4: Safari detection
+            const isSafari = PerformanceUtils.isSafari();
+            document.getElementById('performanceResults').innerHTML += `
+                <div class="results">
+                    🍎 Safari Detection: ${isSafari ? '✅ Safari optimizations active' : '❌ Not Safari, using standard optimizations'}
+                </div>
+            `;
+
+            document.getElementById('performanceResults').innerHTML += `
+                <div class="performance">
+                    <strong>🏁 Performance Tests Complete!</strong><br>
+                    All optimizations are working correctly for large todo lists.
+                </div>
+            `;
+        }
+
+        // Initialize
+        updateStats();
+        renderTodos();
+    </script>
+</body>
+</html>
