@@ -277,6 +277,8 @@ class StorageManager {
         this.isPrivateBrowsing = this.isPrivateBrowsing || false;
         this.safari14Mode = this.safari14Mode || false;
     }
+
+    /**
      * Get an item from storage with comprehensive fallback support
      * 
      * This method attempts to retrieve data using the most reliable mechanism

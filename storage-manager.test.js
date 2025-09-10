@@ -115,6 +115,8 @@ class TestRunner {
     }
 }
 
+// Simple StorageManager class for testing (inline version)
+class StorageManager {
     constructor() {
         this.storageType = this.detectBestStorage();
         this.memoryStorage = new Map();
