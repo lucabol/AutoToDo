@@ -34,16 +34,19 @@ class TodoController {
      * Initialize theme management
      */
     initializeTheme() {
+        // Use the global storageManager instance
+        this.storage = window.storageManager || storageManager;
+        
         // Check for saved theme preference or system preference
-        const savedTheme = localStorage.getItem('todo-theme');
+        const savedTheme = this.storage.getItem('todo-theme');
         const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
         
         const initialTheme = savedTheme || (systemPrefersDark ? 'dark' : 'light');
-        this.setTheme(initialTheme, false); // false = don't save to localStorage on init
+        this.setTheme(initialTheme, false); // false = don't save to storage on init
         
         // Listen for system theme changes
         window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
-            if (!localStorage.getItem('todo-theme')) {
+            if (!this.storage.getItem('todo-theme')) {
                 this.setTheme(e.matches ? 'dark' : 'light', false);
             }
         });
@@ -52,7 +55,7 @@ class TodoController {
     /**
      * Set the application theme
      * @param {string} theme - 'light' or 'dark'
-     * @param {boolean} save - Whether to save preference to localStorage
+     * @param {boolean} save - Whether to save preference to storage
      */
     setTheme(theme, save = true) {
         const body = document.body;
@@ -70,8 +73,8 @@ class TodoController {
             if (themeText) themeText.textContent = 'Dark';
         }
 
-        if (save) {
-            localStorage.setItem('todo-theme', theme);
+        if (save && this.storage) {
+            this.storage.setItem('todo-theme', theme);
         }
 
         this.currentTheme = theme;
