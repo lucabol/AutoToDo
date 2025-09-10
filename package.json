@@ -4,7 +4,7 @@
   "description": "A complete todo application with CRUD operations, search functionality, and robust delete handling",
   "main": "index.html",
   "scripts": {
-    "test": "node test-delete-unit-tests.js && node search.test.js && node drag-drop.test.js && node search-integration.test.js && node theme.test.js && node keyboard-shortcuts.test.js && node keyboard-shortcut-manager.test.js && node shortcuts-config.test.js && node search-focus-fix.test.js && node keyboard-handlers.test.js && node help-modal-builder.test.js && node search-focus-shortcuts.test.js && node keyboard-shortcut-refactoring.test.js && node shortcut-modules.test.js && node shortcut-utilities.test.js && node storage-manager.test.js && node storage-modules.test.js && node ctrl-m-shortcut.test.js",
+    "test": "node test-delete-unit-tests.js && node search.test.js && node drag-drop.test.js && node search-integration.test.js && node theme.test.js && node keyboard-shortcuts.test.js && node keyboard-shortcut-manager.test.js && node shortcuts-config.test.js && node search-focus-fix.test.js && node keyboard-handlers.test.js && node help-modal-builder.test.js && node search-focus-shortcuts.test.js && node keyboard-shortcut-refactoring.test.js && node shortcut-modules.test.js && node shortcut-utilities.test.js && node safari-14-fallback.test.js && node storage-manager.test.js && node storage-modules.test.js && node ctrl-m-shortcut.test.js",
     "test:performance": "node performance.test.js",
     "test:delete": "node test-delete-unit-tests.js",
     "test:search": "node search.test.js",
@@ -12,7 +12,8 @@
     "test:drag-drop": "node drag-drop.test.js",
     "test:theme": "node theme.test.js",
     "test:shortcuts": "node keyboard-shortcuts.test.js && node keyboard-shortcut-manager.test.js && node shortcuts-config.test.js && node keyboard-handlers.test.js && node help-modal-builder.test.js && node search-focus-shortcuts.test.js && node search-focus-fix.test.js && node keyboard-shortcut-refactoring.test.js && node shortcut-modules.test.js && node shortcut-utilities.test.js && node storage-manager.test.js && node storage-modules.test.js && node ctrl-m-shortcut.test.js",
-    "test:browser": "echo 'Open test-delete-unit-tests.html, test.html, test-delete-functionality.html, and test-drag-drop-integration.html in your browser to run all tests'",
+    "test:safari14": "node safari-14-fallback.test.js",
+    "test:browser": "echo 'Open test-delete-unit-tests.html, test.html, test-delete-functionality.html, test-drag-drop-integration.html, and test-safari-14-fallback.html in your browser to run all tests'",
     "test:integration": "echo 'Open test-delete-functionality.html and test-drag-drop-integration.html in your browser to run integration tests'",
     "test:drag-drop-integration": "echo 'Open test-drag-drop-integration.html in your browser to run drag & drop integration tests'",
     "start": "echo 'Open index.html in your browser to run the AutoToDo application'",
@@ -37,8 +38,11 @@
     "test-delete-unit-tests.js",
     "test-delete-unit-tests.html",
     "test-delete-functionality.html",
+    "test-safari-14-fallback.html",
+    "safari-14-fallback.test.js",
     "search.test.js",
     "drag-drop.test.js",
+    "storage-manager.test.js",
     "test-drag-drop-integration.html",
     "search-integration.test.js",
     "theme.test.js",
@@ -58,7 +62,8 @@
     "README-TESTING.md",
     "TEST_README.md",
     "PERFORMANCE_GUIDE.md",
-    "REFACTORING_IMPROVEMENTS.md"
+    "REFACTORING_IMPROVEMENTS.md",
+    "SAFARI_14_COMPATIBILITY.md"
   ],
   "repository": {
     "type": "git",

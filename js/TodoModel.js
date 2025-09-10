@@ -27,11 +27,17 @@ class TodoModel {
     saveTodos() {
         try {
             const success = this.storage.setItem('todos', JSON.stringify(this.todos));
-            if (!success) {
-                console.warn('Failed to save todos to persistent storage, using memory fallback');
+            if (!success && this.storage.getStorageType() === 'memory') {
+                // Show a warning only once when localStorage first fails
+                if (!this._memoryWarningShown) {
+                    console.warn('Todos are being stored in memory only and will not persist between sessions.');
+                    this._memoryWarningShown = true;
+                }
             }
-        } catch (e) {
-            console.warn('Failed to save todos:', e);
+            return success;
+        } catch (error) {
+            console.error('Failed to save todos to storage:', error);
+            return false;
         }
     }
 
