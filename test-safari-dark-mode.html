@@ -15,21 +15,25 @@
             border: 2px solid var(--border-primary, #e5e5e7);
             border-radius: 12px;
             padding: 20px;
-            max-width: 300px;
+            max-width: 320px;
             box-shadow: 0 4px 20px var(--shadow, rgba(0, 0, 0, 0.1));
             z-index: 1000;
             transition: var(--transition-theme);
+            max-height: 80vh;
+            overflow-y: auto;
         }
         
         .test-panel h3 {
             margin: 0 0 15px 0;
             color: var(--text-primary, #1d1d1f);
+            font-size: 18px;
         }
         
         .test-results {
             font-family: 'SF Mono', Monaco, monospace;
-            font-size: 12px;
-            margin: 10px 0;
+            font-size: 11px;
+            margin: 8px 0;
+            line-height: 1.4;
         }
         
         .test-pass {
@@ -48,6 +52,360 @@
             background: var(--accent-primary, #007aff);
             color: white;
             border: none;
+            padding: 10px 16px;
+            border-radius: 8px;
+            margin: 5px 5px 5px 0;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s ease;
+        }
+        
+        .test-button:hover {
+            background: var(--accent-hover, #0056cc);
+        }
+        
+        .test-section {
+            margin: 15px 0;
+            padding: 10px;
+            border: 1px solid var(--border-primary);
+            border-radius: 8px;
+            background: var(--bg-tertiary);
+        }
+        
+        .test-section h4 {
+            margin: 0 0 10px 0;
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+        
+        .feature-check {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 5px 0;
+            font-size: 12px;
+        }
+        
+        .status-indicator {
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 10px;
+        }
+        
+        .status-pass {
+            background: var(--success, #34c759);
+            color: white;
+        }
+        
+        .status-fail {
+            background: var(--danger, #ff3b30);
+            color: white;
+        }
+        
+        .status-warning {
+            background: var(--warning, #ff9500);
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>AutoToDo</h1>
+            <button class="theme-toggle" id="themeToggle">
+                <span class="theme-icon">🌙</span>
+                <span class="theme-text">Dark</span>
+            </button>
+        </div>
+        
+        <div class="search-container">
+            <input 
+                type="search" 
+                class="search-input" 
+                id="searchInput" 
+                placeholder="Search todos..."
+                aria-label="Search todos"
+            >
+            <button class="clear-search-btn" id="clearSearchBtn" type="button">Clear</button>
+        </div>
+        
+        <form class="add-todo-form" id="addTodoForm">
+            <input 
+                type="text" 
+                class="todo-input" 
+                id="todoInput" 
+                placeholder="What needs to be done?"
+                aria-label="Enter new todo"
+                required
+            >
+            <button type="submit" class="add-btn" aria-label="Add new todo">Add Todo</button>
+        </form>
+
+        <ul class="todo-list" id="todoList" role="list" aria-label="Todo items">
+            <!-- Sample todos will be added for testing -->
+        </ul>
+
+        <div class="empty-state" id="emptyState" style="display: none;">
+            No todos yet. Add one above to get started!
+        </div>
+    </div>
+
+    <!-- Safari 14.3+ Dark Mode Test Panel -->
+    <div class="test-panel" id="testPanel">
+        <h3>🧪 Safari 14.3+ Dark Mode Tests</h3>
+        
+        <div class="test-section">
+            <h4>Feature Detection</h4>
+            <div id="featureTests"></div>
+        </div>
+        
+        <div class="test-section">
+            <h4>Theme Controls</h4>
+            <button class="test-button" onclick="testThemeToggle()">Test Theme Toggle</button>
+            <button class="test-button" onclick="testTransitions()">Test Transitions</button>
+            <button class="test-button" onclick="testSystemIntegration()">Test System Integration</button>
+        </div>
+        
+        <div class="test-section">
+            <h4>Results</h4>
+            <div id="testResults" class="test-results">
+                <div class="test-info">Click test buttons to validate functionality</div>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h4>Actions</h4>
+            <button class="test-button" onclick="runAllTests()">Run All Tests</button>
+            <button class="test-button" onclick="clearResults()">Clear Results</button>
+        </div>
+    </div>
+
+    <!-- JavaScript Modules -->
+    <script src="js/StorageManager.js"></script>
+    <script src="js/PerformanceUtils.js"></script>
+    <script src="js/VirtualScrollManager.js"></script>
+    <script src="js/ShortcutModules.js"></script>
+    <script src="js/ShortcutsConfig.js"></script>
+    <!-- Keyboard Shortcut Manager Utilities -->
+    <script src="js/ShortcutValidator.js"></script>
+    <script src="js/ShortcutCache.js"></script>
+    <script src="js/ShortcutStatistics.js"></script>
+    <script src="js/DebugLogger.js"></script>
+    <!-- Main Keyboard Shortcut Manager -->
+    <script src="js/KeyboardShortcutManager.js"></script>
+    <script src="js/HelpModalBuilder.js"></script>
+    <script src="js/KeyboardHandlers.js"></script>
+    <script src="js/TodoModel.js"></script>
+    <script src="js/TodoView.js"></script>
+    <script src="js/TodoController.js"></script>
+    <script src="js/app.js"></script>
+
+    <script>
+        // Test-specific JavaScript
+        let testResults = [];
+        let app = null;
+
+        // Initialize the app and add sample data for testing
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(() => {
+                if (window.todoApp) {
+                    app = window.todoApp;
+                    addSampleTodos();
+                    runFeatureDetection();
+                } else {
+                    displayResult('❌ App initialization failed', 'fail');
+                }
+            }, 100);
+        });
+
+        function addSampleTodos() {
+            if (app && app.model) {
+                app.model.addTodo('Test dark mode functionality');
+                app.model.addTodo('Verify Safari 14.3+ features');
+                app.model.addTodo('Check theme transitions');
+                app.controller.render();
+            }
+        }
+
+        function runFeatureDetection() {
+            const featureContainer = document.getElementById('featureTests');
+            const features = [
+                {
+                    name: 'Safari Browser',
+                    test: () => /Safari/.test(navigator.userAgent) && /Version/.test(navigator.userAgent)
+                },
+                {
+                    name: 'color-scheme Support',
+                    test: () => CSS.supports('color-scheme', 'light dark')
+                },
+                {
+                    name: '-webkit-color-scheme',
+                    test: () => CSS.supports('-webkit-color-scheme', 'light dark')
+                },
+                {
+                    name: 'backdrop-filter',
+                    test: () => CSS.supports('backdrop-filter', 'blur(10px)')
+                },
+                {
+                    name: 'CSS Custom Properties',
+                    test: () => CSS.supports('--test', 'value')
+                },
+                {
+                    name: 'prefers-color-scheme',
+                    test: () => window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches !== undefined
+                }
+            ];
+
+            featureContainer.innerHTML = '';
+            features.forEach(feature => {
+                const result = feature.test();
+                const div = document.createElement('div');
+                div.className = 'feature-check';
+                div.innerHTML = `
+                    <span>${feature.name}</span>
+                    <span class="status-indicator ${result ? 'status-pass' : 'status-fail'}">
+                        ${result ? 'PASS' : 'FAIL'}
+                    </span>
+                `;
+                featureContainer.appendChild(div);
+            });
+        }
+
+        function testThemeToggle() {
+            if (!app) {
+                displayResult('❌ App not available for theme toggle test', 'fail');
+                return;
+            }
+
+            try {
+                const originalTheme = app.controller.currentTheme;
+                displayResult(`🔄 Testing theme toggle from ${originalTheme}`, 'info');
+
+                app.controller.toggleTheme();
+                const newTheme = app.controller.currentTheme;
+
+                if (newTheme !== originalTheme) {
+                    displayResult(`✅ Theme toggle successful: ${originalTheme} → ${newTheme}`, 'pass');
+                    
+                    // Test color-scheme meta tag
+                    const metaTag = document.querySelector('meta[name="color-scheme"]');
+                    if (metaTag) {
+                        displayResult(`✅ color-scheme meta tag updated: ${metaTag.content}`, 'pass');
+                    } else {
+                        displayResult(`⚠️ color-scheme meta tag not found`, 'fail');
+                    }
+                    
+                    // Test body class
+                    const hasClass = document.body.classList.contains('dark-theme');
+                    const shouldHave = newTheme === 'dark';
+                    if (hasClass === shouldHave) {
+                        displayResult(`✅ Body class correctly ${shouldHave ? 'added' : 'removed'}`, 'pass');
+                    } else {
+                        displayResult(`❌ Body class incorrect: expected ${shouldHave}, got ${hasClass}`, 'fail');
+                    }
+                } else {
+                    displayResult('❌ Theme toggle failed - theme unchanged', 'fail');
+                }
+            } catch (error) {
+                displayResult(`❌ Theme toggle error: ${error.message}`, 'fail');
+            }
+        }
+
+        async function testTransitions() {
+            if (!app) {
+                displayResult('❌ App not available for transition test', 'fail');
+                return;
+            }
+
+            displayResult('🔄 Testing theme transitions...', 'info');
+
+            try {
+                const result = await app.controller.validateThemeTransitions();
+                if (result) {
+                    displayResult('✅ Theme transitions work smoothly', 'pass');
+                } else {
+                    displayResult('⚠️ Theme transitions may not be working optimally', 'fail');
+                }
+            } catch (error) {
+                displayResult(`❌ Transition test error: ${error.message}`, 'fail');
+            }
+        }
+
+        function testSystemIntegration() {
+            displayResult('🔄 Testing system integration...', 'info');
+
+            // Test matchMedia for system preference
+            if (window.matchMedia) {
+                const darkModeQuery = window.matchMedia('(prefers-color-scheme: dark)');
+                displayResult(`✅ System preference detected: ${darkModeQuery.matches ? 'dark' : 'light'}`, 'pass');
+                
+                // Test listener
+                try {
+                    const testListener = () => {};
+                    darkModeQuery.addListener(testListener);
+                    darkModeQuery.removeListener(testListener);
+                    displayResult('✅ System preference change listener works', 'pass');
+                } catch (error) {
+                    displayResult(`❌ System preference listener error: ${error.message}`, 'fail');
+                }
+            } else {
+                displayResult('❌ matchMedia not supported', 'fail');
+            }
+
+            // Test CSS custom properties
+            const testElement = document.createElement('div');
+            document.body.appendChild(testElement);
+            testElement.style.color = 'var(--text-primary, #000)';
+            const computedStyle = getComputedStyle(testElement);
+            const colorValue = computedStyle.color;
+            document.body.removeChild(testElement);
+
+            if (colorValue && colorValue !== 'var(--text-primary, #000)') {
+                displayResult('✅ CSS custom properties are working', 'pass');
+            } else {
+                displayResult('❌ CSS custom properties may not be working', 'fail');
+            }
+        }
+
+        async function runAllTests() {
+            clearResults();
+            displayResult('🚀 Running comprehensive Safari 14.3+ dark mode tests...', 'info');
+            
+            await new Promise(resolve => setTimeout(resolve, 100));
+            testThemeToggle();
+            
+            await new Promise(resolve => setTimeout(resolve, 500));
+            await testTransitions();
+            
+            await new Promise(resolve => setTimeout(resolve, 100));
+            testSystemIntegration();
+            
+            displayResult('🏁 All tests completed', 'info');
+        }
+
+        function displayResult(message, type) {
+            const resultsContainer = document.getElementById('testResults');
+            const div = document.createElement('div');
+            div.className = `test-${type}`;
+            div.textContent = `${new Date().toLocaleTimeString()}: ${message}`;
+            resultsContainer.appendChild(div);
+            resultsContainer.scrollTop = resultsContainer.scrollHeight;
+        }
+
+        function clearResults() {
+            document.getElementById('testResults').innerHTML = '';
+        }
+
+        // Auto-run feature detection on load
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', runFeatureDetection);
+        } else {
+            runFeatureDetection();
+        }
+    </script>
+</body>
+</html>
             padding: 8px 16px;
             border-radius: 6px;
             cursor: pointer;

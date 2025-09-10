@@ -196,6 +196,45 @@ class TodoController {
     }
 
     /**
+     * Validate that smooth theme transitions work properly
+     * @returns {Promise<boolean>} True if transitions work smoothly
+     */
+    async validateThemeTransitions() {
+        if (!this.isSafari143Plus) {
+            return true; // Skip validation on non-Safari browsers
+        }
+
+        return new Promise((resolve) => {
+            const body = document.body;
+            const originalTheme = this.currentTheme;
+            let transitionCompleted = false;
+
+            // Set up transition listener
+            const transitionHandler = (event) => {
+                if (event.propertyName === 'background-color' || event.propertyName === 'color') {
+                    transitionCompleted = true;
+                    body.removeEventListener('transitionend', transitionHandler);
+                }
+            };
+
+            body.addEventListener('transitionend', transitionHandler);
+
+            // Toggle theme to test transition
+            this.toggleTheme();
+
+            // Check if transition completed within reasonable time
+            setTimeout(() => {
+                body.removeEventListener('transitionend', transitionHandler);
+                
+                // Restore original theme
+                this.setTheme(originalTheme);
+                
+                resolve(transitionCompleted);
+            }, 500);
+        });
+    }
+
+    /**
      * Set up keyboard shortcuts using the enhanced KeyboardShortcutManager
      */
     setupKeyboardShortcuts() {
