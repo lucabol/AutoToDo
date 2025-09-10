@@ -2,9 +2,10 @@
  * TodoController - Handles user interactions and coordinates between Model and View
  */
 class TodoController {
-    constructor(model, view) {
+    constructor(model, view, storageManager = window.storageManager) {
         this.model = model;
         this.view = view;
+        this.storage = storageManager;
         this.searchTerm = '';
         
         // Drag and drop functionality
@@ -65,22 +66,24 @@ class TodoController {
      * Initialize theme management
      */
     initializeTheme() {
-        // Use the same storage manager as the model
-        this.storage = this.model.storage;
-        
-        // Check for saved theme preference or system preference
-        const savedTheme = this.storage.getItem('todo-theme');
-        const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        
-        const initialTheme = savedTheme || (systemPrefersDark ? 'dark' : 'light');
-        this.setTheme(initialTheme, false); // false = don't save to storage on init
-        
-        // Listen for system theme changes
-        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
-            if (!this.storage.getItem('todo-theme')) {
-                this.setTheme(e.matches ? 'dark' : 'light', false);
-            }
-        });
+        try {
+            // Check for saved theme preference or system preference
+            const savedTheme = this.storage.getItem('todo-theme');
+            const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            
+            const initialTheme = savedTheme || (systemPrefersDark ? 'dark' : 'light');
+            this.setTheme(initialTheme, false); // false = don't save to storage on init
+            
+            // Listen for system theme changes
+            window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+                if (!this.storage.getItem('todo-theme')) {
+                    this.setTheme(e.matches ? 'dark' : 'light', false);
+                }
+            });
+        } catch (e) {
+            console.warn('Failed to initialize theme, using default light theme:', e);
+            this.setTheme('light', false);
+        }
     }
 
     /**
@@ -104,8 +107,12 @@ class TodoController {
             if (themeText) themeText.textContent = 'Dark';
         }
 
-        if (save && this.storage) {
-            this.storage.setItem('todo-theme', theme);
+        if (save) {
+            try {
+                this.storage.setItem('todo-theme', theme);
+            } catch (e) {
+                console.warn('Failed to save theme preference:', e);
+            }
         }
         }
 
