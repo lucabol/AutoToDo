@@ -838,7 +838,6 @@ class TodoController {
             }
         }
     }
-    }
 
     /**
      * Get application statistics including performance data
