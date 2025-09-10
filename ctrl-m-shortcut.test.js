@@ -1,9 +1,27 @@
 /**
- * Ctrl+M Dark Mode Toggle Keyboard Shortcut Test
- * Tests for the Ctrl+M keyboard shortcut that toggles dark/light theme
+ * Ctrl+M Dark Mode Toggle Keyboard Shortcut Test Suite
+ * 
+ * This test suite provides comprehensive coverage for the Ctrl+M keyboard shortcut
+ * functionality that toggles between dark and light themes in the AutoToDo application.
+ * 
+ * Test Coverage Areas:
+ * 1. Shortcut Configuration - Ensures Ctrl+M is properly configured in ShortcutsConfig
+ * 2. Keyboard Manager Integration - Tests KeyboardShortcutManager handles Ctrl+M correctly  
+ * 3. Input Validation - Prevents accidental triggers from similar key combinations
+ * 4. Theme Toggle Logic - Tests bidirectional theme switching (light ↔ dark)
+ * 5. Edge Cases - Multiple toggles and state consistency
+ * 6. End-to-End Integration - Full workflow from keypress to theme change
  */
 
-// Simple KeyboardShortcutManager class for testing (matching the pattern used in other tests)
+// ==========================================
+// MOCK CLASSES FOR TESTING
+// ==========================================
+
+/**
+ * Mock KeyboardShortcutManager for testing keyboard shortcut functionality
+ * Simplified version that matches the interface of the real KeyboardShortcutManager
+ * Used to test shortcut registration and handling without external dependencies
+ */
 class KeyboardShortcutManager {
     constructor() {
         this.shortcuts = new Map();
@@ -71,7 +89,11 @@ class KeyboardShortcutManager {
     }
 }
 
-// Simple ShortcutsConfig class for testing
+/**
+ * Mock ShortcutsConfig class for testing shortcut configuration
+ * Provides methods to get and validate keyboard shortcuts
+ * Specifically includes the Ctrl+M theme toggle shortcut configuration
+ */
 class ShortcutsConfig {
     static getShortcuts(handlers) {
         return [
@@ -110,7 +132,17 @@ class ShortcutsConfig {
     }
 }
 
-// Mock theme controller for testing theme toggle functionality
+/**
+ * Mock ThemeController for testing theme toggle functionality
+ * Simulates the theme management system including:
+ * - Theme state tracking (light/dark)
+ * - CSS class management for dark-theme
+ * - Theme button state updates (icon and text)
+ * - localStorage persistence simulation
+ * - Bidirectional theme switching logic
+ * 
+ * This mock allows testing theme functionality without DOM dependencies
+ */
 class MockThemeController {
     constructor() {
         this.currentTheme = 'light';
@@ -177,12 +209,22 @@ class MockThemeController {
     }
 }
 
-// =================
-// Individual Test Functions
-// =================
+// ==========================================
+// CONFIGURATION VALIDATION TESTS
+// ==========================================
 
 /**
- * Test that Ctrl+M shortcut is properly configured
+ * Test: Shortcut Configuration Validation
+ * 
+ * Purpose: Verifies that the Ctrl+M shortcut is properly defined in ShortcutsConfig
+ * This test ensures the shortcut has all required properties and correct configuration
+ * 
+ * Validates:
+ * - Shortcut key mapping (key: 'm', ctrlKey: true)
+ * - Context setting (global scope)
+ * - Description text for user documentation
+ * - Category classification for organization
+ * - preventDefault flag to avoid browser conflicts
  */
 function testShortcutConfiguration() {
     const mockHandlers = {
@@ -213,8 +255,21 @@ function testShortcutConfiguration() {
     }
 }
 
+// ==========================================
+// KEYBOARD MANAGER INTEGRATION TESTS  
+// ==========================================
+
 /**
- * Test that KeyboardShortcutManager can register and handle Ctrl+M
+ * Test: KeyboardShortcutManager Integration
+ * 
+ * Purpose: Verifies that KeyboardShortcutManager can properly register and handle Ctrl+M
+ * This test confirms the integration between shortcut configuration and execution
+ * 
+ * Tests:
+ * - Shortcut registration with correct parameters
+ * - Event handling and action execution
+ * - Return value indicating successful handling
+ * - Action function invocation on keypress
  */
 function testKeyboardShortcutManagerIntegration() {
     let themeToggleCalled = false;
@@ -250,8 +305,20 @@ function testKeyboardShortcutManagerIntegration() {
     }
 }
 
+// ==========================================
+// INPUT VALIDATION AND PREVENTION TESTS
+// ==========================================
+
 /**
- * Test that regular "m" key doesn't trigger the shortcut
+ * Test: Prevent Accidental Trigger from 'M' Key
+ * 
+ * Purpose: Ensures that pressing just 'm' without Ctrl doesn't trigger theme toggle
+ * This prevents accidental theme changes during normal typing
+ * 
+ * Tests:
+ * - Regular 'm' key press should not be handled
+ * - Theme toggle action should not be called
+ * - No interference with normal text input
  */
 function testPreventAccidentalTriggerFromMKey() {
     let themeToggleCalled = false;
@@ -288,7 +355,15 @@ function testPreventAccidentalTriggerFromMKey() {
 }
 
 /**
- * Test that other modifier combinations don't trigger the shortcut
+ * Test: Prevent Accidental Trigger from Other Modifier Combinations
+ * 
+ * Purpose: Ensures other modifier combinations (Ctrl+Alt+M, Ctrl+Shift+M) don't trigger shortcut
+ * This provides precise shortcut matching and prevents conflicts with other shortcuts
+ * 
+ * Tests:
+ * - Ctrl+Alt+M should not trigger theme toggle
+ * - Only exact Ctrl+M combination should work
+ * - Prevents interference with other application shortcuts
  */
 function testPreventAccidentalTriggerFromOtherModifiers() {
     let themeToggleCalled = false;
@@ -325,7 +400,16 @@ function testPreventAccidentalTriggerFromOtherModifiers() {
 }
 
 /**
- * Test that the shortcut passes validation
+ * Test: Shortcut Configuration Validation
+ * 
+ * Purpose: Verifies that the Ctrl+M shortcut passes ShortcutsConfig validation rules
+ * This ensures the shortcut meets all quality and structure requirements
+ * 
+ * Validates:
+ * - Required properties are present (key, action)
+ * - Action is a valid function
+ * - No validation errors are reported
+ * - Shortcut structure meets standards
  */
 function testShortcutValidation() {
     const mockHandlers = {
@@ -351,12 +435,23 @@ function testShortcutValidation() {
     }
 }
 
-// =================
-// Theme Toggle Edge Case Tests
-// =================
+// ==========================================
+// THEME TOGGLE FUNCTIONALITY TESTS
+// ==========================================
 
 /**
- * Test theme toggle from light to dark mode
+ * Test: Theme Toggle from Light to Dark Mode
+ * 
+ * Purpose: Verifies complete theme switching functionality from light to dark
+ * This tests the forward direction of theme toggling with all state changes
+ * 
+ * Tests:
+ * - Initial light mode state verification
+ * - Theme toggle execution
+ * - Dark mode state after toggle
+ * - CSS class application (dark-theme)
+ * - Button state updates (icon: ☀️, text: 'Light')
+ * - Complete UI state consistency
  */
 function testThemeToggleLightToDark() {
     const controller = new MockThemeController();
@@ -390,7 +485,18 @@ function testThemeToggleLightToDark() {
 }
 
 /**
- * Test theme toggle from dark to light mode
+ * Test: Theme Toggle from Dark to Light Mode
+ * 
+ * Purpose: Verifies complete theme switching functionality from dark to light
+ * This tests the reverse direction of theme toggling with all state changes
+ * 
+ * Tests:
+ * - Initial dark mode state setup and verification
+ * - Theme toggle execution from dark state
+ * - Light mode state after toggle
+ * - CSS class removal (dark-theme removed)
+ * - Button state updates (icon: 🌙, text: 'Dark')
+ * - Bidirectional functionality validation
  */
 function testThemeToggleDarkToLight() {
     const controller = new MockThemeController();
@@ -426,8 +532,23 @@ function testThemeToggleDarkToLight() {
     }
 }
 
+// ==========================================
+// EDGE CASE AND ROBUSTNESS TESTS
+// ==========================================
+
 /**
- * Test multiple consecutive theme toggles
+ * Test: Multiple Consecutive Theme Toggles
+ * 
+ * Purpose: Verifies theme toggle robustness with repeated rapid toggles
+ * This tests state consistency and prevents toggle state corruption
+ * 
+ * Tests:
+ * - Starting state consistency
+ * - First toggle: light → dark
+ * - Second toggle: dark → light (return to original)
+ * - Third toggle: light → dark (repeat cycle)
+ * - Fourth toggle: dark → light (confirm cycle continues)
+ * - State integrity throughout multiple operations
  */
 function testMultipleConsecutiveToggles() {
     const controller = new MockThemeController();
@@ -463,8 +584,25 @@ function testMultipleConsecutiveToggles() {
     }
 }
 
+// ==========================================
+// END-TO-END INTEGRATION TESTS
+// ==========================================
+
 /**
- * Test Ctrl+M integration with actual theme toggle functionality
+ * Test: Ctrl+M Integration with Actual Theme Toggle
+ * 
+ * Purpose: Tests complete end-to-end workflow from keypress to theme change
+ * This validates the full integration chain from keyboard input to visual change
+ * 
+ * Integration Flow:
+ * 1. KeyboardShortcutManager registers Ctrl+M shortcut
+ * 2. Mock keyboard event (Ctrl+M) is created and processed
+ * 3. Shortcut manager identifies and handles the event
+ * 4. Theme toggle action is executed
+ * 5. Theme state changes are verified
+ * 6. Multiple toggle cycles are tested for consistency
+ * 
+ * This test confirms the complete user experience works as expected
  */
 function testCtrlMIntegrationWithThemeToggle() {
     const controller = new MockThemeController();
@@ -525,12 +663,29 @@ function testCtrlMIntegrationWithThemeToggle() {
     }
 }
 
-// =================
-// Main Test Runner
-// =================
+// ==========================================
+// MAIN TEST RUNNER AND ORCHESTRATION
+// ==========================================
 
 /**
- * Main test runner that executes all individual test functions
+ * Main Test Runner: testCtrlMThemeToggleShortcut
+ * 
+ * Purpose: Orchestrates execution of all Ctrl+M shortcut tests and provides comprehensive reporting
+ * 
+ * Test Organization:
+ * 1. Configuration Tests - Validates shortcut setup and configuration
+ * 2. Integration Tests - Tests keyboard manager integration  
+ * 3. Input Validation Tests - Prevents accidental triggers
+ * 4. Theme Toggle Tests - Tests actual theme switching logic
+ * 5. Edge Case Tests - Handles multiple toggles and robustness
+ * 6. End-to-End Tests - Full workflow integration validation
+ * 
+ * Reporting Features:
+ * - Individual test pass/fail status with descriptive names
+ * - Detailed test summary with counts and percentages
+ * - Success/failure indicators with visual feedback
+ * - Comprehensive feature validation summary
+ * - Exit code handling for CI/CD integration
  */
 function testCtrlMThemeToggleShortcut() {
     console.log('🧪 Running Ctrl+M Dark Mode Toggle Shortcut Tests...\n');
@@ -549,14 +704,18 @@ function testCtrlMThemeToggleShortcut() {
         }
     }
     
-    // Configuration and integration tests
+    // ========================================
+    // CONFIGURATION AND INTEGRATION TESTS
+    // ========================================
     test('should have Ctrl+M shortcut configured in ShortcutsConfig', testShortcutConfiguration);
     test('should register and handle Ctrl+M shortcut correctly', testKeyboardShortcutManagerIntegration);
     test('should not trigger theme toggle with just "m" key', testPreventAccidentalTriggerFromMKey);
     test('should not trigger with Ctrl+Alt+M or other modifier combinations', testPreventAccidentalTriggerFromOtherModifiers);
     test('should pass ShortcutsConfig validation', testShortcutValidation);
     
-    // Theme toggle edge case tests
+    // ========================================
+    // THEME TOGGLE FUNCTIONALITY TESTS
+    // ========================================
     test('should toggle theme from light to dark mode', testThemeToggleLightToDark);
     test('should toggle theme from dark to light mode', testThemeToggleDarkToLight);
     test('should handle multiple consecutive theme toggles', testMultipleConsecutiveToggles);
@@ -586,13 +745,17 @@ function testCtrlMThemeToggleShortcut() {
     }
 }
 
-// Run tests if this file is executed directly
+// ==========================================
+// MODULE EXPORTS AND EXECUTION
+// ==========================================
+
+// Run tests immediately if this file is executed directly (node ctrl-m-shortcut.test.js)
 if (typeof module !== 'undefined' && require.main === module) {
     const success = testCtrlMThemeToggleShortcut();
     process.exit(success ? 0 : 1);
 }
 
-// Export for module systems
+// Export test function for integration with other test suites and module systems
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = { testCtrlMThemeToggleShortcut };
 }
