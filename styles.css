@@ -197,6 +197,25 @@
     --shadow: rgba(0, 0, 0, 0.1); /* Light shadows for subtle elevation */
 }
 
+/* Safari 14.0-14.2 Compatibility Layer
+ * 
+ * Safari versions 14.0 through 14.2 have documented issues with CSS custom property
+ * refresh when theme classes are toggled dynamically. This can result in:
+ * - Theme colors not updating properly after switching
+ * - Inconsistent visual states between light and dark modes
+ * - Elements retaining old theme colors despite class changes
+ * 
+ * The @supports rule below provides explicit fallback colors that Safari can
+ * reliably use when CSS custom properties fail to update properly.
+ */
+@supports (-webkit-appearance: none) {
+    :root {
+        /* Light theme fallback colors for Safari 14.0-14.2 */
+        background-color: #f5f5f7; /* Fallback for --bg-primary */
+        color: #1d1d1f; /* Fallback for --text-primary */
+    }
+}
+
 /* ========================================================================
  * AUTOMATIC DARK MODE DETECTION FOR MODERN BROWSERS
  * ========================================================================
@@ -314,6 +333,25 @@
     
     /* Effects - Enhanced shadows for depth in dark theme */
     --shadow: rgba(0, 0, 0, 0.3) !important; /* Stronger shadows */
+}
+
+/* Safari 14.0-14.2 Dark Theme Compatibility
+ * 
+ * Provides explicit dark theme fallback colors for Safari versions with
+ * CSS custom property refresh issues. These fallbacks ensure that even
+ * if the CSS variables fail to update, users still get appropriate
+ * dark theme colors instead of light theme colors persisting incorrectly.
+ * 
+ * The fallback values match the CSS custom properties defined above
+ * but are applied directly as regular CSS properties that Safari
+ * can reliably process during theme transitions.
+ */
+@supports (-webkit-appearance: none) {
+    .dark-theme {
+        /* Dark theme fallback colors for Safari 14.0-14.2 */
+        background-color: #1c1c1e; /* Fallback for --bg-primary */
+        color: #ffffff; /* Fallback for --text-primary */
+    }
 }
 
 body {
@@ -981,214 +1019,148 @@ h1 {
     }
 }
 
-/* Archive Controls Styles - Performance Optimized */
-.archive-controls {
-    margin: 15px 0;
-    padding: 12px;
-    background: var(--bg-tertiary);
-    border: 1px solid var(--border-primary);
-    border-radius: 8px;
-    transition: background-color 0.3s ease;
-}
-
-.archive-buttons {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    flex-wrap: wrap;
-}
-
-.archive-btn, .toggle-archive-btn {
-    padding: 8px 16px;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 14px;
-    font-weight: 500;
-    transition: all 0.3s ease;
-    background: var(--accent-primary);
-    color: white;
-}
-
-.archive-btn:hover:not(:disabled), .toggle-archive-btn:hover {
-    background: var(--accent-hover);
-    transform: translateY(-1px);
-}
-
-.archive-btn:disabled {
-    background: var(--border-primary);
-    cursor: not-allowed;
-    opacity: 0.6;
-}
-
-.toggle-archive-btn {
-    background: var(--text-secondary);
-}
-
-.toggle-archive-btn:hover {
-    background: var(--border-hover);
-}
-
-.archive-stats {
-    margin: 8px 0;
-    font-size: 13px;
-    color: var(--text-secondary);
-}
-
-/* Archive Modal Styles */
-.archive-modal {
-    display: none;
+/* Safari 14.0-14.2 Theme Notification System Styles
+ * 
+ * Provides styling for contextual notifications shown to Safari 14.0-14.2 users
+ * when theme switching might not work perfectly due to browser-specific bugs.
+ * 
+ * The notification system implements:
+ * - Non-intrusive positioning (top-right overlay)
+ * - Smooth slide-in animation for good UX
+ * - Warning color scheme for appropriate attention level
+ * - Manual close button for user control
+ * - Auto-hide behavior (handled in JavaScript)
+ * 
+ * The design balances visibility with non-intrusiveness, ensuring users
+ * get helpful guidance without disrupting their workflow.
+ */
+.safari-theme-notification {
     position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
-    z-index: 1000;
-    align-items: center;
-    justify-content: center;
-    backdrop-filter: blur(4px);
+    top: 20px;
+    right: 20px;
+    z-index: 1001; /* Above other UI elements but below critical modals */
+    max-width: 400px;
+    background: var(--warning, #ff9500); /* Warning color for appropriate attention */
+    color: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    animation: slideInRight 0.3s ease-out; /* Smooth entrance animation */
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
-.archive-modal-content {
-    background: var(--bg-secondary);
-    border-radius: 12px;
-    box-shadow: 0 20px 60px var(--shadow);
-    max-width: 700px;
-    max-height: 80vh;
-    width: 90%;
-    border: 1px solid var(--border-primary);
-    overflow: hidden;
+/* Notification content layout with flexible design */
+.notification-content {
     display: flex;
-    flex-direction: column;
-}
-
-.archive-header {
-    display: flex;
-    justify-content: space-between;
     align-items: center;
-    padding: 20px 24px;
-    border-bottom: 1px solid var(--border-primary);
-    background: var(--bg-tertiary);
+    padding: 12px 16px;
+    gap: 12px; /* Consistent spacing between elements */
 }
 
-.archive-header h2 {
-    color: var(--text-primary);
-    font-size: 24px;
-    font-weight: 600;
-    margin: 0;
+/* Notification icon styling - ensures consistent sizing */
+.notification-icon {
+    font-size: 18px;
+    flex-shrink: 0; /* Prevents icon from shrinking on small screens */
 }
 
-.archive-close-btn {
+/* Notification text - primary message content */
+.notification-text {
+    flex: 1; /* Takes available space while allowing icon and close button */
+    font-size: 14px;
+    line-height: 1.4; /* Readable line height for multi-line messages */
+}
+
+/* Close button styling - provides user control over notification visibility */
+.notification-close {
     background: none;
     border: none;
-    font-size: 24px;
-    color: var(--text-secondary);
+    color: white;
+    font-size: 18px;
+    font-weight: bold;
     cursor: pointer;
     padding: 4px 8px;
-    border-radius: 6px;
-    transition: all 0.2s ease;
-}
-
-.archive-close-btn:hover {
-    background: var(--bg-hover);
-    color: var(--text-primary);
-}
-
-.archive-body {
-    padding: 24px;
-    overflow-y: auto;
-    flex: 1;
-}
-
-.archived-todo-item {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px;
-    border: 1px solid var(--border-primary);
-    border-radius: 6px;
-    margin-bottom: 8px;
-    background: var(--bg-tertiary);
-    transition: all 0.3s ease;
-}
-
-.archived-todo-item:hover {
-    background: var(--bg-hover);
-    border-color: var(--border-hover);
-}
-
-.archived-todo-text {
-    flex: 1;
-    font-size: 14px;
-    color: var(--text-primary);
-    text-decoration: line-through;
-    opacity: 0.8;
-}
-
-.archived-todo-actions {
-    display: flex;
-    gap: 8px;
-}
-
-.unarchive-btn, .delete-archived-btn {
-    padding: 6px 12px;
-    border: none;
     border-radius: 4px;
-    font-size: 12px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    font-weight: 500;
+    transition: background-color 0.2s ease;
+    flex-shrink: 0; /* Maintains consistent button size */
 }
 
-.unarchive-btn {
-    background: var(--success);
-    color: white;
+/* Close button hover state for better interactivity */
+.notification-close:hover {
+    background: rgba(255, 255, 255, 0.2);
 }
 
-.unarchive-btn:hover {
-    background: #28a745;
+/* Smooth slide-in animation for notification appearance */
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(100%); /* Starts off-screen to the right */
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0); /* Slides into final position */
+    }
 }
 
-.delete-archived-btn {
-    background: var(--danger);
-    color: white;
-}
-
-.delete-archived-btn:hover {
-    background: var(--danger-hover);
-}
-
-.archive-empty {
-    text-align: center;
-    color: var(--text-secondary);
-    font-size: 16px;
-    margin: 40px 0;
-}
-
-/* Archive responsive design */
-@supports not (gap: 1px) {
-    .archive-buttons {
-        gap: 0;
+/* Enhanced transitions for Safari theme switching */
+@supports (-webkit-appearance: none) {
+    body {
+        transition: background-color 0.3s ease, color 0.3s ease;
+        -webkit-transition: background-color 0.3s ease, color 0.3s ease;
     }
     
-    .archive-buttons > *:not(:last-child) {
-        margin-right: 12px;
+    .container {
+        transition: background-color 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+        -webkit-transition: background-color 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
     }
     
-    .archived-todo-item {
-        gap: 0;
+    /* Force Safari to recalculate styles on theme changes */
+    .dark-theme * {
+        -webkit-transform: translateZ(0);
+    }
+}
+
+/* Safari 14.0-14.2 specific CSS custom property fixes */
+@media screen and (-webkit-min-device-pixel-ratio:0) and (min-color-index:0) {
+    /* This targets Safari specifically */
+    
+    /* Ensure important elements have explicit color fallbacks */
+    body {
+        background-color: var(--bg-primary, #f5f5f7);
+        color: var(--text-primary, #1d1d1f);
     }
     
-    .archived-todo-item > *:not(:last-child) {
-        margin-right: 12px;
+    .container {
+        background: var(--bg-secondary, white);
+        box-shadow: 0 4px 20px var(--shadow, rgba(0, 0, 0, 0.1));
     }
     
-    .archived-todo-actions {
-        gap: 0;
+    h1 {
+        color: var(--text-primary, #1d1d1f);
     }
     
-    .archived-todo-actions > *:not(:last-child) {
-        margin-right: 8px;
+    .theme-toggle {
+        background: var(--bg-tertiary, #fafafa);
+        border: 2px solid var(--border-primary, #e5e5e7);
+        color: var(--text-primary, #1d1d1f);
+    }
+    
+    /* Dark theme fallbacks for Safari */
+    .dark-theme body {
+        background-color: var(--bg-primary, #1c1c1e);
+        color: var(--text-primary, #ffffff);
+    }
+    
+    .dark-theme .container {
+        background: var(--bg-secondary, #2c2c2e);
+        box-shadow: 0 4px 20px var(--shadow, rgba(0, 0, 0, 0.3));
+    }
+    
+    .dark-theme h1 {
+        color: var(--text-primary, #ffffff);
+    }
+    
+    .dark-theme .theme-toggle {
+        background: var(--bg-tertiary, #3a3a3c);
+        border: 2px solid var(--border-primary, #48484a);
+        color: var(--text-primary, #ffffff);
     }
 }

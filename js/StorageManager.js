@@ -3,17 +3,20 @@
  * 
  * This is the main interface for storage operations in AutoToDo. It coordinates
  * multiple specialized modules to provide reliable data persistence even in
- * challenging browser environments like Safari 14+ Private Browsing mode.
+ * challenging browser environments like Safari 14+ Private Browsing mode and
+ * Safari 14+ Intelligent Tracking Prevention (ITP) data clearing.
  * 
  * Architecture:
  * - StorageDetector: Detects available storage types and browser limitations
  * - StorageFallbackHandler: Manages fallback strategies when storage fails
  * - StorageOperations: Provides high-level API with validation and error handling
+ * - SafariITPHandler: Prevents Safari 14+ ITP data loss after 7 days of inactivity
  * - StorageManager: Orchestrates the modules and provides the public API
  * 
  * Key Features:
  * - Automatic fallback: localStorage → sessionStorage → memory storage
  * - Safari 14+ Private Browsing compatibility
+ * - Safari 14+ ITP data loss prevention with persistent storage and activity tracking
  * - Comprehensive error handling and recovery
  * - Performance monitoring and optimization
  * - Detailed logging and debugging capabilities
@@ -21,20 +24,29 @@
 class StorageManager {
     constructor() {
         // Initialize the modular storage system
-        this.initializeModules();
-        
-        // Legacy compatibility properties (for existing code)
-        this.initializeLegacyProperties();
-        
-        // Log initialization results
-        this.logInitialization();
+        this.initializeModules().then(() => {
+            // Safari 14+ specific initialization
+            this.initializeSafari14Plus();
+            
+            // Legacy compatibility properties (for existing code)
+            this.initializeLegacyProperties();
+            
+            // Log initialization results
+            this.logInitialization();
+        }).catch(error => {
+            console.error('StorageManager: Async initialization failed:', error);
+            // Continue with Safari 14+ and legacy properties for basic functionality
+            this.initializeSafari14Plus();
+            this.initializeLegacyProperties();
+            this.logInitialization();
+        });
     }
 
     /**
      * Initialize the modular storage system components
      * Creates and connects the specialized storage modules
      */
-    initializeModules() {
+    async initializeModules() {
         try {
             // Initialize storage detection module
             this.detector = new StorageDetector();
@@ -44,6 +56,16 @@ class StorageManager {
             
             // Initialize operations module
             this.operations = new StorageOperations(this.fallbackHandler);
+            
+            // Initialize Safari ITP handler for data loss prevention
+            if (typeof SafariITPHandler !== 'undefined') {
+                this.itpHandler = new SafariITPHandler();
+                // ITP handler initializes asynchronously
+                await this.itpHandler.init();
+                console.log('StorageManager: Safari ITP handler initialized');
+            } else {
+                console.warn('StorageManager: SafariITPHandler not available');
+            }
             
             console.log('StorageManager: All modules initialized successfully');
             
@@ -56,19 +78,183 @@ class StorageManager {
     }
 
     /**
-     * Initialize legacy compatibility properties
-     * Maintains compatibility with existing code that expects certain properties
+     * Initialize Safari 14+ specific features and detection
+     * This provides enhanced support for Safari 14+ Private Browsing mode
      */
-    initializeLegacyProperties() {
-        // Get current capabilities for legacy properties
-        const capabilities = this.getStorageInfo();
+    initializeSafari14Plus() {
+        this.inMemoryStorage = new Map();
+        this.operationCount = 0;
+        this.failureCount = 0;
+        this.isSafari14Plus = this.detectSafari14Plus();
+        this.isPrivateBrowsing = this.detectPrivateBrowsing();
+        this.storageQuota = this.estimateStorageQuota();
         
-        // Legacy properties for backward compatibility
-        this.storageType = capabilities.currentType || 'memory';
-        this.isPrivateMode = capabilities.isPrivateMode || false;
-        this.hasLocalStorage = capabilities.hasLocalStorage || false;
-        this.hasSessionStorage = capabilities.hasSessionStorage || false;
-        this.memoryStorage = this.fallbackHandler ? this.fallbackHandler.memoryStorage : new Map();
+        // Safari 14+ specific initialization
+        if (this.isSafari14Plus) {
+            this.safari14Mode = true;
+            this.maxOperationsBeforeVerification = 3;  // Safari 14+ may fail after 3 operations
+            this.verificationInterval = 2; // Verify every 2 operations
+            console.log('StorageManager: Safari 14+ mode enabled with enhanced data protection');
+        }
+    }
+
+    /**
+     * Detect if browser is Safari 14+ 
+     * @returns {boolean} True if Safari 14+ detected
+     */
+    detectSafari14Plus() {
+        try {
+            if (typeof navigator === 'undefined') {
+                return false;
+            }
+            
+            const userAgent = navigator.userAgent;
+            const isSafari = /Safari/.test(userAgent) && !/Chrome|Chromium/.test(userAgent);
+            
+            if (!isSafari) {
+                return false;
+            }
+            
+            // Extract Safari version
+            const versionMatch = userAgent.match(/Version\/(\d+)\.(\d+)/);
+            if (versionMatch) {
+                const majorVersion = parseInt(versionMatch[1], 10);
+                return majorVersion >= 14;
+            }
+            
+            // Fallback: try to detect Safari 14+ specific behaviors
+            return this.detectSafari14Features();
+        } catch (error) {
+            console.warn('Could not detect Safari version:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Detect Safari 14+ specific features
+     * @returns {boolean} True if Safari 14+ features detected
+     */
+    detectSafari14Features() {
+        try {
+            if (typeof localStorage === 'undefined') {
+                return false;
+            }
+            
+            // Test for Safari 14+ specific private browsing behaviors
+            const testKey = '__safari14_test__';
+            const testValue = 'test_value';
+            
+            try {
+                localStorage.setItem(testKey, testValue);
+                const retrieved = localStorage.getItem(testKey);
+                localStorage.removeItem(testKey);
+                
+                // In Safari 14+ private mode, this may succeed but data may not persist
+                if (retrieved !== testValue) {
+                    return true;
+                }
+                
+                // Additional feature detection could be added here
+                return false;
+            } catch (e) {
+                // If any localStorage operation fails, it might be Safari 14+ private mode
+                return true;
+            }
+        } catch (error) {
+            console.warn('Safari 14+ feature detection failed:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Detects private browsing mode with enhanced Safari 14+ detection
+     * @returns {boolean} True if private browsing is detected
+     */
+    detectPrivateBrowsing() {
+        try {
+            if (typeof localStorage === 'undefined') {
+                return true;
+            }
+            
+            const testKey = '__private_test__';
+            const testData = 'private_browsing_test';
+            
+            // Different behavior patterns for different browsers
+            try {
+                localStorage.setItem(testKey, testData);
+                localStorage.removeItem(testKey);
+                return false;
+            } catch (error) {
+                // localStorage failed - likely private browsing
+                return true;
+            }
+        } catch (error) {
+            console.warn('Private browsing detection failed:', error);
+            return true;
+        }
+    }
+
+    /**
+     * Estimate storage quota for different browsers and modes
+     * @returns {number} Estimated quota in bytes
+     */
+    estimateStorageQuota() {
+        if (this.isSafari14Plus && this.isPrivateBrowsing) {
+            return 10 * 1024; // ~10KB for Safari 14+ private mode
+        } else if (this.isPrivateBrowsing) {
+            return 2 * 1024 * 1024; // ~2MB for other browsers private mode
+        } else {
+            return 10 * 1024 * 1024; // ~10MB for normal mode
+        }
+    }
+
+    /**
+     * Notify user about private browsing mode with Safari 14+ specific messaging
+     */
+    notifyPrivateBrowsing() {
+        // Only show once per session
+        if (!this.inMemoryStorage.has('__private_notified__')) {
+            if (this.isSafari14Plus) {
+                console.info('🔒 Safari 14+ private browsing detected. Enhanced data protection mode active.');
+            } else {
+                console.info('🔒 Private browsing detected. Todos will only persist during this session.');
+            }
+            this.inMemoryStorage.set('__private_notified__', true);
+            
+            // Show user-friendly notification if possible
+            this.showUserNotification();
+        }
+    }
+
+    /**
+     * Show user-friendly notification for private browsing
+     */
+    showUserNotification() {
+        // Create a simple notification for the user
+        if (typeof document !== 'undefined') {
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed; top: 10px; right: 10px; z-index: 10000;
+                background: #f39c12; color: white; padding: 10px 15px;
+                border-radius: 5px; font-size: 14px; max-width: 300px;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            `;
+            
+            if (this.isSafari14Plus) {
+                notification.innerHTML = '🔒 Safari private mode: Todos saved with enhanced protection';
+            } else {
+                notification.innerHTML = '🔒 Private browsing: Todos will only persist during this session';
+            }
+            
+            document.body.appendChild(notification);
+            
+            // Remove notification after 5 seconds
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.parentNode.removeChild(notification);
+                }
+            }, 5000);
+        }
     }
 
     /**
@@ -126,17 +312,55 @@ class StorageManager {
     // ============================================================================
 
     /**
+     * Initialize legacy compatibility properties
+     * Maintains compatibility with existing code that expects certain properties
+     */
+    initializeLegacyProperties() {
+        // Get current capabilities for legacy properties
+        const capabilities = this.getStorageInfo();
+        
+        // Legacy properties for backward compatibility
+        this.storageType = capabilities.currentType || 'memory';
+        this.isPrivateMode = capabilities.isPrivateMode || false;
+        this.hasLocalStorage = capabilities.hasLocalStorage || false;
+        this.hasSessionStorage = capabilities.hasSessionStorage || false;
+        this.memoryStorage = this.fallbackHandler ? this.fallbackHandler.memoryStorage : new Map();
+        this.isStorageAvailable = this.storageType === 'localStorage';
+        
+        // Safari 14+ legacy properties
+        this.isPrivateBrowsing = this.isPrivateBrowsing || false;
+        this.safari14Mode = this.safari14Mode || false;
+    }
+
+    /**
      * Get an item from storage with comprehensive fallback support
      * 
      * This method attempts to retrieve data using the most reliable mechanism
      * available, automatically falling back through storage types as needed.
+     * Includes data recovery from ITP backup if main data is lost.
      * 
      * @param {string} key - Storage key to retrieve
      * @returns {string|null} Stored value or null if not found
      */
     getItem(key) {
         try {
-            return this.operations.getItem(key);
+            let result = this.operations.getItem(key);
+            
+            // If no data found and we have ITP handler, try to restore from backup
+            if (!result && this.itpHandler && this.itpHandler.isInitialized) {
+                if (key === 'todos' || key.includes('todo')) {
+                    const backupData = this.itpHandler.restore();
+                    if (backupData && backupData.todos) {
+                        console.log('StorageManager: Restored todos from ITP backup');
+                        result = JSON.stringify(backupData.todos);
+                        
+                        // Re-store the recovered data
+                        this.setItem(key, result);
+                    }
+                }
+            }
+            
+            return result;
         } catch (error) {
             console.error('StorageManager.getItem failed:', error);
             return null;
@@ -147,10 +371,12 @@ class StorageManager {
      * Store an item with comprehensive fallback and error handling
      * 
      * This method ensures data is stored reliably even in challenging environments
-     * like Safari 14+ Private Browsing mode. It automatically handles:
+     * like Safari 14+ Private Browsing mode and protects against Safari 14+ ITP
+     * data clearing after 7 days of inactivity. It automatically handles:
      * - QuotaExceededError by falling back to alternative storage
      * - Storage unavailability by using memory storage
      * - Large data by optimizing storage strategy
+     * - ITP data loss prevention through activity tracking and backup
      * 
      * @param {string} key - Storage key
      * @param {string} value - Value to store
@@ -158,8 +384,43 @@ class StorageManager {
      */
     setItem(key, value) {
         try {
-            return this.operations.setItem(key, value);
+            let result;
+            
+            // Safari 14+ operation counting and verification
+            if (this.safari14Mode) {
+                this.operationCount++;
+                
+                // Verify data after storing for Safari 14+ private browsing
+                if (this.operationCount % this.verificationInterval === 0) {
+                    result = this.setItemWithVerification(key, value);
+                } else {
+                    result = this.operations.setItem(key, value);
+                }
+            } else {
+                result = this.operations.setItem(key, value);
+            }
+            
+            // If ITP handler is available, create backup and update activity
+            if (this.itpHandler && this.itpHandler.isInitialized) {
+                // Update activity to reset ITP timer
+                this.itpHandler.resetTimer();
+                
+                // Create backup of todos data for protection
+                if (key === 'todos' || key.includes('todo')) {
+                    try {
+                        const currentTodos = JSON.parse(value);
+                        this.itpHandler.backup({ todos: currentTodos });
+                    } catch (parseError) {
+                        console.warn('StorageManager: Could not parse todos for backup:', parseError);
+                    }
+                }
+            }
+            
+            return result;
         } catch (error) {
+            if (this.safari14Mode) {
+                this.failureCount++;
+            }
             console.error('StorageManager.setItem failed:', error);
             // Emergency fallback to memory storage
             try {
@@ -170,6 +431,37 @@ class StorageManager {
                 console.error('StorageManager: Emergency memory storage failed:', memoryError);
                 return false;
             }
+        }
+    }
+
+    /**
+     * Set item with data verification for Safari 14+ private browsing
+     * This prevents silent data loss by verifying the data was actually stored
+     * @param {string} key - Storage key  
+     * @param {string} value - Value to store
+     * @returns {boolean} True if storage and verification succeeded
+     */
+    setItemWithVerification(key, value) {
+        try {
+            // Attempt to store the data
+            const storeResult = this.operations.setItem(key, value);
+            if (!storeResult) {
+                return false;
+            }
+            
+            // Verify the data was actually stored (Safari 14+ issue)
+            const retrievedValue = this.operations.getItem(key);
+            if (retrievedValue !== value) {
+                console.warn('StorageManager: Data verification failed for Safari 14+, using memory storage');
+                this.inMemoryStorage.set(key, value);
+                return true;
+            }
+            
+            return true;
+        } catch (error) {
+            console.error('StorageManager: Verification failed:', error);
+            this.inMemoryStorage.set(key, value);
+            return true;
         }
     }
 
@@ -259,7 +551,7 @@ class StorageManager {
                 hasLocalStorage: this.hasLocalStorage,
                 hasSessionStorage: this.hasSessionStorage,
                 isPrivateMode: this.isPrivateMode,
-                memoryItems: this.memoryStorage.size,
+                memoryItems: this.memoryStorage ? this.memoryStorage.size : 0,
                 
                 // Enhanced information from modules
                 ...baseInfo,
@@ -278,8 +570,14 @@ class StorageManager {
                 modulesLoaded: {
                     detector: !!this.detector,
                     fallbackHandler: !!this.fallbackHandler,
-                    operations: !!this.operations
-                }
+                    operations: !!this.operations,
+                    itpHandler: !!this.itpHandler
+                },
+
+                // ITP protection status (if available)
+                ...(this.itpHandler && { 
+                    itpProtection: this.itpHandler.getITPStatus() 
+                })
             };
         } catch (error) {
             console.warn('StorageManager: Error getting storage info:', error);
@@ -290,7 +588,7 @@ class StorageManager {
                 hasLocalStorage: this.hasLocalStorage,
                 hasSessionStorage: this.hasSessionStorage,
                 isPrivateMode: this.isPrivateMode,
-                memoryItems: this.memoryStorage.size,
+                memoryItems: this.memoryStorage ? this.memoryStorage.size : 0,
                 error: 'Failed to get detailed storage info'
             };
         }

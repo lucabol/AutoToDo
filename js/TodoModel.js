@@ -15,14 +15,6 @@ class TodoModel {
     }
 
     /**
-     * Initialize search index with existing todos
-     */
-    initializeSearchIndex() {
-        this.searchIndex.addItems(this.todos);
-        this.searchIndex.addItems(this.archivedTodos);
-    }
-
-    /**
      * Load todos from storage with fallback support
      * @returns {Array} Array of todo objects
      */
@@ -54,22 +46,6 @@ class TodoModel {
             console.error('Failed to save todos to storage:', error);
             return false;
         }
-    }
-
-    /**
-     * Load archived todos from localStorage
-     * @returns {Array} Array of archived todo objects
-     */
-    loadArchivedTodos() {
-        const saved = localStorage.getItem('archivedTodos');
-        return saved ? JSON.parse(saved) : [];
-    }
-
-    /**
-     * Save archived todos to localStorage
-     */
-    saveArchivedTodos() {
-        localStorage.setItem('archivedTodos', JSON.stringify(this.archivedTodos));
     }
 
     /**

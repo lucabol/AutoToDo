@@ -64,15 +64,7 @@ class TodoView {
         }
     }
 
-    /**
-     * Render the complete todo list with performance optimizations
-     * @param {Array} todos - Array of todo objects to display
-     * @param {Array} allTodos - Array of all todos (for search context)
-     * @param {string} searchTerm - Current search term
-     * @param {boolean} dragDropSupported - Whether drag and drop is supported
-     */
     render(todos, allTodos = [], searchTerm = '', dragDropSupported = true) {
-        const renderStart = performance.now();
         this.renderMonitor.start();
         
         try {
@@ -621,17 +613,6 @@ class TodoView {
      */
     showConfirmation(message) {
         return this.showMessage(message, 'confirm');
-    }
-
-    /**
-     * Escape HTML characters for safe display
-     * @param {string} text - Text to escape
-     * @returns {string} Escaped text
-     */
-    escapeHtml(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
     }
 
     /**
