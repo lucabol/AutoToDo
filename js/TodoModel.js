@@ -55,15 +55,6 @@ class TodoModel {
             return false;
         }
     }
-            if (!success) {
-                console.warn('Failed to save todos to storage');
-            }
-            return success;
-        } catch (error) {
-            console.error('Failed to save todos to storage:', error);
-            return false;
-        }
-    }
 
     /**
      * Generate unique ID for new todos using crypto.randomUUID() with fallback
@@ -255,7 +246,20 @@ class TodoModel {
         const completed = this.todos.filter(t => t.completed).length;
         const pending = total - completed;
         
-        return { total, completed, pending };
+        return { 
+            total, 
+            completed, 
+            pending,
+            storage: this.storageManager.getStorageInfo()
+        };
+    }
+
+    /**
+     * Get storage information
+     * @returns {Object} Storage status and type information
+     */
+    getStorageInfo() {
+        return this.storageManager.getStorageInfo();
     }
 }
 

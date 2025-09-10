@@ -4,7 +4,7 @@
   "description": "A complete todo application with CRUD operations, search functionality, and robust delete handling",
   "main": "index.html",
   "scripts": {
-    "test": "node test-delete-unit-tests.js && node search.test.js && node drag-drop.test.js && node search-integration.test.js && node theme.test.js && node keyboard-shortcuts.test.js && node keyboard-shortcut-manager.test.js && node shortcuts-config.test.js && node search-focus-fix.test.js && node keyboard-handlers.test.js && node help-modal-builder.test.js && node search-focus-shortcuts.test.js && node keyboard-shortcut-refactoring.test.js && node shortcut-utilities.test.js",
+    "test": "node test-delete-unit-tests.js && node search.test.js && node drag-drop.test.js && node search-integration.test.js && node theme.test.js && node keyboard-shortcuts.test.js && node keyboard-shortcut-manager.test.js && node shortcuts-config.test.js && node search-focus-fix.test.js && node keyboard-handlers.test.js && node help-modal-builder.test.js && node search-focus-shortcuts.test.js && node keyboard-shortcut-refactoring.test.js && node shortcut-modules.test.js && node shortcut-utilities.test.js && node storage-manager.test.js",
     "test:performance": "node performance.test.js",
     "test:delete": "node test-delete-unit-tests.js",
     "test:search": "node search.test.js",

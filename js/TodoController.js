@@ -107,6 +107,7 @@ class TodoController {
         if (save && this.storage) {
             this.storage.setItem('todo-theme', theme);
         }
+        }
 
         this.currentTheme = theme;
     }
