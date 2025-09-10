@@ -138,6 +138,33 @@ class PerformanceUtils {
     }
     
     /**
+     * Detect Safari version and check if it's 14.0-14.2 with CSS custom property quirks
+     * @returns {Object} Safari version info and compatibility flags
+     */
+    static getSafariVersionInfo() {
+        const userAgent = navigator.userAgent;
+        const isSafari = this.isSafari();
+        
+        if (!isSafari) {
+            return { isSafari: false, version: null, needsThemeWorkaround: false };
+        }
+        
+        // Extract Safari version from user agent
+        const versionMatch = userAgent.match(/Version\/([0-9]+\.[0-9]+)/);
+        const version = versionMatch ? parseFloat(versionMatch[1]) : null;
+        
+        // Safari 14.0-14.2 had CSS custom property refresh issues
+        const needsThemeWorkaround = version && version >= 14.0 && version <= 14.2;
+        
+        return {
+            isSafari: true,
+            version,
+            needsThemeWorkaround,
+            versionString: versionMatch ? versionMatch[1] : 'unknown'
+        };
+    }
+    
+    /**
      * Get performance-optimized scroll handler
      * @param {Function} handler - Scroll handler function
      * @param {Object} options - Options for optimization

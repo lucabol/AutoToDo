@@ -34,6 +34,9 @@ class TodoController {
      * Initialize theme management
      */
     initializeTheme() {
+        // Check Safari version for compatibility workarounds
+        this.safariVersionInfo = PerformanceUtils.getSafariVersionInfo();
+        
         // Check for saved theme preference or system preference
         const savedTheme = localStorage.getItem('todo-theme');
         const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -70,6 +73,11 @@ class TodoController {
             if (themeText) themeText.textContent = 'Dark';
         }
 
+        // Apply Safari 14.0-14.2 specific workarounds
+        if (this.safariVersionInfo?.needsThemeWorkaround) {
+            this.applySafariThemeWorkaround(theme);
+        }
+
         if (save) {
             localStorage.setItem('todo-theme', theme);
         }
@@ -83,6 +91,95 @@ class TodoController {
     toggleTheme() {
         const newTheme = this.currentTheme === 'dark' ? 'light' : 'dark';
         this.setTheme(newTheme);
+        
+        // Show user notification for Safari 14.0-14.2 if theme doesn't update smoothly
+        if (this.safariVersionInfo?.needsThemeWorkaround) {
+            this.showSafariThemeNotification();
+        }
+    }
+
+    /**
+     * Apply Safari 14.0-14.2 specific workarounds for theme switching
+     * @param {string} theme - The theme being applied
+     */
+    applySafariThemeWorkaround(theme) {
+        // Force CSS recalculation by triggering a reflow
+        const body = document.body;
+        
+        // Method 1: Force style recalculation by temporarily hiding and showing
+        body.style.visibility = 'hidden';
+        body.offsetHeight; // Trigger reflow
+        body.style.visibility = 'visible';
+        
+        // Method 2: Force repaint by manipulating transform
+        const container = document.querySelector('.container');
+        if (container) {
+            const originalTransform = container.style.transform;
+            container.style.transform = 'translateZ(0.01px)';
+            requestAnimationFrame(() => {
+                container.style.transform = originalTransform;
+            });
+        }
+        
+        // Method 3: Ensure CSS custom properties are properly updated
+        this.forceCSSCustomPropertyUpdate();
+    }
+
+    /**
+     * Force update of CSS custom properties for Safari 14.0-14.2
+     */
+    forceCSSCustomPropertyUpdate() {
+        const root = document.documentElement;
+        const currentThemeClass = document.body.classList.contains('dark-theme') ? 'dark-theme' : '';
+        
+        // Temporarily remove and re-add the theme class to force CSS variable updates
+        if (currentThemeClass) {
+            document.body.classList.remove('dark-theme');
+            requestAnimationFrame(() => {
+                document.body.classList.add('dark-theme');
+            });
+        }
+    }
+
+    /**
+     * Show notification to Safari users about theme refresh
+     */
+    showSafariThemeNotification() {
+        // Only show notification once per session
+        if (this.safariNotificationShown) return;
+        
+        const notification = this.createSafariNotification();
+        document.body.appendChild(notification);
+        
+        // Auto-hide after 5 seconds
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.remove();
+            }
+        }, 5000);
+        
+        this.safariNotificationShown = true;
+    }
+
+    /**
+     * Create Safari notification element
+     * @returns {Element} Notification element
+     */
+    createSafariNotification() {
+        const notification = document.createElement('div');
+        notification.className = 'safari-theme-notification';
+        notification.innerHTML = `
+            <div class="notification-content">
+                <span class="notification-icon">ℹ️</span>
+                <span class="notification-text">
+                    Safari ${this.safariVersionInfo.versionString}: If theme colors don't update properly, 
+                    please refresh the page (⌘+R or Ctrl+R).
+                </span>
+                <button class="notification-close" onclick="this.parentNode.parentNode.remove()">×</button>
+            </div>
+        `;
+        
+        return notification;
     }
 
     /**

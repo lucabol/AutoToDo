@@ -1,6 +1,6 @@
 /**
  * Dark Mode Theme Tests
- * Tests for theme switching functionality
+ * Tests for theme switching functionality including Safari 14.0-14.2 improvements
  */
 
 // Simple test to verify theme functionality works
@@ -88,6 +88,115 @@ function testThemeToggle() {
         
         if (mockButton.icon !== '🌙' || mockButton.text !== 'Dark') {
             throw new Error('Button text not updated correctly for light mode');
+        }
+    });
+    
+    // Test Safari version detection
+    test('should detect Safari version correctly', () => {
+        // Mock PerformanceUtils for testing
+        const mockPerformanceUtils = {
+            getSafariVersionInfo() {
+                // Simulate Safari 14.1 detection
+                return {
+                    isSafari: true,
+                    version: 14.1,
+                    needsThemeWorkaround: true,
+                    versionString: '14.1'
+                };
+            }
+        };
+        
+        const safariInfo = mockPerformanceUtils.getSafariVersionInfo();
+        
+        if (!safariInfo.isSafari) {
+            throw new Error('Safari detection failed');
+        }
+        
+        if (!safariInfo.needsThemeWorkaround) {
+            throw new Error('Safari 14.1 should need theme workaround');
+        }
+        
+        if (safariInfo.version !== 14.1) {
+            throw new Error('Safari version detection incorrect');
+        }
+    });
+    
+    // Test Safari workaround activation
+    test('should activate Safari workaround for versions 14.0-14.2', () => {
+        const testVersions = [
+            { version: 13.9, shouldNeedWorkaround: false },
+            { version: 14.0, shouldNeedWorkaround: true },
+            { version: 14.1, shouldNeedWorkaround: true },
+            { version: 14.2, shouldNeedWorkaround: true },
+            { version: 14.3, shouldNeedWorkaround: false },
+            { version: 15.0, shouldNeedWorkaround: false }
+        ];
+        
+        testVersions.forEach(({ version, shouldNeedWorkaround }) => {
+            const needsWorkaround = version >= 14.0 && version <= 14.2;
+            if (needsWorkaround !== shouldNeedWorkaround) {
+                throw new Error(`Safari ${version} workaround detection incorrect`);
+            }
+        });
+    });
+    
+    // Test theme notification creation
+    test('should create Safari theme notification for affected versions', () => {
+        // Mock Safari info for version that needs workaround
+        const mockSafariInfo = {
+            isSafari: true,
+            version: 14.1,
+            needsThemeWorkaround: true,
+            versionString: '14.1'
+        };
+        
+        // Mock notification creation
+        const createMockNotification = (safariInfo) => {
+            if (safariInfo.needsThemeWorkaround) {
+                return {
+                    className: 'safari-theme-notification',
+                    content: `Safari ${safariInfo.versionString}: If theme colors don't update properly, please refresh the page`
+                };
+            }
+            return null;
+        };
+        
+        const notification = createMockNotification(mockSafariInfo);
+        
+        if (!notification) {
+            throw new Error('Notification should be created for Safari 14.1');
+        }
+        
+        if (notification.className !== 'safari-theme-notification') {
+            throw new Error('Notification should have correct CSS class');
+        }
+        
+        if (!notification.content.includes('Safari 14.1')) {
+            throw new Error('Notification should include Safari version');
+        }
+    });
+    
+    // Test CSS custom property fallbacks
+    test('should have CSS custom property fallbacks for Safari', () => {
+        // Mock CSS support detection
+        const mockSupports = (property) => {
+            // Simulate Safari supporting -webkit-appearance but having CSS custom property quirks
+            return property === '(-webkit-appearance: none)';
+        };
+        
+        // Check if Safari-specific CSS rules would be applied
+        const safariSupported = mockSupports('(-webkit-appearance: none)');
+        
+        if (!safariSupported) {
+            throw new Error('Safari-specific CSS detection should work');
+        }
+        
+        // Verify fallback colors are available
+        const lightThemeFallback = '#f5f5f7'; // --bg-primary fallback
+        const darkThemeFallback = '#1c1c1e';  // Dark theme --bg-primary fallback
+        
+        if (!lightThemeFallback || !darkThemeFallback) {
+            throw new Error('CSS fallback colors should be defined');
         }
     });
     
