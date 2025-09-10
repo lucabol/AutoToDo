@@ -57,8 +57,8 @@ class ShortcutsConfig {
                 key: '/',
                 context: 'global',
                 action: focusSearch,
-                preventDefault: true,
-                description: 'Focus search input (/)',
+                preventDefault: false, // We'll handle preventDefault conditionally in the action
+                description: 'Focus search input and start typing (/)',
                 category: 'Navigation'
             },
             
