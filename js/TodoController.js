@@ -11,9 +11,9 @@ class TodoController {
         this.draggedId = null;
         this.dragDropSupported = this.checkDragDropSupport();
         
-        // Performance optimizations
+        // Performance optimizations - faster debouncing for better user experience
         this.searchMonitor = PerformanceUtils.createMonitor('Search Performance');
-        this.debouncedSearch = PerformanceUtils.debounce(this.performSearch.bind(this), 300);
+        this.debouncedSearch = PerformanceUtils.debounce(this.performSearch.bind(this), 150); // Reduced from 300ms
         
         this.keyboardManager = new KeyboardShortcutManager({
             debug: false, // Set to true for debugging

@@ -9,6 +9,23 @@ class TodoModel {
             throw new Error('StorageManager not available. Please ensure StorageManager.js is loaded.');
         }
         this.todos = this.loadTodos();
+        
+        // Initialize high-performance search optimizer
+        this.searchOptimizer = new SearchOptimizer({
+            cacheSize: 100,
+            indexThreshold: 50,
+            debounceDelay: 150,
+            fuzzySearch: true,
+            debug: false
+        });
+        
+        // Apply Safari-specific optimizations
+        if (PerformanceUtils.isSafari()) {
+            this.searchOptimizer.applySafariOptimizations();
+        }
+        
+        // Initialize search data
+        this.updateSearchData();
     }
 
     /**
@@ -31,7 +48,7 @@ class TodoModel {
     }
 
     /**
-     * Save todos to storage
+     * Save todos to storage and update search index
      * @returns {boolean} True if successfully saved
      */
     saveTodos() {
@@ -49,10 +66,24 @@ class TodoModel {
                     this._memoryWarningShown = true;
                 }
             }
+            
+            // Update search index after saving
+            this.updateSearchData();
+            
             return success;
         } catch (error) {
             console.error('Failed to save todos to storage:', error);
             return false;
+        }
+    }
+    
+    /**
+     * Update search optimizer with current data
+     * @private
+     */
+    updateSearchData() {
+        if (this.searchOptimizer) {
+            this.searchOptimizer.setData(this.todos);
         }
     }
 
@@ -188,7 +219,7 @@ class TodoModel {
     }
 
     /**
-     * Filter todos by search term with enhanced matching
+     * Filter todos by search term with high-performance optimized search
      * @param {string} searchTerm - Term to search for in todo text
      * @returns {Array} Array of filtered todos
      */
@@ -197,6 +228,22 @@ class TodoModel {
             return this.getAllTodos();
         }
         
+        // Use the high-performance search optimizer for large datasets
+        if (this.searchOptimizer && this.todos.length >= 50) {
+            return this.searchOptimizer.search(searchTerm);
+        }
+        
+        // Fallback to original search for smaller datasets or if optimizer not available
+        return this.fallbackFilterTodos(searchTerm);
+    }
+    
+    /**
+     * Fallback search implementation (original method)
+     * @param {string} searchTerm - Term to search for in todo text
+     * @returns {Array} Array of filtered todos
+     * @private
+     */
+    fallbackFilterTodos(searchTerm) {
         // Normalize the search term: trim and collapse multiple spaces
         const normalizedTerm = searchTerm.toLowerCase().trim().replace(/\s+/g, ' ');
         
@@ -246,12 +293,19 @@ class TodoModel {
         const completed = this.todos.filter(t => t.completed).length;
         const pending = total - completed;
         
-        return { 
+        const stats = { 
             total, 
             completed, 
             pending,
-            storage: this.storageManager.getStorageInfo()
+            storage: this.storage.getStorageInfo()
         };
+        
+        // Add search performance stats if available
+        if (this.searchOptimizer) {
+            stats.search = this.searchOptimizer.getStats();
+        }
+        
+        return stats;
     }
 
     /**

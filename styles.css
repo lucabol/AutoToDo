@@ -1,4 +1,4 @@
-/* AutoToDo Styles - Performance Optimized */
+/* AutoToDo Styles - Performance Optimized for Safari 14+ */
 
 /* Performance Optimizations */
 * {
@@ -13,6 +13,22 @@
     transform: translateZ(0);
     will-change: auto;
     backface-visibility: hidden;
+    /* Safari 14+ performance enhancements */
+    -webkit-transform: translateZ(0);
+    -webkit-backface-visibility: hidden;
+    -webkit-perspective: 1000px;
+    /* Optimize for large lists */
+    content-visibility: auto;
+    contain-intrinsic-size: 0 60px;
+}
+
+/* Search input performance optimizations */
+.search-input {
+    will-change: contents;
+    contain: layout style;
+    /* Safari 14+ optimizations */
+    -webkit-appearance: none;
+    -webkit-transform: translateZ(0);
 }
 
 /* ========================================================================
@@ -41,6 +57,16 @@
         -webkit-transform: translateZ(0);      /* Force GPU layer */
         -webkit-backface-visibility: hidden;   /* Prevent flicker */
         -webkit-perspective: 1000px;           /* Enable 3D context */
+        /* Safari 14+ CSS containment optimizations */
+        -webkit-contain: layout style paint;
+    }
+    
+    /* Large list optimizations for Safari 14+ */
+    .todo-item {
+        -webkit-transform: translateZ(0);
+        contain: layout style paint size;
+        content-visibility: auto;
+        contain-intrinsic-size: 0 60px;
     }
     
     /* ================================================================
@@ -91,12 +117,15 @@
     }
 }
 
-/* Virtual scroll container styles */
+/* Virtual scroll container styles optimized for Safari 14+ */
 .virtual-scroll-container {
     height: 400px;
     overflow-y: auto;
     position: relative;
     contain: strict;
+    /* Safari 14+ optimizations */
+    -webkit-overflow-scrolling: touch;
+    -webkit-transform: translateZ(0);
 }
 
 .virtual-scroll-items {
