@@ -616,6 +616,105 @@ Pull requests for new shortcuts will be evaluated on:
 
 By following these guidelines, you help ensure that new shortcuts enhance AutoToDo's usability while maintaining code quality and consistency.
 
+### Visual Guide and Demonstrations
+
+#### Built-in Help System
+AutoToDo includes a comprehensive visual help dialog that displays all keyboard shortcuts organized by category. Access it using:
+- **Ctrl+H** - Standard help shortcut
+- **?** - Quick help access  
+- **F1** - Traditional help key
+
+The help dialog shows:
+- **Organized categories** - Navigation, Todo Management, Editing, and General shortcuts
+- **Key combinations** - Visual representation of required keys (e.g., "Ctrl+N")
+- **Clear descriptions** - What each shortcut does and when to use it
+- **Context information** - Which shortcuts work in different application states
+
+#### Interactive Examples
+To see shortcuts in action, try these common workflows:
+
+**Quick Task Entry Workflow:**
+1. Press **Ctrl+N** → Notice the input field gets focus and cursor appears
+2. Type "Buy groceries" → Text appears in the input field
+3. Press **Ctrl+Enter** → Todo is added to the list immediately
+4. Type "Call dentist" → Focus remains in input for rapid entry
+5. Press **Enter** → Second todo is added
+
+**Search and Filter Workflow:**
+1. Press **/** → Search field gets focus with visual indication
+2. Type "grocery" → List instantly filters to show matching todos
+3. Press **Escape** → Search clears and full list returns
+4. Press **Ctrl+F** → Alternative way to focus search
+
+**Task Management Workflow:**
+1. Press **Ctrl+T** → First todo item gets checked/unchecked with animation
+2. Press **Ctrl+Shift+D** → All completed todos disappear with confirmation
+3. Press **Ctrl+A** → All todos get visual selection highlight
+4. Press **Ctrl+Delete** → First todo shows deletion confirmation dialog
+
+#### Visual Feedback Features
+The application provides clear visual feedback for all keyboard actions:
+- **Focus indicators** - Blue outline shows which element is active
+- **Selection highlighting** - Selected todos get distinct background color
+- **Status animations** - Smooth transitions when marking todos complete
+- **Confirmation dialogs** - Visual prompts for destructive actions like deletion
+- **Theme transitions** - Smooth color changes when toggling dark/light mode
+- **Message notifications** - Success/error messages appear for user actions
+
+### User-Level Shortcut Customization
+
+#### Current Capabilities
+AutoToDo currently supports keyboard shortcuts through its built-in system, but **user-level customization requires browser-based solutions** since the application doesn't include a settings interface for modifying shortcuts.
+
+#### Browser-Based Customization Options
+
+**Option 1: Browser Extensions**
+- **Vimium** (Chrome/Firefox) - Adds Vim-style keyboard navigation
+- **Shortkeys** (Chrome) - Custom keyboard shortcuts for web pages
+- **Surfingkeys** (Chrome/Firefox) - Advanced keyboard control
+
+**Option 2: Browser Developer Tools**
+Advanced users can modify shortcuts temporarily:
+1. Open Developer Tools (F12)
+2. Go to Console tab
+3. Execute JavaScript to modify shortcut behavior:
+```javascript
+// Example: Change Ctrl+N to Ctrl+T for new todo focus
+document.addEventListener('keydown', function(e) {
+    if (e.ctrlKey && e.key === 't') {
+        e.preventDefault();
+        document.querySelector('#new-todo-input').focus();
+    }
+});
+```
+
+**Option 3: User Script Managers**
+- **Tampermonkey** (Chrome/Firefox/Safari) - Run custom scripts
+- **Greasemonkey** (Firefox) - User script management
+- **Violentmonkey** (Chrome/Firefox) - Open source alternative
+
+#### Future Enhancement Possibilities
+The application architecture supports adding user customization features:
+
+**Potential UI Customization Panel:**
+- Settings dialog accessible via menu or shortcut
+- List of all current shortcuts with modification options
+- Conflict detection and resolution
+- Import/export of custom shortcut profiles
+- Reset to defaults functionality
+
+**Local Storage Customization:**
+- User preferences saved in browser localStorage
+- Custom shortcuts persist between sessions
+- Per-device customization support
+
+#### Accessibility and Compatibility
+When customizing shortcuts:
+- **Avoid system shortcuts** - Don't override Ctrl+C, Ctrl+V, etc.
+- **Consider accessibility** - Ensure shortcuts work with screen readers
+- **Test across browsers** - Custom solutions may vary by browser
+- **Document changes** - Keep track of modifications for troubleshooting
+
 ### Pro Tips for Maximum Efficiency
 
 - **📚 Built-in Help**: Press **Ctrl+H** to access the complete shortcuts reference organized by category
