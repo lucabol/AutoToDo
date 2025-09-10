@@ -1,670 +1,440 @@
 /**
- * StorageManager - Enhanced storage abstraction with comprehensive fallback mechanisms
+ * StorageManager - Orchestrates robust data persistence with comprehensive fallback system
  * 
- * Features:
- * - Automatic Safari private browsing detection and handling
- * - Storage fallback chain: localStorage → sessionStorage → memory storage
- * - Enhanced user notifications with animations and click-to-dismiss
- * - Storage validation methods with detailed error reporting
- * - Quota management and estimation capabilities
- * - Comprehensive storage functionality testing
+ * This is the main interface for storage operations in AutoToDo. It coordinates
+ * multiple specialized modules to provide reliable data persistence even in
+ * challenging browser environments like Safari 14+ Private Browsing mode and
+ * Safari 14+ Intelligent Tracking Prevention (ITP) data clearing.
  * 
- * Handles localStorage limitations in Safari private browsing and other edge cases
+ * Architecture:
+ * - StorageDetector: Detects available storage types and browser limitations
+ * - StorageFallbackHandler: Manages fallback strategies when storage fails
+ * - StorageOperations: Provides high-level API with validation and error handling
+ * - SafariITPHandler: Prevents Safari 14+ ITP data loss after 7 days of inactivity
+ * - StorageManager: Orchestrates the modules and provides the public API
+ * 
+ * Key Features:
+ * - Automatic fallback: localStorage → sessionStorage → memory storage
+ * - Safari 14+ Private Browsing compatibility
+ * - Safari 14+ ITP data loss prevention with persistent storage and activity tracking
+ * - Comprehensive error handling and recovery
+ * - Performance monitoring and optimization
+ * - Detailed logging and debugging capabilities
  */
 class StorageManager {
     constructor() {
-        this.storageType = this.detectBestStorage();
-        this.memoryStorage = new Map();
-        this.isPrivateBrowsing = this.detectPrivateBrowsing();
-        
-        // Notify if in private browsing mode
-        if (this.isPrivateBrowsing) {
-            this.notifyPrivateBrowsing();
-        }
+        // Initialize the modular storage system
+        this.initializeModules().then(() => {
+            // Legacy compatibility properties (for existing code)
+            this.initializeLegacyProperties();
+            
+            // Log initialization results
+            this.logInitialization();
+        }).catch(error => {
+            console.error('StorageManager: Async initialization failed:', error);
+            // Continue with legacy properties for basic functionality
+            this.initializeLegacyProperties();
+            this.logInitialization();
+        });
     }
 
     /**
-     * Detect the best available storage mechanism
-     * @returns {string} Storage type: 'localStorage', 'sessionStorage', or 'memory'
+     * Initialize the modular storage system components
+     * Creates and connects the specialized storage modules
      */
-    detectBestStorage() {
-        // Test localStorage
+    async initializeModules() {
         try {
-            const testKey = '__storage_test__';
-            localStorage.setItem(testKey, 'test');
-            localStorage.removeItem(testKey);
-            return 'localStorage';
-        } catch (error) {
-            console.warn('localStorage not available:', error.message);
-        }
-
-        // Test sessionStorage
-        try {
-            const testKey = '__storage_test__';
-            sessionStorage.setItem(testKey, 'test');
-            sessionStorage.removeItem(testKey);
-            return 'sessionStorage';
-        } catch (error) {
-            console.warn('sessionStorage not available:', error.message);
-        }
-
-        // Fallback to memory storage
-        console.warn('Using memory storage - data will not persist between sessions');
-        return 'memory';
-    }
-
-    /**
-     * Detect if running in private browsing mode
-     * @returns {boolean} True if likely in private browsing
-     */
-    detectPrivateBrowsing() {
-        try {
-            // Safari private browsing detection
-            if (this.storageType === 'localStorage') {
-                // Try to use localStorage quota
-                const testData = 'x'.repeat(1024 * 1024); // 1MB test
-                localStorage.setItem('__private_test__', testData);
-                localStorage.removeItem('__private_test__');
-                return false;
+            // Initialize storage detection module
+            this.detector = new StorageDetector();
+            
+            // Initialize fallback handling module
+            this.fallbackHandler = new StorageFallbackHandler(this.detector);
+            
+            // Initialize operations module
+            this.operations = new StorageOperations(this.fallbackHandler);
+            
+            // Initialize Safari ITP handler for data loss prevention
+            if (typeof SafariITPHandler !== 'undefined') {
+                this.itpHandler = new SafariITPHandler();
+                // ITP handler initializes asynchronously
+                await this.itpHandler.init();
+                console.log('StorageManager: Safari ITP handler initialized');
+            } else {
+                console.warn('StorageManager: SafariITPHandler not available');
             }
             
-            // If we had to fall back to sessionStorage or memory, likely private
-            return this.storageType !== 'localStorage';
-        } catch (error) {
-            // If quota exceeded or other error, likely private browsing
-            return true;
-        }
-    }
-
-    /**
-     * Show enhanced notification about private browsing limitations
-     */
-    notifyPrivateBrowsing() {
-        // Only show once per session
-        if (!this.memoryStorage.has('__private_notified__')) {
-            console.info('🔒 Private browsing detected. Todos will only persist during this session.');
-            this.memoryStorage.set('__private_notified__', true);
+            console.log('StorageManager: All modules initialized successfully');
             
-            // Show enhanced user-friendly notification
-            this.showEnhancedNotification('private');
+        } catch (error) {
+            console.error('StorageManager: Failed to initialize modules:', error);
+            
+            // Create minimal fallback system if module initialization fails
+            this.createEmergencyFallback();
         }
     }
 
     /**
-     * Get item from storage with fallback handling
-     * @param {string} key - Storage key
-     * @returns {string|null} Stored value or null
+     * Initialize legacy compatibility properties
+     * Maintains compatibility with existing code that expects certain properties
+     */
+    initializeLegacyProperties() {
+        // Get current capabilities for legacy properties
+        const capabilities = this.getStorageInfo();
+        
+        // Legacy properties for backward compatibility
+        this.storageType = capabilities.currentType || 'memory';
+        this.isPrivateMode = capabilities.isPrivateMode || false;
+        this.hasLocalStorage = capabilities.hasLocalStorage || false;
+        this.hasSessionStorage = capabilities.hasSessionStorage || false;
+        this.memoryStorage = this.fallbackHandler ? this.fallbackHandler.memoryStorage : new Map();
+    }
+
+    /**
+     * Create an emergency fallback system if module initialization fails
+     * Provides basic functionality even if the modular system can't be initialized
+     */
+    createEmergencyFallback() {
+        console.warn('StorageManager: Using emergency fallback system');
+        
+        this.memoryStorage = new Map();
+        this.storageType = 'memory';
+        this.isPrivateMode = true;
+        this.hasLocalStorage = false;
+        this.hasSessionStorage = false;
+        
+        // Create minimal operations object for emergency use
+        this.operations = {
+            getItem: (key) => this.memoryStorage.get(key) || null,
+            setItem: (key, value) => { this.memoryStorage.set(key, value); return true; },
+            removeItem: (key) => { this.memoryStorage.delete(key); return true; },
+            clear: () => { this.memoryStorage.clear(); return true; },
+            isAvailable: () => true
+        };
+    }
+
+    /**
+     * Log initialization results for debugging and monitoring
+     * Provides detailed information about the storage system setup
+     */
+    logInitialization() {
+        const info = this.getStorageInfo();
+        
+        console.log(`StorageManager initialized successfully:`, {
+            primaryStorage: info.currentType,
+            privateMode: info.isPrivateMode,
+            capabilities: {
+                localStorage: info.hasLocalStorage,
+                sessionStorage: info.hasSessionStorage
+            },
+            modulesLoaded: {
+                detector: !!this.detector,
+                fallbackHandler: !!this.fallbackHandler,
+                operations: !!this.operations
+            }
+        });
+
+        if (info.isPrivateMode) {
+            console.warn('StorageManager: Private browsing mode detected - enhanced fallbacks active');
+        }
+    }
+
+    // ============================================================================
+    // PUBLIC API METHODS
+    // These methods provide the main interface for storage operations
+    // ============================================================================
+
+    /**
+     * Get an item from storage with comprehensive fallback support
+     * 
+     * This method attempts to retrieve data using the most reliable mechanism
+     * available, automatically falling back through storage types as needed.
+     * Includes data recovery from ITP backup if main data is lost.
+     * 
+     * @param {string} key - Storage key to retrieve
+     * @returns {string|null} Stored value or null if not found
      */
     getItem(key) {
         try {
-            switch (this.storageType) {
-                case 'localStorage':
-                    return localStorage.getItem(key);
-                case 'sessionStorage':
-                    return sessionStorage.getItem(key);
-                case 'memory':
-                    return this.memoryStorage.get(key) || null;
-                default:
-                    return null;
-            }
-        } catch (error) {
-            console.warn(`Failed to get item "${key}":`, error.message);
+            let result = this.operations.getItem(key);
             
-            // Try memory storage as fallback
-            if (this.storageType !== 'memory') {
-                return this.memoryStorage.get(key) || null;
+            // If no data found and we have ITP handler, try to restore from backup
+            if (!result && this.itpHandler && this.itpHandler.isInitialized) {
+                if (key === 'todos' || key.includes('todo')) {
+                    const backupData = this.itpHandler.restore();
+                    if (backupData && backupData.todos) {
+                        console.log('StorageManager: Restored todos from ITP backup');
+                        result = JSON.stringify(backupData.todos);
+                        
+                        // Re-store the recovered data
+                        this.setItem(key, result);
+                    }
+                }
             }
+            
+            return result;
+        } catch (error) {
+            console.error('StorageManager.getItem failed:', error);
             return null;
         }
     }
 
     /**
-     * Set item in storage with fallback handling
+     * Store an item with comprehensive fallback and error handling
+     * 
+     * This method ensures data is stored reliably even in challenging environments
+     * like Safari 14+ Private Browsing mode and protects against Safari 14+ ITP
+     * data clearing after 7 days of inactivity. It automatically handles:
+     * - QuotaExceededError by falling back to alternative storage
+     * - Storage unavailability by using memory storage
+     * - Large data by optimizing storage strategy
+     * - ITP data loss prevention through activity tracking and backup
+     * 
      * @param {string} key - Storage key
      * @param {string} value - Value to store
-     * @returns {boolean} True if successfully stored
+     * @returns {boolean} True if storage was successful (always true due to memory fallback)
      */
     setItem(key, value) {
         try {
-            switch (this.storageType) {
-                case 'localStorage':
-                    localStorage.setItem(key, value);
-                    break;
-                case 'sessionStorage':
-                    sessionStorage.setItem(key, value);
-                    break;
-                case 'memory':
-                    this.memoryStorage.set(key, value);
-                    break;
-                default:
-                    this.memoryStorage.set(key, value);
-            }
-            return true;
-        } catch (error) {
-            console.warn(`Failed to set item "${key}":`, error.message);
+            const result = this.operations.setItem(key, value);
             
-            // If quota exceeded, try to free up space
-            if (error.name === 'QuotaExceededError') {
-                this.handleQuotaExceeded(key, value);
+            // If ITP handler is available, create backup and update activity
+            if (this.itpHandler && this.itpHandler.isInitialized) {
+                // Update activity to reset ITP timer
+                this.itpHandler.resetTimer();
+                
+                // Create backup of todos data for protection
+                if (key === 'todos' || key.includes('todo')) {
+                    try {
+                        const currentTodos = JSON.parse(value);
+                        this.itpHandler.backup({ todos: currentTodos });
+                    } catch (parseError) {
+                        console.warn('StorageManager: Could not parse todos for backup:', parseError);
+                    }
+                }
+            }
+            
+            return result;
+        } catch (error) {
+            console.error('StorageManager.setItem failed:', error);
+            // Emergency fallback to memory storage
+            try {
+                this.memoryStorage.set(key, value);
+                console.warn('StorageManager: Used emergency memory storage for key:', key);
+                return true;
+            } catch (memoryError) {
+                console.error('StorageManager: Emergency memory storage failed:', memoryError);
                 return false;
             }
-            
-            // Try memory storage as fallback
-            if (this.storageType !== 'memory') {
-                this.memoryStorage.set(key, value);
-                this.storageType = 'memory'; // Switch to memory mode
-                this.notifyStorageFallback();
-                return true;
-            }
-            
-            return false;
         }
     }
 
     /**
-     * Handle quota exceeded error with enhanced user feedback
-     * @param {string} key - Storage key that failed
-     * @param {string} value - Value that failed to store
-     */
-    handleQuotaExceeded(key, value) {
-        console.warn('Storage quota exceeded. Switching to memory storage.');
-        
-        // Switch to memory storage
-        this.storageType = 'memory';
-        this.memoryStorage.set(key, value);
-        
-        // Notify user with enhanced notification
-        this.showEnhancedNotification('quota');
-    }
-
-    /**
-     * Show enhanced storage fallback notification
-     */
-    notifyStorageFallback() {
-        if (!this.memoryStorage.has('__fallback_notified__')) {
-            console.warn('⚠️ Storage fallback activated. Data will only persist during this session.');
-            this.memoryStorage.set('__fallback_notified__', true);
-            this.showEnhancedNotification('fallback');
-        }
-    }
-
-    /**
-     * Remove item from storage
+     * Remove an item from all storage mechanisms
+     * 
+     * Ensures complete removal of data from all possible storage locations
+     * to prevent stale data from being retrieved later.
+     * 
      * @param {string} key - Storage key to remove
-     * @returns {boolean} True if successfully removed
+     * @returns {boolean} True if removal was attempted
      */
     removeItem(key) {
         try {
-            switch (this.storageType) {
-                case 'localStorage':
-                    localStorage.removeItem(key);
-                    break;
-                case 'sessionStorage':
-                    sessionStorage.removeItem(key);
-                    break;
-                case 'memory':
-                    this.memoryStorage.delete(key);
-                    break;
-            }
-            return true;
+            return this.operations.removeItem(key);
         } catch (error) {
-            console.warn(`Failed to remove item "${key}":`, error.message);
-            
-            // Try memory storage as fallback
-            if (this.storageType !== 'memory') {
+            console.error('StorageManager.removeItem failed:', error);
+            // Try to remove from memory storage at minimum
+            try {
                 this.memoryStorage.delete(key);
                 return true;
+            } catch (memoryError) {
+                console.error('StorageManager: Memory removal failed:', memoryError);
+                return false;
             }
-            return false;
         }
     }
 
     /**
-     * Clear all storage
-     * @returns {boolean} True if successfully cleared
+     * Clear all storage mechanisms
+     * 
+     * Useful for reset operations, testing, or when user requests data clearing.
+     * Attempts to clear all possible storage locations.
+     * 
+     * @returns {boolean} True if clear operation was attempted
      */
     clear() {
         try {
-            switch (this.storageType) {
-                case 'localStorage':
-                    localStorage.clear();
-                    break;
-                case 'sessionStorage':
-                    sessionStorage.clear();
-                    break;
-                case 'memory':
-                    this.memoryStorage.clear();
-                    break;
-            }
-            return true;
+            return this.operations.clear();
         } catch (error) {
-            console.warn('Failed to clear storage:', error.message);
-            this.memoryStorage.clear();
-            return false;
-        }
-    }
-
-    /**
-     * Validate storage key format with detailed validation
-     * @param {string} key - Storage key to validate
-     * @returns {Object} Validation result with details
-     */
-    isValidKey(key) {
-        const result = {
-            valid: true,
-            error: null,
-            details: {
-                type: typeof key,
-                length: key ? key.length : 0,
-                isEmpty: !key || key.length === 0,
-                tooLong: key && key.length > 255
-            }
-        };
-
-        if (typeof key !== 'string') {
-            result.valid = false;
-            result.error = `Key must be a string, got ${typeof key}`;
-            console.warn('Storage key validation failed:', result.error);
-            return result;
-        }
-
-        if (key.length === 0) {
-            result.valid = false;
-            result.error = 'Key cannot be empty';
-            console.warn('Storage key validation failed:', result.error);
-            return result;
-        }
-
-        if (key.length > 255) {
-            result.valid = false;
-            result.error = `Key too long (${key.length} chars), maximum is 255`;
-            console.warn('Storage key validation failed:', result.error);
-            return result;
-        }
-
-        return result;
-    }
-
-    /**
-     * Simple boolean validation for backward compatibility
-     * @param {string} key - Storage key to validate
-     * @returns {boolean} True if key is valid
-     */
-    isValidKeySimple(key) {
-        return this.isValidKey(key).valid;
-    }
-
-    /**
-     * Validate storage value with detailed error reporting and logging
-     * @param {*} value - Value to validate
-     * @returns {Object} Detailed validation result with error information
-     */
-    isValidValue(value) {
-        const result = {
-            valid: true,
-            error: null,
-            details: {
-                type: typeof value,
-                isNull: value === null,
-                isUndefined: value === undefined,
-                size: 0,
-                sizeLimit: 5 * 1024 * 1024 // 5MB
-            }
-        };
-
-        // Null and undefined are valid (will be stored as strings)
-        if (value === null || value === undefined) {
-            result.details.size = String(value).length;
-            return result;
-        }
-
-        if (typeof value !== 'string') {
-            result.valid = false;
-            result.error = `Value must be a string, null, or undefined. Got ${typeof value}`;
-            console.warn('Storage value validation failed:', result.error, {
-                valueType: typeof value,
-                value: value
-            });
-            return result;
-        }
-        
-        // Calculate value size with enhanced error reporting
-        try {
-            const size = new Blob([value]).size;
-            result.details.size = size;
-            
-            if (size >= result.details.sizeLimit) {
-                result.valid = false;
-                result.error = `Value too large (${Math.round(size / 1024 / 1024 * 100) / 100}MB), maximum is ${Math.round(result.details.sizeLimit / 1024 / 1024)}MB`;
-                console.warn('Storage value validation failed:', result.error, {
-                    valueSize: size,
-                    sizeLimit: result.details.sizeLimit,
-                    valueLengthChars: value.length
-                });
-                return result;
-            }
-        } catch (error) {
-            // Fallback for older browsers
-            const charLength = value.length;
-            result.details.size = charLength; // Approximate
-            
-            if (charLength >= result.details.sizeLimit) {
-                result.valid = false;
-                result.error = `Value too large (~${Math.round(charLength / 1024 / 1024 * 100) / 100}MB), maximum is ${Math.round(result.details.sizeLimit / 1024 / 1024)}MB`;
-                console.warn('Storage value validation failed (fallback method):', result.error, {
-                    valueLength: charLength,
-                    sizeLimit: result.details.sizeLimit,
-                    blobError: error.message
-                });
-                return result;
-            }
-        }
-
-        return result;
-    }
-
-    /**
-     * Simple boolean validation for backward compatibility
-     * @param {*} value - Value to validate
-     * @returns {boolean} True if value can be stored
-     */
-    isValidValueSimple(value) {
-        return this.isValidValue(value).valid;
-    }
-
-    /**
-     * Get available storage quota (approximate)
-     * @returns {Promise<Object>} Storage quota information
-     */
-    async getStorageQuota() {
-        if (typeof navigator !== 'undefined' && 
-            navigator.storage && 
-            typeof navigator.storage.estimate === 'function') {
+            console.error('StorageManager.clear failed:', error);
+            // At minimum, clear memory storage
             try {
-                const estimate = await navigator.storage.estimate();
-                return {
-                    quota: estimate.quota,
-                    usage: estimate.usage,
-                    available: estimate.quota - estimate.usage,
-                    supported: true
-                };
-            } catch (error) {
-                console.warn('Failed to get storage estimate:', error);
+                this.memoryStorage.clear();
+                return true;
+            } catch (memoryError) {
+                console.error('StorageManager: Memory clear failed:', memoryError);
+                return false;
             }
         }
-        
-        return {
-            quota: null,
-            usage: null,
-            available: null,
-            supported: false
-        };
     }
 
-    /**
-     * Test storage functionality with comprehensive validation
-     * @returns {Object} Detailed test results
-     */
-    testStorage() {
-        const results = {
-            canWrite: false,
-            canRead: false,
-            canDelete: false,
-            persistent: false,
-            errors: [],
-            validation: {
-                keyTest: null,
-                valueTest: null
-            }
-        };
-
-        const testKey = '__storage_test_' + Date.now();
-        const testValue = 'test_value_' + Math.random();
-
-        try {
-            // Test validation methods
-            results.validation.keyTest = this.isValidKey(testKey);
-            results.validation.valueTest = this.isValidValue(testValue);
-
-            // Test write
-            this.setItem(testKey, testValue);
-            results.canWrite = true;
-
-            // Test read
-            const readValue = this.getItem(testKey);
-            results.canRead = readValue === testValue;
-
-            // Test delete
-            this.removeItem(testKey);
-            const deletedValue = this.getItem(testKey);
-            results.canDelete = deletedValue === null;
-
-            // Test persistence
-            results.persistent = this.storageType === 'localStorage';
-
-        } catch (error) {
-            results.errors.push(error.message);
-        }
-
-        return results;
-    }
+    // ============================================================================
+    // INFORMATION AND DEBUGGING METHODS
+    // These methods provide insight into storage status and performance
+    // ============================================================================
 
     /**
-     * Safely set item with comprehensive validation and detailed error reporting
-     * @param {string} key - Storage key
-     * @param {string} value - Value to store
-     * @returns {Object} Result with success status and detailed validation info
-     */
-    safeSetItem(key, value) {
-        const keyValidation = this.isValidKey(key);
-        const valueValidation = this.isValidValue(value);
-        
-        const result = {
-            success: false,
-            error: null,
-            validation: {
-                key: keyValidation,
-                value: valueValidation,
-                // Backward compatibility properties
-                keyValid: keyValidation.valid,
-                valueValid: valueValidation.valid
-            }
-        };
-
-        if (!keyValidation.valid) {
-            result.error = `Key validation failed: ${keyValidation.error}`;
-            console.warn('safeSetItem failed due to key validation:', keyValidation);
-            return result;
-        }
-
-        if (!valueValidation.valid) {
-            result.error = `Value validation failed: ${valueValidation.error}`;
-            console.warn('safeSetItem failed due to value validation:', valueValidation);
-            return result;
-        }
-
-        try {
-            result.success = this.setItem(key, value);
-            if (result.success) {
-                // Use console.log for Node.js compatibility
-                if (typeof console.debug === 'function') {
-                    console.debug('safeSetItem succeeded:', {
-                        key: key,
-                        valueSize: valueValidation.details.size,
-                        storageType: this.storageType
-                    });
-                }
-            }
-        } catch (error) {
-            result.error = error.message;
-            console.warn('safeSetItem failed during storage operation:', error);
-        }
-
-        return result;
-    }
-
-    /**
-     * Show enhanced user notification with better UX
-     * @param {string} type - Notification type ('private', 'quota', 'fallback')
-     * @param {string} message - Custom message
-     * @param {number} duration - Display duration in milliseconds
-     */
-    showEnhancedNotification(type = 'private', message = '', duration = 8000) {
-        // Check if we're in a browser environment
-        if (typeof document === 'undefined' || typeof window === 'undefined') {
-            // In Node.js or non-browser environment, just log the message
-            console.info(`📢 ${type.toUpperCase()}: ${message || 'Storage notification'}`);
-            return;
-        }
-
-        // Don't show multiple notifications of the same type
-        const notificationKey = `__notification_${type}_shown__`;
-        if (this.memoryStorage.has(notificationKey)) {
-            return;
-        }
-        this.memoryStorage.set(notificationKey, true);
-
-        const notifications = {
-            private: {
-                icon: '🔒',
-                title: 'Private Browsing Mode',
-                message: message || 'Your todos will only be saved during this browser session.',
-                color: '#ff9500'
-            },
-            quota: {
-                icon: '⚠️',
-                title: 'Storage Quota Reached',
-                message: message || 'Storage is full. Using temporary storage for this session.',
-                color: '#ff3b30'
-            },
-            fallback: {
-                icon: '🔄',
-                title: 'Storage Fallback Active',
-                message: message || 'Using backup storage. Data may not persist.',
-                color: '#ff9500'
-            }
-        };
-
-        const config = notifications[type] || notifications.private;
-        
-        const notification = document.createElement('div');
-        notification.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: ${config.color};
-            color: white;
-            padding: 16px 20px;
-            border-radius: 8px;
-            font-size: 14px;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            z-index: 10000;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-            max-width: 350px;
-            min-width: 300px;
-            animation: slideIn 0.3s ease-out;
-            cursor: pointer;
-        `;
-
-        // Add slide-in animation
-        const style = document.createElement('style');
-        style.textContent = `
-            @keyframes slideIn {
-                from { transform: translateX(100%); opacity: 0; }
-                to { transform: translateX(0); opacity: 1; }
-            }
-            @keyframes slideOut {
-                from { transform: translateX(0); opacity: 1; }
-                to { transform: translateX(100%); opacity: 0; }
-            }
-        `;
-        document.head.appendChild(style);
-
-        notification.innerHTML = `
-            <div style="display: flex; align-items: flex-start; gap: 10px;">
-                <span style="font-size: 18px; flex-shrink: 0;">${config.icon}</span>
-                <div style="flex: 1;">
-                    <div style="font-weight: 600; margin-bottom: 4px;">${config.title}</div>
-                    <div style="opacity: 0.9; line-height: 1.4;">${config.message}</div>
-                </div>
-                <button style="
-                    background: rgba(255,255,255,0.2);
-                    border: none;
-                    color: white;
-                    border-radius: 4px;
-                    padding: 4px 8px;
-                    cursor: pointer;
-                    font-size: 12px;
-                    margin-left: 10px;
-                    flex-shrink: 0;
-                " onclick="this.parentNode.parentNode.remove()">×</button>
-            </div>
-        `;
-        
-        document.body.appendChild(notification);
-        
-        // Auto-hide with animation
-        setTimeout(() => {
-            if (notification.parentNode) {
-                notification.style.animation = 'slideOut 0.3s ease-out';
-                setTimeout(() => {
-                    if (notification.parentNode) {
-                        notification.parentNode.removeChild(notification);
-                    }
-                }, 300);
-            }
-        }, duration);
-
-        // Click to dismiss
-        notification.addEventListener('click', () => {
-            if (notification.parentNode) {
-                notification.style.animation = 'slideOut 0.3s ease-out';
-                setTimeout(() => {
-                    if (notification.parentNode) {
-                        notification.parentNode.removeChild(notification);
-                    }
-                }, 300);
-            }
-        });
-    }
-
-    /**
-     * Get storage information with enhanced details
-     * @returns {Object} Comprehensive storage info
+     * Get comprehensive storage information for debugging and monitoring
+     * 
+     * Provides detailed information about:
+     * - Current storage capabilities and status
+     * - Performance metrics and statistics
+     * - Fallback history and error information
+     * - Browser compatibility details
+     * 
+     * @returns {Object} Comprehensive storage status information
      */
     getStorageInfo() {
-        const hasQuotaAPI = typeof navigator !== 'undefined' && 
-                           navigator.storage !== undefined && 
-                           navigator.storage !== null &&
-                           typeof navigator.storage.estimate === 'function';
+        try {
+            // Get base information from detector if available
+            const baseInfo = this.detector ? this.detector.getStorageCapabilities() : {
+                localStorage: this.hasLocalStorage,
+                sessionStorage: this.hasSessionStorage,
+                isPrivateMode: this.isPrivateMode,
+                recommendedStorage: this.storageType,
+                browser: { isSafari: false, userAgent: '' }
+            };
+
+            // Get operation statistics if available
+            const operationInfo = this.operations ? this.operations.getOperationInfo() : null;
+
+            // Combine all information
+            return {
+                // Current configuration
+                currentType: this.storageType,
+                hasLocalStorage: this.hasLocalStorage,
+                hasSessionStorage: this.hasSessionStorage,
+                isPrivateMode: this.isPrivateMode,
+                memoryItems: this.memoryStorage ? this.memoryStorage.size : 0,
+                
+                // Enhanced information from modules
+                ...baseInfo,
+                
+                // Legacy compatibility
+                isSafari: baseInfo.browser.isSafari,
+                
+                // Performance and statistics (if available)
+                ...(operationInfo && { 
+                    operationStats: operationInfo.statistics,
+                    performanceMetrics: operationInfo.performance,
+                    fallbackInfo: operationInfo.fallbackHandler
+                }),
+
+                // Module status
+                modulesLoaded: {
+                    detector: !!this.detector,
+                    fallbackHandler: !!this.fallbackHandler,
+                    operations: !!this.operations,
+                    itpHandler: !!this.itpHandler
+                },
+
+                // ITP protection status (if available)
+                ...(this.itpHandler && { 
+                    itpProtection: this.itpHandler.getITPStatus() 
+                })
+            };
+        } catch (error) {
+            console.warn('StorageManager: Error getting storage info:', error);
+            
+            // Return minimal information if detailed info fails
+            return {
+                currentType: this.storageType,
+                hasLocalStorage: this.hasLocalStorage,
+                hasSessionStorage: this.hasSessionStorage,
+                isPrivateMode: this.isPrivateMode,
+                memoryItems: this.memoryStorage ? this.memoryStorage.size : 0,
+                error: 'Failed to get detailed storage info'
+            };
+        }
+    }
+
+    /**
+     * Check if any storage mechanism is available
+     * 
+     * This method provides a simple boolean check for storage availability.
+     * Memory storage is always available as a fallback.
+     * 
+     * @returns {boolean} True if any storage mechanism is available (always true)
+     */
+    isAvailable() {
+        try {
+            return this.operations ? this.operations.isAvailable() : true;
+        } catch (error) {
+            console.warn('StorageManager: Error checking availability:', error);
+            return true; // Memory storage is always available
+        }
+    }
+
+    // ============================================================================
+    // LEGACY COMPATIBILITY METHODS
+    // These methods maintain compatibility with existing code
+    // ============================================================================
+
+    /**
+     * Legacy method: Detect private browsing mode
+     * @deprecated Use getStorageInfo().isPrivateMode instead
+     * @returns {boolean} True if private browsing is detected
+     */
+    detectPrivateMode() {
+        if (this.detector) {
+            return this.detector.detectPrivateMode();
+        }
+        return this.isPrivateMode;
+    }
+
+    /**
+     * Legacy method: Test storage availability
+     * @deprecated Use getStorageInfo() for comprehensive storage information
+     * @param {string} type - 'localStorage' or 'sessionStorage'
+     * @returns {boolean} True if storage is available
+     */
+    testStorage(type) {
+        if (this.detector) {
+            return this.detector.testStorage(type);
+        }
+        return type === 'localStorage' ? this.hasLocalStorage : this.hasSessionStorage;
+    }
+
+    /**
+     * Legacy method: Detect best storage
+     * @deprecated Storage type is now managed automatically by fallback handler
+     * @returns {string} The recommended storage type
+     */
+    detectBestStorage() {
+        if (this.detector) {
+            return this.detector.detectBestStorage();
+        }
+        return this.storageType;
+    }
+
+    /**
+     * Legacy method: Handle storage errors
+     * @deprecated Error handling is now managed automatically by fallback handler
+     * @param {Error} error - The storage error
+     */
+    handleStorageError(error) {
+        console.warn('StorageManager: Legacy handleStorageError called:', error);
         
-        return {
-            type: this.storageType,
-            isPrivateBrowsing: this.isPrivateBrowsing,
-            isPersistent: this.storageType === 'localStorage',
-            memoryStorageSize: this.memoryStorage.size,
-            browserSupport: {
-                localStorage: typeof localStorage !== 'undefined',
-                sessionStorage: typeof sessionStorage !== 'undefined',
-                quotaAPI: hasQuotaAPI
-            },
-            capabilities: {
-                canWrite: true,
-                canRead: true,
-                canDelete: true,
-                hasQuotaAPI: hasQuotaAPI
-            }
-        };
+        if (this.fallbackHandler) {
+            // Let the fallback handler manage error handling
+            this.fallbackHandler.recordStorageError('unknown', error);
+        } else {
+            // Minimal legacy error handling
+            console.warn('StorageManager: No fallback handler available for error:', error);
+        }
     }
 }
 
-// Create singleton instance
-const storageManager = new StorageManager();
-
-// Export for module systems
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { StorageManager, storageManager };
-} else {
-    // Browser global
-    window.storageManager = storageManager;
+// Create a global instance for the application if in browser environment
+if (typeof window !== 'undefined') {
+    window.storageManager = new StorageManager();
 }
