@@ -14,8 +14,13 @@ global.document = {
     createElement: () => ({
         style: {},
         innerHTML: '',
-        parentNode: mockBody
-    })
+        parentNode: mockBody,
+        addEventListener: () => {},
+        remove: () => {}
+    }),
+    head: {
+        appendChild: () => {}
+    }
 };
 
 global.console = {

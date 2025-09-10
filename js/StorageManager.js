@@ -76,43 +76,16 @@ class StorageManager {
             console.info('🔒 Private browsing detected. Todos will only persist during this session.');
             this.memoryStorage.set('__private_notified__', true);
             
-            // Show user-friendly notification if possible
-            this.showUserNotification();
+            // Show enhanced user-friendly notification
+            this.showEnhancedNotification('private');
         }
     }
 
     /**
-     * Show user notification about private browsing
+     * Show user notification about private browsing (legacy method for compatibility)
      */
     showUserNotification() {
-        // Create a subtle notification
-        const notification = document.createElement('div');
-        notification.style.cssText = `
-            position: fixed;
-            top: 10px;
-            right: 10px;
-            background: #ff9500;
-            color: white;
-            padding: 10px 15px;
-            border-radius: 5px;
-            font-size: 14px;
-            z-index: 1000;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-            max-width: 300px;
-        `;
-        notification.innerHTML = `
-            🔒 <strong>Private Browsing</strong><br>
-            Todos will only be saved during this session
-        `;
-        
-        document.body.appendChild(notification);
-        
-        // Auto-hide after 5 seconds
-        setTimeout(() => {
-            if (notification.parentNode) {
-                notification.parentNode.removeChild(notification);
-            }
-        }, 5000);
+        this.showEnhancedNotification('private');
     }
 
     /**
@@ -198,8 +171,8 @@ class StorageManager {
         this.storageType = 'memory';
         this.memoryStorage.set(key, value);
         
-        // Notify user
-        this.showQuotaNotification();
+        // Notify user with enhanced notification
+        this.showEnhancedNotification('quota');
     }
 
     /**
@@ -209,39 +182,15 @@ class StorageManager {
         if (!this.memoryStorage.has('__fallback_notified__')) {
             console.warn('⚠️ Storage fallback activated. Data will only persist during this session.');
             this.memoryStorage.set('__fallback_notified__', true);
+            this.showEnhancedNotification('fallback');
         }
     }
 
     /**
-     * Show quota exceeded notification
+     * Show quota exceeded notification (legacy method for compatibility)
      */
     showQuotaNotification() {
-        const notification = document.createElement('div');
-        notification.style.cssText = `
-            position: fixed;
-            top: 10px;
-            right: 10px;
-            background: #ff3b30;
-            color: white;
-            padding: 10px 15px;
-            border-radius: 5px;
-            font-size: 14px;
-            z-index: 1000;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-            max-width: 300px;
-        `;
-        notification.innerHTML = `
-            ⚠️ <strong>Storage Full</strong><br>
-            Using temporary storage for this session
-        `;
-        
-        document.body.appendChild(notification);
-        
-        setTimeout(() => {
-            if (notification.parentNode) {
-                notification.parentNode.removeChild(notification);
-            }
-        }, 5000);
+        this.showEnhancedNotification('quota');
     }
 
     /**
@@ -301,15 +250,291 @@ class StorageManager {
     }
 
     /**
-     * Get storage information
-     * @returns {Object} Storage info including type, private browsing status, etc.
+     * Validate storage key format
+     * @param {string} key - Storage key to validate
+     * @returns {boolean} True if key is valid
+     */
+    isValidKey(key) {
+        if (typeof key !== 'string') return false;
+        if (key.length === 0) return false;
+        if (key.length > 255) return false; // Reasonable key length limit
+        return true;
+    }
+
+    /**
+     * Validate storage value
+     * @param {*} value - Value to validate
+     * @returns {boolean} True if value can be stored
+     */
+    isValidValue(value) {
+        if (value === null || value === undefined) return true;
+        if (typeof value !== 'string') return false;
+        
+        // Check if value is too large (approximate check)
+        try {
+            const size = new Blob([value]).size;
+            return size < 5 * 1024 * 1024; // 5MB limit
+        } catch (error) {
+            // Fallback for older browsers
+            return value.length < 5 * 1024 * 1024;
+        }
+    }
+
+    /**
+     * Get available storage quota (approximate)
+     * @returns {Promise<Object>} Storage quota information
+     */
+    async getStorageQuota() {
+        if (typeof navigator !== 'undefined' && 
+            navigator.storage && 
+            typeof navigator.storage.estimate === 'function') {
+            try {
+                const estimate = await navigator.storage.estimate();
+                return {
+                    quota: estimate.quota,
+                    usage: estimate.usage,
+                    available: estimate.quota - estimate.usage,
+                    supported: true
+                };
+            } catch (error) {
+                console.warn('Failed to get storage estimate:', error);
+            }
+        }
+        
+        return {
+            quota: null,
+            usage: null,
+            available: null,
+            supported: false
+        };
+    }
+
+    /**
+     * Test storage functionality
+     * @returns {Object} Test results
+     */
+    testStorage() {
+        const results = {
+            canWrite: false,
+            canRead: false,
+            canDelete: false,
+            persistent: false,
+            errors: []
+        };
+
+        const testKey = '__storage_test_' + Date.now();
+        const testValue = 'test_value_' + Math.random();
+
+        try {
+            // Test write
+            this.setItem(testKey, testValue);
+            results.canWrite = true;
+
+            // Test read
+            const readValue = this.getItem(testKey);
+            results.canRead = readValue === testValue;
+
+            // Test delete
+            this.removeItem(testKey);
+            const deletedValue = this.getItem(testKey);
+            results.canDelete = deletedValue === null;
+
+            // Test persistence
+            results.persistent = this.storageType === 'localStorage';
+
+        } catch (error) {
+            results.errors.push(error.message);
+        }
+
+        return results;
+    }
+
+    /**
+     * Safely set item with validation
+     * @param {string} key - Storage key
+     * @param {string} value - Value to store
+     * @returns {Object} Result with success status and validation info
+     */
+    safeSetItem(key, value) {
+        const result = {
+            success: false,
+            error: null,
+            validation: {
+                keyValid: this.isValidKey(key),
+                valueValid: this.isValidValue(value)
+            }
+        };
+
+        if (!result.validation.keyValid) {
+            result.error = 'Invalid key format';
+            return result;
+        }
+
+        if (!result.validation.valueValid) {
+            result.error = 'Invalid value format or too large';
+            return result;
+        }
+
+        try {
+            result.success = this.setItem(key, value);
+        } catch (error) {
+            result.error = error.message;
+        }
+
+        return result;
+    }
+
+    /**
+     * Show enhanced user notification with better UX
+     * @param {string} type - Notification type ('private', 'quota', 'fallback')
+     * @param {string} message - Custom message
+     * @param {number} duration - Display duration in milliseconds
+     */
+    showEnhancedNotification(type = 'private', message = '', duration = 8000) {
+        // Check if we're in a browser environment
+        if (typeof document === 'undefined' || typeof window === 'undefined') {
+            // In Node.js or non-browser environment, just log the message
+            console.info(`📢 ${type.toUpperCase()}: ${message || 'Storage notification'}`);
+            return;
+        }
+
+        // Don't show multiple notifications of the same type
+        const notificationKey = `__notification_${type}_shown__`;
+        if (this.memoryStorage.has(notificationKey)) {
+            return;
+        }
+        this.memoryStorage.set(notificationKey, true);
+
+        const notifications = {
+            private: {
+                icon: '🔒',
+                title: 'Private Browsing Mode',
+                message: message || 'Your todos will only be saved during this browser session.',
+                color: '#ff9500'
+            },
+            quota: {
+                icon: '⚠️',
+                title: 'Storage Quota Reached',
+                message: message || 'Storage is full. Using temporary storage for this session.',
+                color: '#ff3b30'
+            },
+            fallback: {
+                icon: '🔄',
+                title: 'Storage Fallback Active',
+                message: message || 'Using backup storage. Data may not persist.',
+                color: '#ff9500'
+            }
+        };
+
+        const config = notifications[type] || notifications.private;
+        
+        const notification = document.createElement('div');
+        notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: ${config.color};
+            color: white;
+            padding: 16px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            z-index: 10000;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            max-width: 350px;
+            min-width: 300px;
+            animation: slideIn 0.3s ease-out;
+            cursor: pointer;
+        `;
+
+        // Add slide-in animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideIn {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            @keyframes slideOut {
+                from { transform: translateX(0); opacity: 1; }
+                to { transform: translateX(100%); opacity: 0; }
+            }
+        `;
+        document.head.appendChild(style);
+
+        notification.innerHTML = `
+            <div style="display: flex; align-items: flex-start; gap: 10px;">
+                <span style="font-size: 18px; flex-shrink: 0;">${config.icon}</span>
+                <div style="flex: 1;">
+                    <div style="font-weight: 600; margin-bottom: 4px;">${config.title}</div>
+                    <div style="opacity: 0.9; line-height: 1.4;">${config.message}</div>
+                </div>
+                <button style="
+                    background: rgba(255,255,255,0.2);
+                    border: none;
+                    color: white;
+                    border-radius: 4px;
+                    padding: 4px 8px;
+                    cursor: pointer;
+                    font-size: 12px;
+                    margin-left: 10px;
+                    flex-shrink: 0;
+                " onclick="this.parentNode.parentNode.remove()">×</button>
+            </div>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        // Auto-hide with animation
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.style.animation = 'slideOut 0.3s ease-out';
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 300);
+            }
+        }, duration);
+
+        // Click to dismiss
+        notification.addEventListener('click', () => {
+            if (notification.parentNode) {
+                notification.style.animation = 'slideOut 0.3s ease-out';
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 300);
+            }
+        });
+    }
+
+    /**
+     * Get storage information with enhanced details
+     * @returns {Object} Comprehensive storage info
      */
     getStorageInfo() {
+        const hasQuotaAPI = typeof navigator !== 'undefined' && 
+                           navigator.storage !== undefined && 
+                           navigator.storage !== null &&
+                           typeof navigator.storage.estimate === 'function';
+        
         return {
             type: this.storageType,
             isPrivateBrowsing: this.isPrivateBrowsing,
             isPersistent: this.storageType === 'localStorage',
-            memoryStorageSize: this.memoryStorage.size
+            memoryStorageSize: this.memoryStorage.size,
+            browserSupport: {
+                localStorage: typeof localStorage !== 'undefined',
+                sessionStorage: typeof sessionStorage !== 'undefined',
+                quotaAPI: hasQuotaAPI
+            },
+            capabilities: {
+                canWrite: true,
+                canRead: true,
+                canDelete: true,
+                hasQuotaAPI: hasQuotaAPI
+            }
         };
     }
 }

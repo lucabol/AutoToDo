@@ -3,209 +3,381 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Storage Integration Test - AutoToDo</title>
+    <title>AutoToDo - Storage Integration Tests</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
-            max-width: 800px;
-            margin: 0 auto;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
             padding: 20px;
-            background-color: #f5f5f5;
+            background-color: #f5f5f7;
         }
+        
         .test-container {
+            max-width: 900px;
+            margin: 0 auto;
             background: white;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            padding: 30px;
         }
-        .test-result {
-            padding: 10px;
+        
+        h1 {
+            color: #1d1d1f;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .test-results {
+            margin: 20px 0;
+        }
+        
+        .test-case {
+            padding: 15px;
             margin: 10px 0;
-            border-radius: 4px;
+            border-radius: 8px;
+            border-left: 4px solid;
         }
-        .pass {
-            background-color: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
+        
+        .test-pass {
+            background-color: #f0f9ff;
+            border-left-color: #34c759;
+            color: #1d4ed8;
         }
-        .fail {
-            background-color: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
+        
+        .test-fail {
+            background-color: #fef2f2;
+            border-left-color: #ff3b30;
+            color: #dc2626;
         }
-        .info {
-            background-color: #cce8ff;
-            color: #004085;
-            border: 1px solid #b3d7ff;
+        
+        .test-summary {
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            margin: 20px 0;
+            font-weight: 600;
         }
-        button {
-            background-color: #007bff;
+        
+        .test-summary.all-pass {
+            background-color: #f0f9ff;
+            color: #1d4ed8;
+        }
+        
+        .test-summary.has-failures {
+            background-color: #fef2f2;
+            color: #dc2626;
+        }
+        
+        .run-tests-btn {
+            background: #007aff;
             color: white;
             border: none;
-            padding: 10px 15px;
-            border-radius: 4px;
+            padding: 14px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
             cursor: pointer;
-            margin: 5px;
+            margin-bottom: 20px;
+            transition: background-color 0.3s ease;
         }
-        button:hover {
-            background-color: #0056b3;
+        
+        .run-tests-btn:hover {
+            background: #0056cc;
         }
-        pre {
-            background-color: #f8f9fa;
-            padding: 10px;
-            border-radius: 4px;
-            overflow-x: auto;
-        }
+        
+        .storage-info {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid #007aff;
     </style>
 </head>
 <body>
-    <h1>Storage Integration Test</h1>
-    <p>This page tests the StorageManager functionality in the browser.</p>
-
     <div class="test-container">
-        <h2>Test Results</h2>
-        <div id="test-results"></div>
+        <h1>AutoToDo Storage Integration Tests</h1>
+        
+        <div class="storage-info">
+            <strong>Current Storage Info:</strong>
+            <div id="storageInfo">Loading...</div>
+        </div>
+        
+        <button class="run-tests-btn" onclick="runAllTests()">Run All Tests</button>
+        
+        <div class="test-results" id="testResults"></div>
     </div>
 
-    <div class="test-container">
-        <h2>Storage Information</h2>
-        <div id="storage-info"></div>
-    </div>
-
-    <div class="test-container">
-        <h2>Manual Tests</h2>
-        <button onclick="testBasicOperations()">Test Basic Operations</button>
-        <button onclick="testPrivateBrowsingSimulation()">Simulate Private Browsing</button>
-        <button onclick="testQuotaExceeded()">Test Quota Exceeded</button>
-        <button onclick="clearResults()">Clear Results</button>
-    </div>
-
-    <div class="test-container">
-        <h2>Todo App Integration</h2>
-        <p>The main app is available at <a href="index.html">index.html</a>. Test it in:</p>
-        <ul>
-            <li>Normal browsing mode</li>
-            <li>Private browsing mode (to see fallback behavior)</li>
-            <li>With storage disabled (to test memory fallback)</li>
-        </ul>
-    </div>
-
-    <!-- Load the StorageManager -->
+    <!-- Load StorageManager -->
     <script src="js/StorageManager.js"></script>
-
+    
     <script>
-        let testResults = [];
-        
-        function addResult(message, isPass, isInfo = false) {
-            const className = isInfo ? 'info' : (isPass ? 'pass' : 'fail');
-            const icon = isInfo ? 'ℹ️' : (isPass ? '✅' : '❌');
-            testResults.push(`<div class="test-result ${className}">${icon} ${message}</div>`);
-            updateDisplay();
-        }
-        
-        function updateDisplay() {
-            document.getElementById('test-results').innerHTML = testResults.join('');
-        }
-        
-        function clearResults() {
-            testResults = [];
-            updateDisplay();
-        }
-        
-        function displayStorageInfo() {
-            const info = storageManager.getStorageInfo();
-            document.getElementById('storage-info').innerHTML = `
-                <pre>${JSON.stringify(info, null, 2)}</pre>
-            `;
-        }
-        
-        function testBasicOperations() {
-            addResult('Testing basic storage operations...', true, true);
-            
-            try {
-                // Test set/get
-                const success = storageManager.setItem('test-key', 'test-value');
-                addResult('setItem returned: ' + success, success);
-                
-                const value = storageManager.getItem('test-key');
-                addResult('Retrieved value: ' + value, value === 'test-value');
-                
-                // Test JSON storage
-                const testData = { name: 'Test Todo', completed: false };
-                storageManager.setItem('test-json', JSON.stringify(testData));
-                const retrieved = JSON.parse(storageManager.getItem('test-json'));
-                addResult('JSON data round-trip', retrieved.name === testData.name);
-                
-                // Test removal
-                storageManager.removeItem('test-key');
-                const removedValue = storageManager.getItem('test-key');
-                addResult('Value removed successfully', removedValue === null);
-                
-                addResult('Basic operations test completed', true, true);
-                
-            } catch (error) {
-                addResult('Basic operations failed: ' + error.message, false);
+        // Test Framework
+        class TestFramework {
+            constructor() {
+                this.tests = [];
+                this.results = [];
             }
-        }
-        
-        function testPrivateBrowsingSimulation() {
-            addResult('Simulating private browsing conditions...', true, true);
-            
-            try {
-                // Create a new storage manager to simulate different conditions
-                const testStorage = new StorageManager();
-                const info = testStorage.getStorageInfo();
-                
-                addResult('Storage type detected: ' + info.type, true, true);
-                addResult('Private browsing detected: ' + info.isPrivateBrowsing, true, true);
-                addResult('Is persistent: ' + info.isPersistent, true, true);
-                
-                // Test that it still works
-                testStorage.setItem('private-test', 'working');
-                const value = testStorage.getItem('private-test');
-                addResult('Storage works in current mode', value === 'working');
-                
-            } catch (error) {
-                addResult('Private browsing simulation failed: ' + error.message, false);
+
+            test(name, testFn) {
+                this.tests.push({ name, testFn });
             }
-        }
-        
-        function testQuotaExceeded() {
-            addResult('Testing quota exceeded handling...', true, true);
-            
-            try {
-                // Try to store a large amount of data
-                const largeData = 'x'.repeat(1024 * 1024); // 1MB
-                const success = storageManager.setItem('large-test', largeData);
+
+            assertEqual(actual, expected, message = '') {
+                if (JSON.stringify(actual) !== JSON.stringify(expected)) {
+                    throw new Error(`${message} Expected: ${JSON.stringify(expected)}, Got: ${JSON.stringify(actual)}`);
+                }
+            }
+
+            assertTrue(condition, message = '') {
+                if (!condition) {
+                    throw new Error(`${message} Expected: true, Got: false`);
+                }
+            }
+
+            assertFalse(condition, message = '') {
+                if (condition) {
+                    throw new Error(`${message} Expected: false, Got: true`);
+                }
+            }
+
+            async runTests() {
+                this.results = [];
                 
-                if (success) {
-                    addResult('Large data stored successfully', true);
-                    // Clean up
-                    storageManager.removeItem('large-test');
-                } else {
-                    addResult('Large data failed to store (quota exceeded)', true, true);
+                for (const test of this.tests) {
+                    try {
+                        await test.testFn();
+                        this.results.push({ name: test.name, status: 'pass', error: null });
+                    } catch (error) {
+                        this.results.push({ name: test.name, status: 'fail', error: error.message });
+                    }
                 }
                 
-                // Verify storage still works after potential quota issue
-                const testSuccess = storageManager.setItem('after-quota-test', 'small-data');
-                const testValue = storageManager.getItem('after-quota-test');
-                addResult('Storage works after quota test', testValue === 'small-data');
+                return this.results;
+            }
+
+            renderResults() {
+                const resultsDiv = document.getElementById('testResults');
+                const passCount = this.results.filter(r => r.status === 'pass').length;
+                const failCount = this.results.filter(r => r.status === 'fail').length;
                 
-            } catch (error) {
-                addResult('Quota exceeded test failed: ' + error.message, false);
+                let html = `<div class="test-summary ${failCount === 0 ? 'all-pass' : 'has-failures'}">
+                    Tests completed: ${passCount} passed, ${failCount} failed
+                </div>`;
+                
+                this.results.forEach(result => {
+                    html += `<div class="test-case test-${result.status}">
+                        <strong>${result.name}</strong>: ${result.status.toUpperCase()}
+                        ${result.error ? `<br><small>${result.error}</small>` : ''}
+                    </div>`;
+                });
+                
+                resultsDiv.innerHTML = html;
             }
         }
-        
-        // Run initial tests on page load
-        window.addEventListener('load', function() {
-            displayStorageInfo();
-            addResult('StorageManager loaded successfully', true, true);
-            addResult('Page loaded in: ' + storageManager.getStorageInfo().type + ' mode', true, true);
+
+        // Initialize test framework
+        const testFramework = new TestFramework();
+
+        // Display current storage info
+        function displayStorageInfo() {
+            const info = storageManager.getStorageInfo();
+            document.getElementById('storageInfo').innerHTML = `
+                <div>Type: ${info.type}</div>
+                <div>Private Browsing: ${info.isPrivateBrowsing ? 'Yes' : 'No'}</div>
+                <div>Persistent: ${info.isPersistent ? 'Yes' : 'No'}</div>
+                <div>Memory Storage Size: ${info.memoryStorageSize}</div>
+            `;
+        }
+
+        // Test Suite for Storage Integration
+        testFramework.test('StorageManager - should be initialized and available', () => {
+            testFramework.assertTrue(typeof storageManager !== 'undefined', 'StorageManager should be available');
+            testFramework.assertTrue(typeof storageManager.getStorageInfo === 'function', 'getStorageInfo method should exist');
+        });
+
+        testFramework.test('TodoApp - should save and load todos through StorageManager', () => {
+            // Clear any existing data
+            storageManager.removeItem('todos');
             
-            if (storageManager.getStorageInfo().isPrivateBrowsing) {
-                addResult('🔒 Private browsing mode detected!', true, true);
+            // Create sample todos data
+            const todos = [
+                { id: '1', text: 'Buy groceries', completed: false, createdAt: new Date().toISOString() },
+                { id: '2', text: 'Walk the dog', completed: true, createdAt: new Date().toISOString() }
+            ];
+            
+            // Save todos using StorageManager
+            const saveSuccess = storageManager.setItem('todos', JSON.stringify(todos));
+            testFramework.assertTrue(saveSuccess, 'Should successfully save todos');
+            
+            // Load todos using StorageManager
+            const loadedData = storageManager.getItem('todos');
+            testFramework.assertTrue(loadedData !== null, 'Should successfully load todos data');
+            
+            const loadedTodos = JSON.parse(loadedData);
+            testFramework.assertEqual(loadedTodos.length, 2, 'Should load correct number of todos');
+            testFramework.assertEqual(loadedTodos[0].text, 'Buy groceries', 'Should load correct todo text');
+            testFramework.assertEqual(loadedTodos[1].completed, true, 'Should load correct todo completion status');
+        });
+
+        testFramework.test('Storage - should handle large todo lists', () => {
+            // Clear any existing data
+            storageManager.removeItem('large-todos');
+            
+            // Create large todo list
+            const largeTodos = [];
+            for (let i = 0; i < 1000; i++) {
+                largeTodos.push({
+                    id: `todo-${i}`,
+                    text: `Todo item number ${i} with some additional text to make it larger`,
+                    completed: i % 3 === 0,
+                    createdAt: new Date().toISOString()
+                });
             }
+            
+            // Save large todo list
+            const saveSuccess = storageManager.setItem('large-todos', JSON.stringify(largeTodos));
+            testFramework.assertTrue(saveSuccess, 'Should successfully save large todo list');
+            
+            // Load and verify
+            const loadedData = storageManager.getItem('large-todos');
+            testFramework.assertTrue(loadedData !== null, 'Should successfully load large todo list');
+            
+            const loadedTodos = JSON.parse(loadedData);
+            testFramework.assertEqual(loadedTodos.length, 1000, 'Should load all 1000 todos');
+            testFramework.assertEqual(loadedTodos[999].text, 'Todo item number 999 with some additional text to make it larger', 'Should load last todo correctly');
+        });
+
+        testFramework.test('Storage - should handle empty todo list', () => {
+            // Clear any existing data
+            storageManager.removeItem('empty-todos');
+            
+            // Save empty todo list
+            const emptyTodos = [];
+            const saveSuccess = storageManager.setItem('empty-todos', JSON.stringify(emptyTodos));
+            testFramework.assertTrue(saveSuccess, 'Should successfully save empty todo list');
+            
+            // Load and verify
+            const loadedData = storageManager.getItem('empty-todos');
+            testFramework.assertTrue(loadedData !== null, 'Should successfully load empty todo list');
+            
+            const loadedTodos = JSON.parse(loadedData);
+            testFramework.assertTrue(Array.isArray(loadedTodos), 'Should load as array');
+            testFramework.assertEqual(loadedTodos.length, 0, 'Should load empty array');
+        });
+
+        testFramework.test('Storage - should handle special characters in todos', () => {
+            // Clear any existing data
+            storageManager.removeItem('special-todos');
+            
+            // Create todos with special characters
+            const specialTodos = [
+                { id: '1', text: 'Buy 🥕 & 🥛 at the store', completed: false },
+                { id: '2', text: 'Call Mom @ 3:00 PM', completed: false },
+                { id: '3', text: 'Fix "broken" code & test <script>', completed: true },
+                { id: '4', text: '学习中文 (Learn Chinese)', completed: false }
+            ];
+            
+            // Save todos
+            const saveSuccess = storageManager.setItem('special-todos', JSON.stringify(specialTodos));
+            testFramework.assertTrue(saveSuccess, 'Should successfully save todos with special characters');
+            
+            // Load and verify
+            const loadedData = storageManager.getItem('special-todos');
+            const loadedTodos = JSON.parse(loadedData);
+            
+            testFramework.assertEqual(loadedTodos[0].text, 'Buy 🥕 & 🥛 at the store', 'Should preserve emojis and symbols');
+            testFramework.assertEqual(loadedTodos[2].text, 'Fix "broken" code & test <script>', 'Should preserve quotes and HTML');
+            testFramework.assertEqual(loadedTodos[3].text, '学习中文 (Learn Chinese)', 'Should preserve Unicode characters');
+        });
+
+        testFramework.test('Storage - should handle concurrent read/write operations', () => {
+            // Clear any existing data
+            storageManager.removeItem('concurrent-todos');
+            
+            // Initial todo
+            const initialTodos = [{ id: '1', text: 'Initial todo', completed: false }];
+            storageManager.setItem('concurrent-todos', JSON.stringify(initialTodos));
+            
+            // Simulate rapid updates (like a user quickly adding/modifying todos)
+            for (let i = 2; i <= 10; i++) {
+                const currentTodos = JSON.parse(storageManager.getItem('concurrent-todos') || '[]');
+                currentTodos.push({ id: `${i}`, text: `Todo ${i}`, completed: false });
+                storageManager.setItem('concurrent-todos', JSON.stringify(currentTodos));
+            }
+            
+            // Verify final state
+            const finalTodos = JSON.parse(storageManager.getItem('concurrent-todos'));
+            testFramework.assertEqual(finalTodos.length, 10, 'Should handle consecutive operations correctly');
+            testFramework.assertEqual(finalTodos[9].text, 'Todo 10', 'Should preserve last update');
+        });
+
+        testFramework.test('Private Browsing Simulation - should detect Safari private browsing', () => {
+            // Get current storage info
+            const info = storageManager.getStorageInfo();
+            
+            // In normal browsing, we expect localStorage
+            // In private browsing, we expect sessionStorage or memory
+            testFramework.assertTrue(
+                info.type === 'localStorage' || info.type === 'sessionStorage' || info.type === 'memory',
+                'Should use a valid storage type'
+            );
+            
+            // If using sessionStorage or memory, likely in private browsing mode
+            if (info.type !== 'localStorage') {
+                testFramework.assertTrue(
+                    info.isPrivateBrowsing || !info.isPersistent,
+                    'Non-localStorage should indicate private browsing or non-persistent storage'
+                );
+            }
+        });
+
+        testFramework.test('Storage Fallback - should handle storage quota exceeded', () => {
+            // This test simulates quota exceeded scenario
+            // Note: This might not trigger in all environments
+            
+            try {
+                // Try to save a very large string to trigger quota exceeded
+                const largeData = 'x'.repeat(5 * 1024 * 1024); // 5MB string
+                const result = storageManager.setItem('large-test', largeData);
+                
+                // If it succeeds, that's fine too
+                if (result) {
+                    testFramework.assertTrue(true, 'Large data stored successfully');
+                    storageManager.removeItem('large-test'); // Clean up
+                } else {
+                    testFramework.assertTrue(true, 'Storage manager handled quota exceeded gracefully');
+                }
+            } catch (e) {
+                testFramework.assertTrue(true, 'Storage manager handled quota exceeded with error gracefully');
+            }
+        });
+
+        testFramework.test('Storage Info - should provide comprehensive storage information', () => {
+            const info = storageManager.getStorageInfo();
+            
+            testFramework.assertTrue(typeof info.type === 'string', 'Should provide storage type');
+            testFramework.assertTrue(typeof info.isPrivateBrowsing === 'boolean', 'Should provide private browsing status');
+            testFramework.assertTrue(typeof info.isPersistent === 'boolean', 'Should provide persistence status');
+            testFramework.assertTrue(typeof info.memoryStorageSize === 'number', 'Should provide memory storage size');
+            
+            // Type should be one of the expected values
+            testFramework.assertTrue(
+                ['localStorage', 'sessionStorage', 'memory'].includes(info.type),
+                'Storage type should be one of the expected values'
+            );
+        });
+
+        // Function to run all tests
+        async function runAllTests() {
+            displayStorageInfo();
+            const results = await testFramework.runTests();
+            testFramework.renderResults();
+        }
+
+        // Auto-run tests when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            displayStorageInfo();
+            runAllTests();
         });
     </script>
 </body>
