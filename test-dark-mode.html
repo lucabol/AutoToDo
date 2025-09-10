@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dark Mode Test - AutoToDo</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .test-container {
+            padding: 20px;
+            margin: 20px;
+            border: 1px solid var(--border-primary);
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border-radius: 8px;
+        }
+        .color-test {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin: 20px 0;
+        }
+        .color-sample {
+            padding: 10px;
+            text-align: center;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Dark Mode CSS Variable Test</h1>
+            <button class="theme-toggle" id="themeToggle">
+                <span class="theme-icon">🌙</span>
+                <span class="theme-text">Dark</span>
+            </button>
+        </div>
+        
+        <div class="test-container">
+            <h2>CSS Variables Test</h2>
+            <p>This test verifies that CSS custom properties (variables) are working correctly for dark mode support.</p>
+            
+            <div class="color-test">
+                <div class="color-sample" style="background: var(--bg-primary); color: var(--text-primary);">
+                    --bg-primary<br>--text-primary
+                </div>
+                <div class="color-sample" style="background: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border-primary);">
+                    --bg-secondary<br>--border-primary
+                </div>
+                <div class="color-sample" style="background: var(--bg-tertiary); color: var(--text-secondary);">
+                    --bg-tertiary<br>--text-secondary
+                </div>
+                <div class="color-sample" style="background: var(--accent-primary); color: white;">
+                    --accent-primary
+                </div>
+                <div class="color-sample" style="background: var(--success); color: white;">
+                    --success
+                </div>
+                <div class="color-sample" style="background: var(--warning); color: white;">
+                    --warning
+                </div>
+                <div class="color-sample" style="background: var(--danger); color: white;">
+                    --danger
+                </div>
+                <div class="color-sample" style="background: var(--bg-hover); color: var(--text-primary);">
+                    --bg-hover
+                </div>
+            </div>
+            
+            <div id="theme-info">
+                <h3>Current Theme Info:</h3>
+                <ul>
+                    <li>Body class: <span id="body-class">none</span></li>
+                    <li>System prefers: <span id="system-theme">unknown</span></li>
+                    <li>Stored preference: <span id="stored-theme">none</span></li>
+                    <li>Color scheme support: <span id="color-scheme-support">unknown</span></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load the existing JavaScript -->
+    <script src="js/StorageDetector.js"></script>
+    <script src="js/StorageFallbackHandler.js"></script>
+    <script src="js/StorageOperations.js"></script>
+    <script src="js/StorageManager.js"></script>
+    <script src="js/PerformanceUtils.js"></script>
+    
+    <script>
+        // Initialize storage manager for theme testing
+        window.storageManager = new StorageManager();
+        
+        // Simple theme functionality for testing
+        class ThemeTest {
+            constructor() {
+                this.safariVersionInfo = PerformanceUtils.getSafariVersionInfo();
+                this.currentTheme = 'light';
+                this.init();
+            }
+            
+            init() {
+                this.updateThemeInfo();
+                this.bindEvents();
+                this.initializeTheme();
+            }
+            
+            initializeTheme() {
+                const savedTheme = window.storageManager.getItem('todo-theme');
+                const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                const initialTheme = savedTheme || (systemPrefersDark ? 'dark' : 'light');
+                
+                this.setTheme(initialTheme, false);
+                
+                // Listen for system theme changes
+                window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+                    if (!window.storageManager.getItem('todo-theme')) {
+                        this.setTheme(e.matches ? 'dark' : 'light', false);
+                    }
+                });
+            }
+            
+            setTheme(theme, save = true) {
+                const body = document.body;
+                const themeToggle = document.getElementById('themeToggle');
+                const themeIcon = themeToggle?.querySelector('.theme-icon');
+                const themeText = themeToggle?.querySelector('.theme-text');
+
+                if (theme === 'dark') {
+                    body.classList.add('dark-theme');
+                    if (themeIcon) themeIcon.textContent = '☀️';
+                    if (themeText) themeText.textContent = 'Light';
+                } else {
+                    body.classList.remove('dark-theme');
+                    if (themeIcon) themeIcon.textContent = '🌙';
+                    if (themeText) themeText.textContent = 'Dark';
+                }
+
+                if (save) {
+                    window.storageManager.setItem('todo-theme', theme);
+                }
+
+                this.currentTheme = theme;
+                this.updateThemeInfo();
+            }
+            
+            toggleTheme() {
+                const newTheme = this.currentTheme === 'dark' ? 'light' : 'dark';
+                this.setTheme(newTheme);
+            }
+            
+            bindEvents() {
+                const themeToggle = document.getElementById('themeToggle');
+                if (themeToggle) {
+                    themeToggle.addEventListener('click', () => {
+                        this.toggleTheme();
+                    });
+                }
+            }
+            
+            updateThemeInfo() {
+                document.getElementById('body-class').textContent = 
+                    document.body.classList.contains('dark-theme') ? 'dark-theme' : 'none';
+                
+                document.getElementById('system-theme').textContent = 
+                    window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+                
+                document.getElementById('stored-theme').textContent = 
+                    window.storageManager.getItem('todo-theme') || 'none';
+                
+                document.getElementById('color-scheme-support').textContent = 
+                    CSS.supports('color-scheme', 'light dark') ? 'yes' : 'no';
+            }
+        }
+        
+        // Initialize test when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => new ThemeTest());
+        } else {
+            new ThemeTest();
+        }
+    </script>
+</body>
+</html>
