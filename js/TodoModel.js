@@ -5,6 +5,12 @@ class TodoModel {
     constructor(storageManager = window.storageManager) {
         this.storage = storageManager;
         this.todos = this.loadTodos();
+        this.archivedTodos = this.loadArchivedTodos();
+        
+        // Performance optimizations for large lists
+        this.maxActiveTodos = 500; // Threshold for auto-archiving
+        this.searchCache = new Map(); // Cache search results
+        this.searchCacheTimeout = 5000; // Cache timeout in ms
     }
 
     /**
@@ -22,6 +28,20 @@ class TodoModel {
     }
 
     /**
+     * Load archived todos from storage
+     * @returns {Array} Array of archived todo objects
+     */
+    loadArchivedTodos() {
+        try {
+            const saved = this.storage.getItem('archived-todos');
+            return saved ? JSON.parse(saved) : [];
+        } catch (e) {
+            console.warn('Failed to load archived todos from storage:', e);
+            return [];
+        }
+    }
+
+    /**
      * Save todos to storage with fallback support
      */
     saveTodos() {
@@ -33,6 +53,97 @@ class TodoModel {
         } catch (e) {
             console.warn('Failed to save todos:', e);
         }
+    }
+
+    /**
+     * Archive a todo by moving it from active todos to archived todos
+     * @param {string} id - Todo ID to archive
+     * @returns {boolean} True if todo was archived, false if not found
+     */
+    archiveTodo(id) {
+        const todoIndex = this.todos.findIndex(t => t.id === id);
+        if (todoIndex === -1) return false;
+        
+        const todo = this.todos[todoIndex];
+        todo.archivedAt = new Date().toISOString();
+        
+        // Move to archived todos
+        this.archivedTodos.unshift(todo);
+        this.todos.splice(todoIndex, 1);
+        
+        this.saveTodos();
+        this.saveArchivedTodos();
+        this.clearSearchCache();
+        
+        return true;
+    }
+
+    /**
+     * Restore a todo from archive back to active todos
+     * @param {string} id - Todo ID to restore
+     * @returns {boolean} True if todo was restored, false if not found
+     */
+    restoreTodo(id) {
+        const todoIndex = this.archivedTodos.findIndex(t => t.id === id);
+        if (todoIndex === -1) return false;
+        
+        const todo = this.archivedTodos[todoIndex];
+        delete todo.archivedAt;
+        
+        // Move back to active todos
+        this.todos.unshift(todo);
+        this.archivedTodos.splice(todoIndex, 1);
+        
+        this.saveTodos();
+        this.saveArchivedTodos();
+        this.clearSearchCache();
+        
+        return true;
+    }
+
+    /**
+     * Auto-archive completed todos when active list becomes too large
+     * This improves performance for large todo lists
+     * @returns {number} Number of todos archived
+     */
+    autoArchiveCompleted() {
+        if (this.todos.length <= this.maxActiveTodos) return 0;
+        
+        const completedTodos = this.todos.filter(t => t.completed);
+        const archivedCount = completedTodos.length;
+        
+        if (archivedCount === 0) return 0;
+        
+        // Move completed todos to archive
+        completedTodos.forEach(todo => {
+            todo.archivedAt = new Date().toISOString();
+            this.archivedTodos.unshift(todo);
+        });
+        
+        // Remove completed todos from active list
+        this.todos = this.todos.filter(t => !t.completed);
+        
+        this.saveTodos();
+        this.saveArchivedTodos();
+        this.clearSearchCache();
+        
+        console.log(`Auto-archived ${archivedCount} completed todos for performance`);
+        return archivedCount;
+    }
+
+    /**
+     * Get all archived todos
+     * @returns {Array} Array of archived todos
+     */
+    getArchivedTodos() {
+        return [...this.archivedTodos];
+    }
+
+    /**
+     * Clear search cache (called when todos are modified)
+     */
+    clearSearchCache() {
+        this.searchCache.clear();
     }
 
     /**
