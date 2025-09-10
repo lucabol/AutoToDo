@@ -233,6 +233,62 @@ class KeyboardShortcutManager {
         this.logger.logNoMatchFound(event);
         return null;
     }
+    
+    /**
+     * Find a shortcut in a specific context
+     * @param {KeyboardEvent} event - The keyboard event
+     * @param {string} context - Context to search in
+     * @returns {Object|null} The matching shortcut configuration, or null if no shortcut matches
+     * @private
+     */
+    _findShortcutInContext(event, context) {
+        const shortcutKey = this.generateShortcutKey(
+            event.key,
+            event.ctrlKey,
+            event.altKey,
+            event.shiftKey,
+            context
+        );
+        
+        return this.shortcuts.get(shortcutKey) || null;
+    }
+
+    /**
+     * Log keyboard event for debugging
+     * @param {KeyboardEvent} event - The keyboard event
+     * @param {Array} activeContexts - Currently active contexts
+     * @private
+     */
+    _logKeyboardEvent(event, activeContexts) {
+        if (this.options.debug) {
+            console.log('Keyboard event:', {
+                key: event.key,
+                ctrlKey: event.ctrlKey,
+                altKey: event.altKey,
+                shiftKey: event.shiftKey,
+                activeContexts
+            });
+        }
+    }
+
+    /**
+     * Get active contexts with caching for performance
+     * @returns {Array} Array of active context names
+     * @private
+     */
+    _getActiveContextsCached() {
+        // Cache contexts for a short time to avoid redundant checks
+        const now = Date.now();
+        if (this._contextCache && (now - this._contextCacheTime < 100)) {
+            return this._contextCache;
+        }
+
+        const activeContexts = this.getActiveContexts();
+        this._contextCache = activeContexts;
+        this._contextCacheTime = now;
+        
+        return activeContexts;
+    }
 
     /**
      * Find a shortcut in a specific context
