@@ -1,6 +1,6 @@
 /**
  * VirtualScrollManager - High-performance virtual scrolling for large lists
- * Dramatically improves performance by only rendering visible items
+ * Optimized for Safari 14+ with WebKit-specific performance improvements
  */
 class VirtualScrollManager {
     constructor(options = {}) {
@@ -10,6 +10,10 @@ class VirtualScrollManager {
         this.viewport = options.viewport || window;
         this.renderCallback = options.renderCallback || (() => {});
         
+        // Safari-specific optimizations
+        this.isSafari = this.detectSafari();
+        this.safariOptimizations = options.safariOptimizations !== false && this.isSafari;
+        
         // State
         this.items = [];
         this.visibleRange = { start: 0, end: 0 };
@@ -17,8 +21,9 @@ class VirtualScrollManager {
         this.containerHeight = 0;
         this.totalHeight = 0;
         
-        // Performance optimization: throttled scroll handler
-        this.handleScroll = this.throttle(this._handleScroll.bind(this), 16); // 60fps
+        // Performance optimization: adaptive scroll throttling
+        const throttleDelay = this.isSafari ? 8 : 16; // Higher frequency for Safari
+        this.handleScroll = this.throttle(this._handleScroll.bind(this), throttleDelay);
         
         // DOM elements
         this.scrollContainer = null;
@@ -26,7 +31,18 @@ class VirtualScrollManager {
         this.topSpacer = null;
         this.bottomSpacer = null;
         
+        // Safari memory management
+        this.renderCount = 0;
+        this.memoryCleanupInterval = 100; // Clean up every 100 renders
+        
         this.init();
+    }
+    
+    /**
+     * Detect Safari browser for optimizations
+     */
+    detectSafari() {
+        return /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
     }
     
     /**
@@ -47,19 +63,45 @@ class VirtualScrollManager {
         // Create scroll container
         this.scrollContainer = document.createElement('div');
         this.scrollContainer.className = 'virtual-scroll-container';
-        this.scrollContainer.style.cssText = `
+        
+        let containerStyles = `
             height: 300px;
             overflow-y: auto;
             position: relative;
+            contain: layout style paint;
         `;
+        
+        // Safari-specific optimizations
+        if (this.safariOptimizations) {
+            containerStyles += `
+                -webkit-overflow-scrolling: touch;
+                -webkit-transform: translateZ(0);
+                -webkit-backface-visibility: hidden;
+                -webkit-perspective: 1000;
+                transform: translateZ(0);
+                will-change: scroll-position;
+            `;
+        }
+        
+        this.scrollContainer.style.cssText = containerStyles;
         
         // Create item container
         this.itemContainer = document.createElement('div');
         this.itemContainer.className = 'virtual-scroll-items';
-        this.itemContainer.style.cssText = `
+        
+        let itemStyles = `
             position: relative;
             min-height: 0;
         `;
+        
+        if (this.safariOptimizations) {
+            itemStyles += `
+                -webkit-transform: translateZ(0);
+                transform: translateZ(0);
+            `;
+        }
+        
+        this.itemContainer.style.cssText = itemStyles;
         
         // Create spacers for maintaining scroll height
         this.topSpacer = document.createElement('div');

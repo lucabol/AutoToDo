@@ -261,4 +261,241 @@ class PerformanceUtils {
             }
         };
     }
+
+    /**
+     * Create a search index for fast text filtering
+     * Optimized for large datasets
+     */
+    static createSearchIndex() {
+        const index = new Map();
+        let items = [];
+        
+        return {
+            /**
+             * Add items to the search index
+             * @param {Array} newItems - Items to add to index
+             * @param {Function} textExtractor - Function to extract searchable text
+             */
+            addItems(newItems, textExtractor = item => item.text) {
+                items = [...items, ...newItems];
+                
+                newItems.forEach(item => {
+                    const text = textExtractor(item).toLowerCase();
+                    const words = text.split(/\s+/).filter(word => word.length > 0);
+                    
+                    words.forEach(word => {
+                        if (!index.has(word)) {
+                            index.set(word, new Set());
+                        }
+                        index.get(word).add(item.id);
+                    });
+                });
+            },
+            
+            /**
+             * Search items using the index
+             * @param {string} searchTerm - Search query
+             * @param {Function} textExtractor - Function to extract searchable text
+             * @returns {Array} Matching items
+             */
+            search(searchTerm, textExtractor = item => item.text) {
+                if (!searchTerm || !searchTerm.trim()) {
+                    return items;
+                }
+                
+                const normalizedTerm = searchTerm.toLowerCase().trim();
+                const words = normalizedTerm.split(/\s+/).filter(word => word.length > 0);
+                
+                if (words.length === 0) {
+                    return items;
+                }
+                
+                // For single word searches, use index
+                if (words.length === 1) {
+                    const word = words[0];
+                    const matchingIds = new Set();
+                    
+                    // Find all indexed words that contain the search term
+                    for (const [indexedWord, ids] of index) {
+                        if (indexedWord.includes(word)) {
+                            ids.forEach(id => matchingIds.add(id));
+                        }
+                    }
+                    
+                    return items.filter(item => matchingIds.has(item.id));
+                }
+                
+                // For multi-word searches, fall back to full text search
+                return items.filter(item => {
+                    const text = textExtractor(item).toLowerCase();
+                    return words.every(word => text.includes(word));
+                });
+            },
+            
+            /**
+             * Update an item in the index
+             * @param {Object} item - Updated item
+             * @param {Function} textExtractor - Function to extract searchable text
+             */
+            updateItem(item, textExtractor = item => item.text) {
+                this.removeItem(item.id);
+                this.addItems([item], textExtractor);
+            },
+            
+            /**
+             * Remove an item from the index
+             * @param {string} itemId - ID of item to remove
+             */
+            removeItem(itemId) {
+                items = items.filter(item => item.id !== itemId);
+                
+                for (const [word, ids] of index) {
+                    ids.delete(itemId);
+                    if (ids.size === 0) {
+                        index.delete(word);
+                    }
+                }
+            },
+            
+            /**
+             * Clear the entire index
+             */
+            clear() {
+                items = [];
+                index.clear();
+            },
+            
+            /**
+             * Get index statistics
+             */
+            getStats() {
+                return {
+                    totalItems: items.length,
+                    indexedWords: index.size,
+                    memoryUsage: this.estimateMemoryUsage()
+                };
+            },
+            
+            /**
+             * Estimate memory usage of the index
+             */
+            estimateMemoryUsage() {
+                let totalSize = 0;
+                for (const [word, ids] of index) {
+                    totalSize += word.length * 2; // Rough character size
+                    totalSize += ids.size * 8; // Rough Set size
+                }
+                return totalSize;
+            }
+        };
+    }
+
+    /**
+     * Detect Safari browser
+     * @returns {boolean} True if Safari browser
+     */
+    static isSafari() {
+        return /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+    }
+
+    /**
+     * Performance monitoring for Safari-specific optimizations
+     */
+    static createSafariMonitor() {
+        const metrics = {
+            renderTimes: [],
+            scrollEvents: 0,
+            memoryUsage: [],
+            lastMemoryCheck: 0
+        };
+        
+        return {
+            /**
+             * Record a render time
+             * @param {number} duration - Render duration in milliseconds
+             */
+            recordRender(duration) {
+                metrics.renderTimes.push({
+                    time: performance.now(),
+                    duration
+                });
+                
+                // Keep only last 100 render times
+                if (metrics.renderTimes.length > 100) {
+                    metrics.renderTimes.shift();
+                }
+            },
+            
+            /**
+             * Record a scroll event
+             */
+            recordScroll() {
+                metrics.scrollEvents++;
+            },
+            
+            /**
+             * Check memory usage (Safari WebKit optimization)
+             */
+            checkMemory() {
+                const now = performance.now();
+                if (now - metrics.lastMemoryCheck < 5000) return; // Check every 5s max
+                
+                if (performance.memory) {
+                    metrics.memoryUsage.push({
+                        time: now,
+                        used: performance.memory.usedJSHeapSize,
+                        total: performance.memory.totalJSHeapSize
+                    });
+                    
+                    // Keep only last 20 memory measurements
+                    if (metrics.memoryUsage.length > 20) {
+                        metrics.memoryUsage.shift();
+                    }
+                }
+                
+                metrics.lastMemoryCheck = now;
+            },
+            
+            /**
+             * Get performance report
+             */
+            getReport() {
+                const avgRenderTime = metrics.renderTimes.length > 0
+                    ? metrics.renderTimes.reduce((sum, r) => sum + r.duration, 0) / metrics.renderTimes.length
+                    : 0;
+                
+                const memoryTrend = metrics.memoryUsage.length >= 2
+                    ? metrics.memoryUsage[metrics.memoryUsage.length - 1].used - metrics.memoryUsage[0].used
+                    : 0;
+                
+                return {
+                    avgRenderTime: Math.round(avgRenderTime * 100) / 100,
+                    scrollEvents: metrics.scrollEvents,
+                    memoryTrend: Math.round(memoryTrend / 1024 / 1024 * 100) / 100, // MB
+                    recommendations: this.generateRecommendations(avgRenderTime, memoryTrend)
+                };
+            },
+            
+            /**
+             * Generate performance recommendations
+             */
+            generateRecommendations(avgRenderTime, memoryTrend) {
+                const recommendations = [];
+                
+                if (avgRenderTime > 16) {
+                    recommendations.push('Consider reducing render complexity or enabling virtual scrolling');
+                }
+                
+                if (memoryTrend > 10 * 1024 * 1024) { // 10MB growth
+                    recommendations.push('Memory usage increasing - consider archiving completed todos');
+                }
+                
+                if (metrics.scrollEvents > 1000) {
+                    recommendations.push('High scroll activity detected - ensure scroll throttling is active');
+                }
+                
+                return recommendations;
+            }
+        };
+    }
 }

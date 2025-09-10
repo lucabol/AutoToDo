@@ -245,7 +245,38 @@ class TodoController {
         this.bindTodoListSubmit();
         this.bindTodoListChange();
         this.bindThemeToggle();
+        this.bindArchiveEvents();
         this.bindKeyboardShortcuts();
+    }
+
+    /**
+     * Bind archive-related events
+     */
+    bindArchiveEvents() {
+        // Archive completed todos button
+        const archiveBtn = document.getElementById('archiveBtn');
+        if (archiveBtn) {
+            archiveBtn.addEventListener('click', () => {
+                this.handleArchiveCompleted();
+            });
+        }
+        
+        // Toggle archive view button
+        const toggleArchiveBtn = document.getElementById('toggleArchiveBtn');
+        if (toggleArchiveBtn) {
+            toggleArchiveBtn.addEventListener('click', () => {
+                this.handleToggleArchive();
+            });
+        }
+        
+        // Archive modal events (delegated)
+        document.addEventListener('click', (e) => {
+            if (e.target.classList.contains('unarchive-btn')) {
+                this.handleUnarchiveTodo(e.target.dataset.id);
+            } else if (e.target.classList.contains('delete-archived-btn')) {
+                this.handleDeleteArchivedTodo(e.target.dataset.id);
+            }
+        });
     }
 
     /**
@@ -526,6 +557,94 @@ class TodoController {
         const allTodos = this.model.getAllTodos();
         const filteredTodos = this.model.filterTodos(this.searchTerm);
         this.view.render(filteredTodos, allTodos, this.searchTerm);
+        
+        // Update archive stats in the UI
+        const stats = this.model.getStats();
+        this.view.updateArchiveStats(stats);
+    }
+
+    /**
+     * Handle archiving completed todos
+     */
+    handleArchiveCompleted() {
+        const stats = this.model.getStats();
+        if (stats.completed === 0) {
+            this.view.showMessage('No completed todos to archive', 'info');
+            return;
+        }
+        
+        const confirmMessage = `Archive ${stats.completed} completed todo${stats.completed !== 1 ? 's' : ''}? This will improve performance by keeping your active list smaller.`;
+        if (this.view.showConfirmation(confirmMessage)) {
+            const result = this.model.archiveCompletedTodos();
+            if (result.archived > 0) {
+                this.view.showArchiveSuccess(result.archived);
+                
+                // Show performance improvement if significant
+                const percentImprovement = Math.round((result.archived / (stats.total)) * 100);
+                if (percentImprovement >= 10) {
+                    this.view.showPerformanceImprovement({
+                        archived: result.archived,
+                        percentImprovement
+                    });
+                }
+                
+                this.render();
+            }
+        }
+    }
+
+    /**
+     * Handle toggling archive view
+     */
+    handleToggleArchive() {
+        const archivedTodos = this.model.getArchivedTodos(this.searchTerm);
+        this.view.showArchivedTodos(archivedTodos);
+    }
+
+    /**
+     * Handle unarchiving a todo
+     * @param {string} id - Todo ID to unarchive
+     */
+    handleUnarchiveTodo(id) {
+        const todo = this.model.unarchiveTodo(id);
+        if (todo) {
+            this.view.showMessage(`"${todo.text}" restored to active todos`, 'success');
+            this.render();
+            
+            // Update the archive modal if still open
+            const archivedTodos = this.model.getArchivedTodos(this.searchTerm);
+            this.view.showArchivedTodos(archivedTodos);
+        }
+    }
+
+    /**
+     * Handle permanently deleting an archived todo
+     * @param {string} id - Archived todo ID to delete
+     */
+    handleDeleteArchivedTodo(id) {
+        // Find the archived todo for confirmation
+        const archivedTodos = this.model.getArchivedTodos();
+        const todo = archivedTodos.find(t => t.id === id);
+        
+        if (!todo) {
+            this.view.showMessage('Archived todo not found', 'error');
+            return;
+        }
+        
+        const confirmMessage = `Permanently delete "${todo.text}"? This cannot be undone.`;
+        if (this.view.showConfirmation(confirmMessage)) {
+            const wasDeleted = this.model.deleteArchivedTodo(id);
+            if (wasDeleted) {
+                this.view.showMessage('Archived todo permanently deleted', 'success');
+                
+                // Update the archive modal
+                const updatedArchivedTodos = this.model.getArchivedTodos(this.searchTerm);
+                this.view.showArchivedTodos(updatedArchivedTodos);
+                
+                // Update stats
+                this.render();
+            }
+        }
     }
 
     /**
