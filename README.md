@@ -352,68 +352,288 @@ document.dispatchEvent(new KeyboardEvent('keydown', {
 }));
 ```
 
-### Community Contributions
+## Contributing to the Shortcut System
 
-We welcome community contributions to enhance AutoToDo's keyboard shortcut system. Here's how you can contribute:
+We welcome community contributions to enhance AutoToDo's keyboard shortcut system! This section provides comprehensive guidelines for developers who want to add new shortcuts, modify existing ones, or improve the shortcut system.
 
-#### Proposing New Shortcuts
+### Why Contribute?
 
-**Before Contributing:**
+Your contributions help:
+- **Improve user productivity** through better keyboard navigation
+- **Enhance accessibility** for users with different needs
+- **Support diverse workflows** and use cases
+- **Build a stronger community** around efficient task management
+
+### Getting Started
+
+#### Prerequisites
+- Basic knowledge of JavaScript ES6+
+- Understanding of DOM event handling
+- Familiarity with Git and GitHub workflow
+- A modern web browser for testing
+
+#### Development Setup
+1. **Fork and clone the repository:**
+   ```bash
+   git clone https://github.com/YOUR_USERNAME/AutoToDo.git
+   cd AutoToDo
+   ```
+
+2. **Set up local development:**
+   ```bash
+   # Serve locally to avoid CORS issues
+   python -m http.server 8000
+   # Or: npx http-server -p 8000
+   ```
+
+3. **Test current functionality:**
+   - Open http://localhost:8000
+   - Press Ctrl+H to view existing shortcuts
+   - Test all current shortcuts to understand the system
+
+### Contribution Process
+
+#### Step 1: Planning Your Contribution
+
+**Before you start coding:**
 1. **Check existing shortcuts** - Review current shortcuts to avoid conflicts
-2. **Follow conventions** - Use standard modifier key patterns (Ctrl+Key for global actions)
-3. **Consider accessibility** - Ensure shortcuts work with screen readers and assistive technologies
-4. **Test cross-platform** - Verify shortcuts work on Windows, Mac, and Linux
+2. **Open a discussion issue** - Describe your proposed shortcut and get community feedback
+3. **Follow design principles** - Ensure your shortcut fits the existing patterns
+4. **Consider accessibility** - Make sure it works with screen readers and assistive technologies
 
-**Contribution Guidelines:**
+#### Step 2: Design Principles
 
-##### 1. Shortcut Design Principles
-- **Intuitive**: Use mnemonic keys where possible (Ctrl+S for Save, Ctrl+F for Find)
-- **Consistent**: Follow established patterns in the application
+**Intuitive Design:**
+- Use mnemonic keys where possible (Ctrl+S for Save, Ctrl+F for Find)
+- Follow established patterns in the application
+- Make shortcuts discoverable and memorable
+
+**Technical Requirements:**
 - **Non-conflicting**: Avoid overriding essential browser shortcuts
 - **Context-appropriate**: Use global context sparingly, prefer specific contexts
+- **Cross-platform**: Test on Windows, Mac, and Linux
+- **Accessible**: Work with screen readers and keyboard navigation
 
-##### 2. Required Documentation
-When proposing a new shortcut, include:
-```markdown
-**Shortcut**: Ctrl+R
-**Action**: Archive completed todos
-### Community Contributions
+#### Step 3: Implementation
 
-#### Contributing New Shortcuts
+**Core Files to Modify:**
+- **`js/ShortcutsConfig.js`** - Define your new shortcuts
+- **`js/TodoController.js`** - Implement action handlers
+- **`js/KeyboardShortcutManager.js`** - Modify only if adding new context types
 
-**Process:**
-1. **Open an issue** to discuss your proposed shortcut
-2. **Fork the repository** and implement your changes
-3. **Add tests** for the new functionality
-4. **Update documentation** in README.md
-5. **Submit a pull request**
-
-#### Example Contribution
+**Example Implementation:**
 ```javascript
 // 1. Add to ShortcutsConfig.js
 {
     key: 'r',
     ctrlKey: true,
     context: 'global',
-    action: archiveCompleted,
+    action: 'archiveCompleted',
     description: 'Archive completed todos (Ctrl+R)',
     category: 'Todo Management'
 }
 
-// 2. Implement handler function
+// 2. Add handler to TodoController.js
+initializeShortcutHandlers() {
+    const handlers = {
+        // ... existing handlers
+        archiveCompleted: () => this.archiveCompleted()
+    };
+    this.shortcutManager.setHandlers(handlers);
+}
+
+// 3. Implement the action method
 archiveCompleted() {
     const completed = this.model.todos.filter(todo => todo.completed);
+    if (completed.length === 0) {
+        this.view.showMessage('No completed todos to archive');
+        return;
+    }
+    
     this.model.archiveTodos(completed);
     this.view.showMessage(`Archived ${completed.length} todos`);
+    this.view.render();
 }
 ```
 
-#### Review Criteria
-- ✅ Works across major browsers
-- ✅ No conflicts with existing shortcuts
-- ✅ Includes comprehensive tests
-- ✅ Follows code conventions
-- ✅ Enhances user productivity
+**Configuration Properties:**
+- **`key`**: The main key (lowercase letter, number, or special key name)
+- **`ctrlKey`**: true for Ctrl+Key combinations
+- **`shiftKey`**: true for Shift+Key combinations  
+- **`altKey`**: true for Alt+Key combinations
+- **`context`**: 'global', 'edit', or custom context
+- **`action`**: Handler function name (string)
+- **`description`**: User-friendly description for help dialog
+- **`category`**: Logical grouping for help dialog organization
+
+#### Step 4: Testing
+
+**Required Tests:**
+1. **Unit tests** - Add tests to `keyboard-shortcuts.test.js`
+2. **Integration tests** - Add tests to `keyboard-shortcut-manager.test.js`
+3. **Manual testing** - Test in multiple browsers and contexts
+
+**Example Test:**
+```javascript
+// Add to keyboard-shortcuts.test.js
+describe('Archive Completed Functionality', () => {
+    test('should archive completed todos with Ctrl+R', () => {
+        // Setup completed todos
+        controller.model.todos = [
+            { id: 1, text: 'Task 1', completed: true },
+            { id: 2, text: 'Task 2', completed: false }
+        ];
+        
+        // Trigger shortcut
+        const event = new KeyboardEvent('keydown', {
+            key: 'r',
+            ctrlKey: true
+        });
+        
+        document.dispatchEvent(event);
+        
+        // Verify only uncompleted todos remain
+        expect(controller.model.todos).toHaveLength(1);
+        expect(controller.model.todos[0].text).toBe('Task 2');
+    });
+});
+```
+
+#### Step 5: Documentation
+
+**Update README.md:**
+1. Add your shortcut to the appropriate category section
+2. Include clear description and usage context
+3. Update any relevant examples or workflows
+
+**Required Documentation Format:**
+```markdown
+- **Ctrl+R** - Archive completed todos
+  - Removes all completed todos from the active list
+  - Shows confirmation message with count
+  - Only available when todos exist
+```
+
+#### Step 6: Pull Request
+
+**PR Requirements:**
+- Clear, descriptive title
+- Detailed description of the new shortcut functionality
+- Screenshots or GIFs showing the shortcut in action (if UI changes)
+- All tests passing
+- Updated documentation
+
+**PR Template:**
+```markdown
+## New Shortcut: [Shortcut Description]
+
+**Shortcut:** Ctrl+[Key]
+**Action:** [Brief description]
+**Context:** [global/edit/specific]
+
+### Changes Made
+- [ ] Added shortcut to ShortcutsConfig.js
+- [ ] Implemented handler in TodoController.js
+- [ ] Added unit tests
+- [ ] Updated README documentation
+- [ ] Tested across major browsers
+
+### Testing
+- [ ] Unit tests pass
+- [ ] Manual testing completed
+- [ ] No conflicts with existing shortcuts
+- [ ] Works with screen readers
+
+### Additional Notes
+[Any specific considerations or edge cases]
+```
+
+### Review Criteria
+
+Your contribution will be evaluated on:
+
+**Functionality:**
+- ✅ Works across major browsers (Chrome, Firefox, Safari, Edge)
+- ✅ No conflicts with existing shortcuts or browser defaults
+- ✅ Handles edge cases gracefully
+- ✅ Provides appropriate user feedback
+
+**Code Quality:**
+- ✅ Follows existing code conventions and patterns
+- ✅ Includes comprehensive tests with good coverage
+- ✅ Clear, maintainable implementation
+- ✅ Proper error handling
+
+**User Experience:**
+- ✅ Enhances user productivity and workflow
+- ✅ Intuitive and discoverable shortcut choice
+- ✅ Works with accessibility tools
+- ✅ Consistent with application design principles
+
+**Documentation:**
+- ✅ Clear, accurate documentation updates
+- ✅ Includes usage examples and context
+- ✅ Updates help system appropriately
+
+### Advanced Contributions
+
+#### Custom Context Types
+For complex shortcuts that need special behavior contexts:
+
+```javascript
+// Add to KeyboardShortcutManager.js
+getCurrentContext() {
+    if (this.customCondition()) return 'custom';
+    // ... existing context logic
+}
+
+// Add to ShortcutsConfig.js
+{
+    key: 'x',
+    ctrlKey: true,
+    context: 'custom',
+    action: 'customAction',
+    description: 'Custom context action (Ctrl+X)',
+    category: 'Advanced'
+}
+```
+
+#### Multi-Key Combinations
+For shortcuts requiring multiple keys:
+
+```javascript
+{
+    key: 'ArrowUp',
+    ctrlKey: true,
+    shiftKey: true,
+    context: 'global',
+    action: 'moveToTop',
+    description: 'Move todo to top (Ctrl+Shift+↑)',
+    category: 'Todo Management'
+}
+```
+
+### Community Support
+
+**Getting Help:**
+- **GitHub Discussions**: Ask questions and get community feedback
+- **GitHub Issues**: Report bugs or request features
+- **Code Review**: Get feedback on your implementations
+
+**Collaboration:**
+- Review and test other community contributions
+- Share ideas and best practices
+- Help improve documentation and examples
+
+### Recognition
+
+Contributors who enhance the shortcut system will be:
+- **Acknowledged** in release notes and commit history
+- **Invited** to test new features before public release
+- **Given priority** consideration for future feature discussions
+- **Featured** as community contributors in project documentation
+
+Your contributions make AutoToDo better for everyone. Thank you for helping build a more efficient, accessible todo application!
 
 ### Code Implementation Reference
 
@@ -705,11 +925,17 @@ We value your input and actively encourage community engagement to improve AutoT
 ### How to Provide Feedback
 
 #### Suggesting New Keyboard Shortcuts
-Have an idea for a useful keyboard shortcut? We'd love to hear from you! When suggesting new shortcuts:
+Have an idea for a useful keyboard shortcut? We'd love to hear from you! 
+
+**For quick suggestions:**
+When suggesting new shortcuts:
 
 1. **Check existing shortcuts first**: Review the comprehensive [Keyboard Shortcuts](#keyboard-shortcuts) section to ensure your suggestion doesn't conflict with existing functionality
 2. **Consider accessibility**: Think about how your suggestion would work across different keyboard layouts and accessibility needs
 3. **Provide use case context**: Explain when and why the shortcut would be useful in typical workflows
+
+**For technical contributions:**
+If you're interested in implementing shortcuts yourself, see our comprehensive [Contributing to the Shortcut System](#contributing-to-the-shortcut-system) guide, which includes step-by-step development instructions, code examples, and testing requirements.
 
 #### Reporting Issues or Bugs
 If you encounter problems with existing keyboard shortcuts or other functionality:
@@ -772,18 +998,7 @@ When providing feedback, please:
 - **Maintenance burden**: Can it be implemented without adding complexity?
 - **Community support**: Are multiple users requesting similar functionality?
 
-### Contributing Beyond Feedback
 
-#### Code Contributions
-If you're technically inclined, consider contributing directly:
-- Review the [Community Contributions](#community-contributions) section for development guidelines
-- Fork the repository and submit pull requests
-- Help review and test other community contributions
-
-#### Documentation Improvements
-- Suggest clarifications or additions to documentation
-- Help translate or improve international keyboard layout support
-- Share usage tips and workflow examples
 
 ### Recognition
 
