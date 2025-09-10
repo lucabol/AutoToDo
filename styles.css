@@ -197,6 +197,25 @@
     --shadow: rgba(0, 0, 0, 0.1); /* Light shadows for subtle elevation */
 }
 
+/* Safari 14.0-14.2 Compatibility Layer
+ * 
+ * Safari versions 14.0 through 14.2 have documented issues with CSS custom property
+ * refresh when theme classes are toggled dynamically. This can result in:
+ * - Theme colors not updating properly after switching
+ * - Inconsistent visual states between light and dark modes
+ * - Elements retaining old theme colors despite class changes
+ * 
+ * The @supports rule below provides explicit fallback colors that Safari can
+ * reliably use when CSS custom properties fail to update properly.
+ */
+@supports (-webkit-appearance: none) {
+    :root {
+        /* Light theme fallback colors for Safari 14.0-14.2 */
+        background-color: #f5f5f7; /* Fallback for --bg-primary */
+        color: #1d1d1f; /* Fallback for --text-primary */
+    }
+}
+
 /* ========================================================================
  * AUTOMATIC DARK MODE DETECTION FOR MODERN BROWSERS
  * ========================================================================
@@ -314,6 +333,25 @@
     
     /* Effects - Enhanced shadows for depth in dark theme */
     --shadow: rgba(0, 0, 0, 0.3) !important; /* Stronger shadows */
+}
+
+/* Safari 14.0-14.2 Dark Theme Compatibility
+ * 
+ * Provides explicit dark theme fallback colors for Safari versions with
+ * CSS custom property refresh issues. These fallbacks ensure that even
+ * if the CSS variables fail to update, users still get appropriate
+ * dark theme colors instead of light theme colors persisting incorrectly.
+ * 
+ * The fallback values match the CSS custom properties defined above
+ * but are applied directly as regular CSS properties that Safari
+ * can reliably process during theme transitions.
+ */
+@supports (-webkit-appearance: none) {
+    .dark-theme {
+        /* Dark theme fallback colors for Safari 14.0-14.2 */
+        background-color: #1c1c1e; /* Fallback for --bg-primary */
+        color: #ffffff; /* Fallback for --text-primary */
+    }
 }
 
 body {
@@ -978,5 +1016,151 @@ h1 {
         .shortcut-item .shortcut-description {
             margin-top: 8px;
         }
+    }
+}
+
+/* Safari 14.0-14.2 Theme Notification System Styles
+ * 
+ * Provides styling for contextual notifications shown to Safari 14.0-14.2 users
+ * when theme switching might not work perfectly due to browser-specific bugs.
+ * 
+ * The notification system implements:
+ * - Non-intrusive positioning (top-right overlay)
+ * - Smooth slide-in animation for good UX
+ * - Warning color scheme for appropriate attention level
+ * - Manual close button for user control
+ * - Auto-hide behavior (handled in JavaScript)
+ * 
+ * The design balances visibility with non-intrusiveness, ensuring users
+ * get helpful guidance without disrupting their workflow.
+ */
+.safari-theme-notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1001; /* Above other UI elements but below critical modals */
+    max-width: 400px;
+    background: var(--warning, #ff9500); /* Warning color for appropriate attention */
+    color: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    animation: slideInRight 0.3s ease-out; /* Smooth entrance animation */
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Notification content layout with flexible design */
+.notification-content {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    gap: 12px; /* Consistent spacing between elements */
+}
+
+/* Notification icon styling - ensures consistent sizing */
+.notification-icon {
+    font-size: 18px;
+    flex-shrink: 0; /* Prevents icon from shrinking on small screens */
+}
+
+/* Notification text - primary message content */
+.notification-text {
+    flex: 1; /* Takes available space while allowing icon and close button */
+    font-size: 14px;
+    line-height: 1.4; /* Readable line height for multi-line messages */
+}
+
+/* Close button styling - provides user control over notification visibility */
+.notification-close {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
+    flex-shrink: 0; /* Maintains consistent button size */
+}
+
+/* Close button hover state for better interactivity */
+.notification-close:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+/* Smooth slide-in animation for notification appearance */
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(100%); /* Starts off-screen to the right */
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0); /* Slides into final position */
+    }
+}
+
+/* Enhanced transitions for Safari theme switching */
+@supports (-webkit-appearance: none) {
+    body {
+        transition: background-color 0.3s ease, color 0.3s ease;
+        -webkit-transition: background-color 0.3s ease, color 0.3s ease;
+    }
+    
+    .container {
+        transition: background-color 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+        -webkit-transition: background-color 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+    }
+    
+    /* Force Safari to recalculate styles on theme changes */
+    .dark-theme * {
+        -webkit-transform: translateZ(0);
+    }
+}
+
+/* Safari 14.0-14.2 specific CSS custom property fixes */
+@media screen and (-webkit-min-device-pixel-ratio:0) and (min-color-index:0) {
+    /* This targets Safari specifically */
+    
+    /* Ensure important elements have explicit color fallbacks */
+    body {
+        background-color: var(--bg-primary, #f5f5f7);
+        color: var(--text-primary, #1d1d1f);
+    }
+    
+    .container {
+        background: var(--bg-secondary, white);
+        box-shadow: 0 4px 20px var(--shadow, rgba(0, 0, 0, 0.1));
+    }
+    
+    h1 {
+        color: var(--text-primary, #1d1d1f);
+    }
+    
+    .theme-toggle {
+        background: var(--bg-tertiary, #fafafa);
+        border: 2px solid var(--border-primary, #e5e5e7);
+        color: var(--text-primary, #1d1d1f);
+    }
+    
+    /* Dark theme fallbacks for Safari */
+    .dark-theme body {
+        background-color: var(--bg-primary, #1c1c1e);
+        color: var(--text-primary, #ffffff);
+    }
+    
+    .dark-theme .container {
+        background: var(--bg-secondary, #2c2c2e);
+        box-shadow: 0 4px 20px var(--shadow, rgba(0, 0, 0, 0.3));
+    }
+    
+    .dark-theme h1 {
+        color: var(--text-primary, #ffffff);
+    }
+    
+    .dark-theme .theme-toggle {
+        background: var(--bg-tertiary, #3a3a3c);
+        border: 2px solid var(--border-primary, #48484a);
+        color: var(--text-primary, #ffffff);
     }
 }
