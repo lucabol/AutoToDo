@@ -235,6 +235,9 @@ class StorageManager {
                     notification.parentNode.removeChild(notification);
                 }
             }, 5000);
+        }
+    }
+
     /**
      * Create an emergency fallback system if module initialization fails
      * Provides basic functionality even if the modular system can't be initialized
