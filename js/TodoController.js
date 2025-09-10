@@ -34,8 +34,8 @@ class TodoController {
      * Initialize theme management
      */
     initializeTheme() {
-        // Use the global storageManager instance
-        this.storage = window.storageManager || storageManager;
+        // Use the same storage manager as the model
+        this.storage = this.model.storage;
         
         // Check for saved theme preference or system preference
         const savedTheme = this.storage.getItem('todo-theme');
