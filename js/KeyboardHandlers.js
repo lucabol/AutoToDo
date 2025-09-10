@@ -434,24 +434,30 @@ class KeyboardHandlers {
     // =================
 
     /**
-     * Focus the new todo input field
+     * Focus the new todo input field with improved error handling
      */
     focusNewTodoInput() {
         // Add small delay to ensure DOM is ready and avoid race conditions
         setTimeout(() => {
             const todoInput = document.getElementById('todoInput');
-            if (todoInput && typeof todoInput.focus === 'function') {
-                try {
-                    todoInput.focus();
-                    // Only select text if focus was successful and element is focusable
-                    if (document.activeElement === todoInput && typeof todoInput.select === 'function') {
-                        todoInput.select();
-                    }
-                } catch (error) {
-                    console.warn('KeyboardHandlers: Failed to focus todo input:', error.message);
+            if (!todoInput) {
+                console.warn('KeyboardHandlers: Todo input element not found');
+                return;
+            }
+
+            if (typeof todoInput.focus !== 'function') {
+                console.warn('KeyboardHandlers: Todo input element is not focusable');
+                return;
+            }
+
+            try {
+                todoInput.focus();
+                // Only select text if focus was successful and element is focusable
+                if (document.activeElement === todoInput && typeof todoInput.select === 'function') {
+                    todoInput.select();
                 }
-            } else {
-                console.warn('KeyboardHandlers: Todo input element not found or not focusable');
+            } catch (error) {
+                console.warn('KeyboardHandlers: Failed to focus todo input:', error.message);
             }
         }, 0);
     }
@@ -463,7 +469,12 @@ class KeyboardHandlers {
      */
     focusSearchInput(event) {
         const searchInput = document.getElementById('searchInput');
-        if (searchInput) {
+        if (!searchInput) {
+            console.warn('KeyboardHandlers: Search input element not found');
+            return;
+        }
+
+        try {
             const wasAlreadyFocused = document.activeElement === searchInput;
             
             if (!wasAlreadyFocused) {
@@ -481,6 +492,8 @@ class KeyboardHandlers {
                 searchInput.dispatchEvent(new Event('input', { bubbles: true }));
             }
             // If already focused, don't prevent default - let the '/' be typed normally
+        } catch (error) {
+            console.warn('KeyboardHandlers: Failed to focus search input:', error.message);
         }
     }
 
@@ -490,6 +503,7 @@ class KeyboardHandlers {
 
     /**
      * Handle adding todo from keyboard shortcut
+     * Adds todo if input has text, otherwise focuses the input field
      */
     handleAddTodoFromShortcut() {
         const todoInput = document.getElementById('todoInput');
@@ -497,7 +511,7 @@ class KeyboardHandlers {
             // If there's text in the input, add it as a todo
             this.controller.handleAddTodo();
         } else {
-            // Otherwise, just focus the input
+            // Otherwise, just focus the input for user convenience
             this.focusNewTodoInput();
         }
     }

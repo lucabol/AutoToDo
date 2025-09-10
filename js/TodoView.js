@@ -7,6 +7,7 @@ class TodoView {
         this.emptyState = document.getElementById('emptyState');
         this.todoInput = document.getElementById('todoInput');
         this.editingId = null;
+        this.dragDropMessageShown = false;
         
         // Performance optimizations
         this.useVirtualScrolling = true;
@@ -55,13 +56,7 @@ class TodoView {
         }
     }
 
-    /**
-     * Render the complete todo list with performance optimizations
-     * @param {Array} todos - Array of todo objects to display
-     * @param {Array} allTodos - Array of all todos (for search context)
-     * @param {string} searchTerm - Current search term
-     */
-    render(todos, allTodos = [], searchTerm = '') {
+    render(todos, allTodos = [], searchTerm = '', dragDropSupported = true) {
         this.renderMonitor.start();
         
         try {
@@ -72,11 +67,11 @@ class TodoView {
 
             this.hideEmptyState();
             
-            // Use virtual scrolling for large lists
-            if (this.useVirtualScrolling && todos.length >= this.virtualScrollThreshold) {
+            // Use virtual scrolling for large lists (but disable for drag & drop)
+            if (this.useVirtualScrolling && todos.length >= this.virtualScrollThreshold && !dragDropSupported) {
                 this.renderWithVirtualScrolling(todos);
             } else {
-                this.renderTraditional(todos);
+                this.renderTraditional(todos, dragDropSupported);
             }
         } finally {
             this.renderMonitor.end();
@@ -229,8 +224,9 @@ class TodoView {
     /**
      * Render using traditional DOM manipulation
      * @param {Array} todos - Array of todo objects
+     * @param {boolean} dragDropSupported - Whether drag and drop is supported
      */
-    renderTraditional(todos) {
+    renderTraditional(todos, dragDropSupported = true) {
         // Clean up virtual scrolling if it was active
         if (this.virtualScrollManager) {
             this.virtualScrollManager.destroy();
@@ -239,22 +235,19 @@ class TodoView {
         
         // Use efficient rendering with DocumentFragment
         PerformanceUtils.batchDOMOperations(() => {
-            this.renderTodoList(todos);
+            this.renderTodoList(todos, dragDropSupported);
         });
     }
 
-    /**
-     * Render the todo list items with performance optimizations
-     * @param {Array} todos - Array of todo objects
-     */
-    renderTodoList(todos) {
+    renderTodoList(todos, dragDropSupported = true) {
+        // Use DocumentFragment for performance when not using virtual scrolling
         const fragment = document.createDocumentFragment();
         
         todos.forEach(todo => {
             if (this.editingId === todo.id) {
-                fragment.appendChild(this.createEditFormElement(todo));
+                fragment.appendChild(this.createEditFormElement(todo, dragDropSupported));
             } else {
-                fragment.appendChild(this.createTodoItemElement(todo));
+                fragment.appendChild(this.createTodoItemElement(todo, dragDropSupported));
             }
         });
         
@@ -263,46 +256,55 @@ class TodoView {
         this.todoList.appendChild(fragment);
     }
     
-    /**
-     * Create a todo item element efficiently
-     * @param {Object} todo - Todo object
-     * @returns {Element} Todo item element
-     */
-    createTodoItemElement(todo) {
+    createTodoItemElement(todo, dragDropSupported = true) {
+        const dragAttributes = dragDropSupported ? 'draggable="true"' : '';
+        const dragHandle = dragDropSupported ? 
+            '<span class="drag-handle" role="button" tabindex="0" aria-label="Drag to reorder todo" title="Drag to reorder this todo">≡</span>' : 
+            '<span class="drag-handle-disabled" role="button" tabindex="0" aria-label="Drag to reorder (not supported)" title="Drag and drop not supported in this browser">≡</span>';
+
         const li = document.createElement('li');
         li.className = 'todo-item';
         li.setAttribute('data-id', todo.id);
+        if (dragDropSupported) {
+            li.setAttribute('draggable', 'true');
+        }
+        li.setAttribute('role', 'listitem');
+        li.setAttribute('aria-label', `Todo: ${todo.text}`);
         
         li.innerHTML = `
+            ${dragHandle}
             <input 
                 type="checkbox" 
                 class="todo-checkbox" 
                 ${todo.completed ? 'checked' : ''}
                 data-action="toggle"
                 data-id="${todo.id}"
+                aria-label="Mark todo as ${todo.completed ? 'incomplete' : 'complete'}"
             >
             <span class="todo-text ${todo.completed ? 'completed' : ''}">${this.escapeHtml(todo.text)}</span>
             <div class="todo-actions">
-                <button class="edit-btn" data-action="edit" data-id="${todo.id}">Edit</button>
-                <button class="delete-btn" data-action="delete" data-id="${todo.id}">Delete</button>
+                <button class="edit-btn" data-action="edit" data-id="${todo.id}" aria-label="Edit todo">Edit</button>
+                <button class="delete-btn" data-action="delete" data-id="${todo.id}" aria-label="Delete todo">Delete</button>
             </div>
         `;
         
         return li;
     }
     
-    /**
-     * Create an edit form element
-     * @param {Object} todo - Todo object being edited
-     * @returns {Element} Edit form element
-     */
-    createEditFormElement(todo) {
+    createEditFormElement(todo, dragDropSupported = true) {
+        const dragHandle = dragDropSupported ? 
+            '<span class="drag-handle" style="opacity: 0.3;" role="button" tabindex="-1" aria-label="Drag disabled while editing" title="Drag disabled while editing">≡</span>' : 
+            '<span class="drag-handle-disabled" style="opacity: 0.3;" role="button" tabindex="-1" aria-label="Drag to reorder (not supported)" title="Drag and drop not supported in this browser">≡</span>';
+
         const li = document.createElement('li');
         li.className = 'todo-item';
         li.setAttribute('data-id', todo.id);
+        li.setAttribute('role', 'listitem');
+        li.setAttribute('aria-label', 'Editing todo');
         
         li.innerHTML = `
-            <input type="checkbox" class="todo-checkbox" ${todo.completed ? 'checked' : ''} disabled>
+            ${dragHandle}
+            <input type="checkbox" class="todo-checkbox" ${todo.completed ? 'checked' : ''} disabled aria-label="Todo completion status (disabled while editing)">
             <form class="edit-form" data-action="save-edit" data-id="${todo.id}">
                 <input 
                     type="text" 
@@ -311,9 +313,10 @@ class TodoView {
                     data-original-text="${this.escapeHtml(todo.text)}"
                     autofocus
                     required
+                    aria-label="Edit todo text"
                 >
-                <button type="submit" class="save-btn">Save</button>
-                <button type="button" class="cancel-btn" data-action="cancel-edit">Cancel</button>
+                <button type="submit" class="save-btn" aria-label="Save changes">Save</button>
+                <button type="button" class="cancel-btn" data-action="cancel-edit" aria-label="Cancel editing">Cancel</button>
             </form>
         `;
         
@@ -456,5 +459,18 @@ class TodoView {
      */
     showConfirmation(message) {
         return this.showMessage(message, 'confirm');
+    }
+
+    /**
+     * Show drag and drop unsupported message
+     */
+    showDragDropUnsupportedMessage() {
+        if (this.dragDropMessageShown) {
+            return; // Don't show the message multiple times
+        }
+
+        const message = 'Your browser does not support drag and drop functionality. You can still add, edit, delete, and search todos normally.';
+        this.showMessage(message, 'info');
+        this.dragDropMessageShown = true;
     }
 }
