@@ -773,6 +773,152 @@ When customizing shortcuts:
 - **🌙 Theme Switching**: Press **Ctrl+M** to quickly toggle between light and dark modes based on your environment
 - **🧠 Context Awareness**: The application intelligently handles shortcuts based on your current activity (editing vs. browsing)
 
+### Undoing and Reverting Actions
+
+AutoToDo provides several ways to revert changes and cancel operations using keyboard shortcuts:
+
+#### Available Undo/Revert Functionality
+
+**Edit Mode Cancellation:**
+- **Escape** - Cancel editing and discard any changes to a todo item
+  - *Use this when you start editing a todo but want to abandon your changes*
+  - *Returns the todo text to its original state before editing began*
+  - *Works immediately without confirmation - your original text is preserved*
+
+**Input Field Clearing:**
+- **Escape** (when focused on new todo input) - Clear the input field
+  - *Quickly remove typed text before adding a todo*
+  - *Useful for starting over with a new task description*
+
+**Dialog Dismissal:**
+- **Escape** - Close help dialogs and cancel operations
+  - *Exit the help dialog (Ctrl+H) without making changes*
+  - *Cancel confirmation dialogs for delete operations*
+
+#### Current Limitations
+
+**No Global Undo System:**
+AutoToDo currently does not implement a comprehensive undo/redo system for these actions:
+- ❌ **Todo deletion** - Once confirmed, deleted todos cannot be restored via keyboard
+- ❌ **Completion status changes** - Toggling todo completion (Ctrl+T) cannot be undone with a shortcut
+- ❌ **Bulk operations** - Clearing completed todos (Ctrl+Shift+D) cannot be reversed
+- ❌ **Theme changes** - Theme switching (Ctrl+M) has no undo functionality
+
+**Workarounds for Missing Undo:**
+- **Manual restoration**: Re-type deleted todos or use browser's localStorage inspector to recover data
+- **Confirmation dialogs**: Pay attention to delete confirmations before proceeding
+- **Progressive editing**: Make small changes rather than bulk operations when possible
+- **Browser backup**: Your todo data persists in localStorage - closing and reopening preserves your list
+
+#### Future Enhancement Considerations
+
+A comprehensive undo system could include:
+- **Ctrl+Z** - Undo last action (delete, toggle, bulk clear)
+- **Ctrl+Y** or **Ctrl+Shift+Z** - Redo previously undone action
+- **Action history** - View and selectively revert recent changes
+- **Snapshot restore** - Return to previous application state
+
+> **💡 Pro Tip**: While there's no global undo, the **Escape** key is your primary tool for canceling operations in progress. Use it liberally when editing todos or navigating dialogs.
+
+### International Keyboard Layout Considerations
+
+AutoToDo's keyboard shortcuts are designed to work across different international keyboard layouts, though some considerations apply:
+
+#### How Shortcuts Work Across Layouts
+
+**Character-Based Detection:**
+- AutoToDo uses `event.key` detection, which captures the actual character produced
+- **Ctrl+N** works regardless of where 'N' appears on your physical keyboard
+- **Ctrl+F** functions correctly whether you're using QWERTY, AZERTY, QWERTZ, or other layouts
+
+**Layout-Specific Considerations:**
+
+**QWERTY (US/UK English):**
+- ✅ All shortcuts work as documented
+- ✅ Special characters like **/** are in standard locations
+
+**AZERTY (French):**
+- ✅ **Ctrl+N**, **Ctrl+F**, **Ctrl+T** work normally (letters are detected correctly)
+- ⚠️ **/** character requires **Shift+:** - use **Ctrl+F** instead for search
+- ✅ **?** for help may require **Shift+,** depending on your specific AZERTY variant
+
+**QWERTZ (German/Central European):**
+- ✅ Letter-based shortcuts (**Ctrl+N**, **Ctrl+F**, **Ctrl+T**) work normally
+- ⚠️ **/** character location varies - **Ctrl+F** is more reliable for search
+- ✅ **?** typically requires **Shift+ß** but functions correctly
+
+**Alternative Layouts (Dvorak, Colemak, etc.):**
+- ✅ All **Ctrl+[letter]** combinations work based on the character produced
+- ✅ Function keys (**F1**, **Escape**, **Enter**) work universally
+- ✅ Modifier combinations (**Ctrl+Shift+D**) detect correctly
+
+#### Recommendations by Layout
+
+**For Non-QWERTY Users:**
+
+**Primary Shortcuts (Work Everywhere):**
+- **Ctrl+H** - Help dialog (shows all available shortcuts)
+- **Ctrl+N** - Focus new todo input
+- **Ctrl+F** - Focus search (more reliable than "/" on international layouts)
+- **F1** - Alternative help access
+- **Escape** - Cancel operations universally
+
+**Layout-Specific Tips:**
+
+**AZERTY Users:**
+- Use **Ctrl+F** instead of **/** for search (more consistent)
+- **?** help access: Try **Shift+,** or use **Ctrl+H** instead
+- All letter-based shortcuts work normally
+
+**QWERTZ Users:**
+- **/** may be on **Shift+7** - use **Ctrl+F** for search
+- **?** requires **Shift+ß** - **F1** or **Ctrl+H** are alternatives
+- Standard **Ctrl+Letter** shortcuts function correctly
+
+**Alternative Layout Users:**
+- Focus on **Ctrl+[character]** combinations rather than physical key positions
+- Use **F1** and **Ctrl+H** for help - these work universally
+- Test special character shortcuts (**/**,**?**) and use alternatives if needed
+
+#### Accessibility Features for International Users
+
+**Visual Indicators:**
+- The help dialog (**Ctrl+H**) displays shortcuts using your keyboard's actual character output
+- Shortcut descriptions show the character produced, not physical key positions
+- Focus indicators work regardless of input method or layout
+
+**Alternative Access Methods:**
+- **Multiple shortcuts for common actions**: Search accessible via both **Ctrl+F** and **/**
+- **Help system flexibility**: **Ctrl+H**, **?**, and **F1** all open help
+- **Universal keys prioritized**: **Escape**, **Enter**, **Tab** work identically across layouts
+
+**Testing Your Layout:**
+1. **Open help dialog**: Try **Ctrl+H**, **F1**, or **?** to see available shortcuts
+2. **Test primary shortcuts**: **Ctrl+N** (new todo), **Ctrl+F** (search), **Escape** (cancel)
+3. **Check special characters**: Test **/** for search, use **Ctrl+F** if problematic
+4. **Verify modifier combinations**: **Ctrl+Shift+D** should work regardless of layout
+
+#### Customization for International Layouts
+
+**Browser Extensions (Recommended):**
+- **Shortkeys** - Map shortcuts to your preferred key combinations
+- **Vimium** - Alternative navigation system that adapts to any layout
+- **Custom user scripts** - Remap problematic shortcuts to layout-friendly alternatives
+
+**Layout-Specific Shortcuts Example:**
+```javascript
+// Example: Add layout-friendly shortcuts via browser console
+document.addEventListener('keydown', function(e) {
+    // For AZERTY: Map Ctrl+Q to focus search (Q is where A is on QWERTY)
+    if (e.ctrlKey && e.key === 'q') {
+        e.preventDefault();
+        document.querySelector('#todo-search').focus();
+    }
+});
+```
+
+> **🌍 International User Tip**: Use **Ctrl+H** as your primary reference - it shows all shortcuts using the characters your keyboard actually produces, making it the most reliable guide for your specific layout.
+
 ### Troubleshooting Keyboard Shortcuts
 
 If you're experiencing issues with keyboard shortcuts, try these solutions:
