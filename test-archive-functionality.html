@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Archive Functionality Test - AutoToDo</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .test-title {
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        .test-result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .test-pass {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .test-fail {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>AutoToDo - Archive Functionality Test</h1>
+        </div>
+
+        <div class="test-section">
+            <div class="test-title">🧪 Archive Functionality Tests</div>
+            <button onclick="runArchiveTests()" class="add-btn">Run Archive Tests</button>
+            <div id="archiveTestResults"></div>
+        </div>
+
+        <div class="test-section">
+            <div class="test-title">📊 Performance Metrics Tests</div>
+            <button onclick="runPerformanceTests()" class="add-btn">Run Performance Tests</button>
+            <div id="performanceTestResults"></div>
+        </div>
+
+        <div class="test-section">
+            <div class="test-title">🔍 Enhanced Search Tests</div>
+            <button onclick="runSearchTests()" class="add-btn">Run Search Tests</button>
+            <div id="searchTestResults"></div>
+        </div>
+
+        <div class="test-section">
+            <div class="test-title">🎛️ Live Demo</div>
+            <p>Test the archive functionality with the live app below:</p>
+            <iframe src="index.html" width="100%" height="600" style="border: 1px solid #ddd; border-radius: 8px;"></iframe>
+        </div>
+    </div>
+
+    <!-- Load AutoToDo modules -->
+    <script src="js/DebugLogger.js"></script>
+    <script src="js/StorageDetector.js"></script>
+    <script src="js/StorageFallbackHandler.js"></script>
+    <script src="js/StorageOperations.js"></script>
+    <script src="js/StorageManager.js"></script>
+    <script src="js/PerformanceUtils.js"></script>
+    <script src="js/VirtualScrollManager.js"></script>
+    <script src="js/TodoModel.js"></script>
+    <script src="js/TodoView.js"></script>
+    <script src="js/TodoController.js"></script>
+
+    <script>
+        // Test runner functions
+        function showResult(containerId, message, isPass) {
+            const container = document.getElementById(containerId);
+            const resultDiv = document.createElement('div');
+            resultDiv.className = isPass ? 'test-result test-pass' : 'test-result test-fail';
+            resultDiv.textContent = message;
+            container.appendChild(resultDiv);
+        }
+
+        function clearResults(containerId) {
+            document.getElementById(containerId).innerHTML = '';
+        }
+
+        // Archive functionality tests
+        function runArchiveTests() {
+            clearResults('archiveTestResults');
+            
+            try {
+                // Create a new TodoModel instance
+                const model = new TodoModel(window.storageManager);
+                
+                // Test 1: Archive a todo
+                const todo = model.addTodo('Test archiving todo');
+                const archiveResult = model.archiveTodo(todo.id);
+                showResult('archiveTestResults', 
+                    `✅ Archive todo: ${archiveResult ? 'PASS' : 'FAIL'}`, archiveResult);
+                
+                // Test 2: Check archived todos
+                const archivedTodos = model.getArchivedTodos();
+                const hasArchivedTodo = archivedTodos.length === 1 && archivedTodos[0].text === 'Test archiving todo';
+                showResult('archiveTestResults', 
+                    `✅ Check archived todos: ${hasArchivedTodo ? 'PASS' : 'FAIL'}`, hasArchivedTodo);
+                
+                // Test 3: Restore todo
+                const restoreResult = model.restoreTodo(todo.id);
+                showResult('archiveTestResults', 
+                    `✅ Restore todo: ${restoreResult ? 'PASS' : 'FAIL'}`, restoreResult);
+                
+                // Test 4: Check active todos after restore
+                const activeTodos = model.getAllTodos();
+                const hasRestoredTodo = activeTodos.length === 1 && activeTodos[0].text === 'Test archiving todo';
+                showResult('archiveTestResults', 
+                    `✅ Check restored todo: ${hasRestoredTodo ? 'PASS' : 'FAIL'}`, hasRestoredTodo);
+                
+                // Test 5: Auto-archive functionality
+                model.maxActiveTodos = 5; // Lower threshold for testing
+                for (let i = 0; i < 8; i++) {
+                    const testTodo = model.addTodo(`Todo ${i}`);
+                    if (i < 3) {
+                        model.toggleTodo(testTodo.id); // Mark as completed
+                    }
+                }
+                
+                const archivedCount = model.autoArchiveCompleted();
+                showResult('archiveTestResults', 
+                    `✅ Auto-archive completed todos: ${archivedCount === 3 ? 'PASS' : 'FAIL'} (archived ${archivedCount})`, 
+                    archivedCount === 3);
+                    
+            } catch (error) {
+                showResult('archiveTestResults', `❌ Error: ${error.message}`, false);
+            }
+        }
+
+        // Performance metrics tests
+        function runPerformanceTests() {
+            clearResults('performanceTestResults');
+            
+            try {
+                const model = new TodoModel(window.storageManager);
+                
+                // Add some todos for testing
+                for (let i = 0; i < 15; i++) {
+                    const todo = model.addTodo(`Performance test todo ${i}`);
+                    if (i < 5) {
+                        model.toggleTodo(todo.id);
+                    }
+                }
+                
+                // Test performance metrics
+                const metrics = model.getPerformanceMetrics();
+                
+                showResult('performanceTestResults', 
+                    `✅ Active todos count: ${metrics.activeTodos === 15 ? 'PASS' : 'FAIL'} (${metrics.activeTodos})`, 
+                    metrics.activeTodos === 15);
+                
+                showResult('performanceTestResults', 
+                    `✅ Completed todos count: ${metrics.completedTodos === 5 ? 'PASS' : 'FAIL'} (${metrics.completedTodos})`, 
+                    metrics.completedTodos === 5);
+                
+                showResult('performanceTestResults', 
+                    `✅ Performance status: ${metrics.performanceStatus === 'optimal' ? 'PASS' : 'FAIL'} (${metrics.performanceStatus})`, 
+                    metrics.performanceStatus === 'optimal');
+                
+                // Test different performance statuses
+                const optimalStatus = model.getPerformanceStatus(50);
+                const goodStatus = model.getPerformanceStatus(150);
+                const fairStatus = model.getPerformanceStatus(300);
+                const poorStatus = model.getPerformanceStatus(600);
+                
+                showResult('performanceTestResults', 
+                    `✅ Performance status levels: ${optimalStatus === 'optimal' && goodStatus === 'good' && fairStatus === 'fair' && poorStatus === 'poor' ? 'PASS' : 'FAIL'}`, 
+                    optimalStatus === 'optimal' && goodStatus === 'good' && fairStatus === 'fair' && poorStatus === 'poor');
+                
+            } catch (error) {
+                showResult('performanceTestResults', `❌ Error: ${error.message}`, false);
+            }
+        }
+
+        // Enhanced search tests
+        function runSearchTests() {
+            clearResults('searchTestResults');
+            
+            try {
+                const model = new TodoModel(window.storageManager);
+                
+                // Add test todos
+                model.addTodo('Buy groceries from the store');
+                model.addTodo('Complete project report');
+                model.addTodo('Call mom about dinner plans');
+                
+                // Test search caching
+                const results1 = model.filterTodos('project');
+                const cacheSize1 = model.searchCache.size;
+                showResult('searchTestResults', 
+                    `✅ Search caching: ${cacheSize1 === 1 ? 'PASS' : 'FAIL'} (cache size: ${cacheSize1})`, 
+                    cacheSize1 === 1);
+                
+                // Test multi-word search
+                const results2 = model.filterTodos('buy store');
+                showResult('searchTestResults', 
+                    `✅ Multi-word search: ${results2.length === 1 ? 'PASS' : 'FAIL'} (found ${results2.length} results)`, 
+                    results2.length === 1);
+                
+                // Test archived search
+                const archivedTodo = model.addTodo('Archived search test');
+                model.archiveTodo(archivedTodo.id);
+                const archivedResults = model.searchArchivedTodos('archived');
+                showResult('searchTestResults', 
+                    `✅ Archived search: ${archivedResults.length === 1 ? 'PASS' : 'FAIL'} (found ${archivedResults.length} results)`, 
+                    archivedResults.length === 1);
+                
+                // Test cache clearing
+                model.clearSearchCache();
+                showResult('searchTestResults', 
+                    `✅ Cache clearing: ${model.searchCache.size === 0 ? 'PASS' : 'FAIL'} (cache size: ${model.searchCache.size})`, 
+                    model.searchCache.size === 0);
+                
+            } catch (error) {
+                showResult('searchTestResults', `❌ Error: ${error.message}`, false);
+            }
+        }
+
+        // Initialize when page loads
+        window.addEventListener('load', () => {
+            console.log('Archive functionality test page loaded');
+        });
+    </script>
+</body>
+</html>

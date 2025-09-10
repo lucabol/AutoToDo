@@ -50,6 +50,7 @@ class TodoController {
         this.handleDragDropCompatibility();
         this.initializeTheme();
         this.setupKeyboardShortcuts();
+        this.initializeArchiveManagement();
         this.render();
     }
 
@@ -617,6 +618,12 @@ class TodoController {
             case 'cancel-edit':
                 this.handleCancelEdit();
                 break;
+            case 'archive':
+                this.handleArchive(id);
+                break;
+            case 'restore':
+                this.handleRestore(id);
+                break;
         }
     }
 
@@ -825,9 +832,24 @@ class TodoController {
      * Render the current state
      */
     render() {
+        const todosToShow = this.getTodosForCurrentView();
         const allTodos = this.model.getAllTodos();
-        const filteredTodos = this.model.filterTodos(this.searchTerm);
-        this.view.render(filteredTodos, allTodos, this.searchTerm, this.dragDropSupported);
+        this.view.render(todosToShow, allTodos, this.searchTerm, this.dragDropSupported);
+        
+        // Update counters and performance status
+        this.updateViewCounters();
+        this.updatePerformanceStatus();
+        
+        // Auto-archive if needed for performance
+        if (allTodos.length > this.model.maxActiveTodos) {
+            const archivedCount = this.model.autoArchiveCompleted();
+            if (archivedCount > 0) {
+                this.view.showMessage(`Auto-archived ${archivedCount} completed todos for better performance`, 'info');
+                // Re-render with updated data
+                this.updateViewCounters();
+                this.updatePerformanceStatus();
+            }
+        }
     }
 
     /**
@@ -959,5 +981,98 @@ class TodoController {
      */
     getCurrentTodos() {
         return this.searchTerm ? this.model.filterTodos(this.searchTerm) : this.model.getAllTodos();
+    }
+
+    /**
+     * Initialize archive management functionality
+     */
+    initializeArchiveManagement() {
+        // Listen for view change events
+        document.addEventListener('viewChange', (e) => {
+            this.handleViewChange(e.detail.view);
+        });
+        
+        // Listen for performance modal events
+        document.addEventListener('showPerformanceModal', () => {
+            this.showPerformanceMetrics();
+        });
+        
+        // Initial update of counters and performance status
+        this.updateViewCounters();
+        this.updatePerformanceStatus();
+    }
+
+    /**
+     * Handle view change between active and archive
+     * @param {string} view - 'active' or 'archive'
+     */
+    handleViewChange(view) {
+        this.view.currentView = view;
+        this.render();
+    }
+
+    /**
+     * Update view counters
+     */
+    updateViewCounters() {
+        const activeCount = this.model.getAllTodos().length;
+        const archiveCount = this.model.getArchivedTodos().length;
+        this.view.updateCounts(activeCount, archiveCount);
+    }
+
+    /**
+     * Update performance status
+     */
+    updatePerformanceStatus() {
+        const metrics = this.model.getPerformanceMetrics();
+        this.view.updatePerformanceStatus(metrics);
+    }
+
+    /**
+     * Show performance metrics modal
+     */
+    showPerformanceMetrics() {
+        const metrics = this.model.getPerformanceMetrics();
+        this.view.populatePerformanceModal(metrics);
+    }
+
+    /**
+     * Handle archive action
+     * @param {string} id - Todo ID to archive
+     */
+    handleArchive(id) {
+        if (this.model.archiveTodo(id)) {
+            this.updateViewCounters();
+            this.updatePerformanceStatus();
+            this.render();
+        }
+    }
+
+    /**
+     * Handle restore action
+     * @param {string} id - Todo ID to restore
+     */
+    handleRestore(id) {
+        if (this.model.restoreTodo(id)) {
+            this.updateViewCounters();
+            this.updatePerformanceStatus();
+            this.render();
+        }
+    }
+
+    /**
+     * Get todos for current view
+     * @returns {Array} Todos for current view
+     */
+    getTodosForCurrentView() {
+        if (this.view.currentView === 'archive') {
+            return this.searchTerm ? 
+                this.model.searchArchivedTodos(this.searchTerm) : 
+                this.model.getArchivedTodos();
+        } else {
+            return this.searchTerm ? 
+                this.model.filterTodos(this.searchTerm) : 
+                this.model.getAllTodos();
+        }
     }
 }

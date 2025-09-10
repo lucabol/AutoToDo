@@ -8,6 +8,7 @@ class TodoView {
         this.todoInput = document.getElementById('todoInput');
         this.editingId = null;
         this.dragDropMessageShown = false;
+        this.currentView = 'active'; // 'active' or 'archive'
         
         // Performance optimizations
         this.useVirtualScrolling = true;
@@ -21,7 +22,19 @@ class TodoView {
             (element) => this.resetTodoElement(element)
         );
         
+        // Archive management elements
+        this.activeViewBtn = document.getElementById('activeViewBtn');
+        this.archiveViewBtn = document.getElementById('archiveViewBtn');
+        this.activeCount = document.getElementById('activeCount');
+        this.archiveCount = document.getElementById('archiveCount');
+        this.performanceStatus = document.getElementById('performanceStatus');
+        this.performanceModal = document.getElementById('performanceModal');
+        this.performanceDetailsBtn = document.getElementById('performanceDetailsBtn');
+        this.performanceModalClose = document.getElementById('performanceModalClose');
+        this.performanceModalBody = document.getElementById('performanceModalBody');
+        
         this.initializePerformanceOptimizations();
+        this.initializeArchiveManagement();
     }
 
     
@@ -54,6 +67,139 @@ class TodoView {
                 -webkit-perspective: 1000;
             `;
         }
+    }
+
+    /**
+     * Initialize archive management UI
+     */
+    initializeArchiveManagement() {
+        // View toggle event listeners
+        if (this.activeViewBtn) {
+            this.activeViewBtn.addEventListener('click', () => this.switchView('active'));
+        }
+        if (this.archiveViewBtn) {
+            this.archiveViewBtn.addEventListener('click', () => this.switchView('archive'));
+        }
+        
+        // Performance modal event listeners
+        if (this.performanceDetailsBtn) {
+            this.performanceDetailsBtn.addEventListener('click', () => this.showPerformanceModal());
+        }
+        if (this.performanceModalClose) {
+            this.performanceModalClose.addEventListener('click', () => this.hidePerformanceModal());
+        }
+        if (this.performanceModal) {
+            this.performanceModal.addEventListener('click', (e) => {
+                if (e.target === this.performanceModal) {
+                    this.hidePerformanceModal();
+                }
+            });
+        }
+    }
+
+    /**
+     * Switch between active and archive views
+     * @param {string} view - 'active' or 'archive'
+     */
+    switchView(view) {
+        this.currentView = view;
+        
+        // Update button states
+        if (this.activeViewBtn && this.archiveViewBtn) {
+            this.activeViewBtn.classList.toggle('active', view === 'active');
+            this.archiveViewBtn.classList.toggle('active', view === 'archive');
+        }
+        
+        // Trigger view change event for controller
+        const event = new CustomEvent('viewChange', { detail: { view } });
+        document.dispatchEvent(event);
+    }
+
+    /**
+     * Update view counts
+     * @param {number} activeCount - Number of active todos
+     * @param {number} archiveCount - Number of archived todos
+     */
+    updateCounts(activeCount, archiveCount) {
+        if (this.activeCount) this.activeCount.textContent = activeCount;
+        if (this.archiveCount) this.archiveCount.textContent = archiveCount;
+    }
+
+    /**
+     * Update performance status indicator
+     * @param {Object} metrics - Performance metrics object
+     */
+    updatePerformanceStatus(metrics) {
+        if (this.performanceStatus) {
+            this.performanceStatus.textContent = metrics.performanceStatus;
+            this.performanceStatus.className = `performance-status ${metrics.performanceStatus}`;
+        }
+    }
+
+    /**
+     * Show performance modal with detailed metrics
+     */
+    showPerformanceModal() {
+        if (this.performanceModal) {
+            // Trigger event for controller to populate modal
+            const event = new CustomEvent('showPerformanceModal');
+            document.dispatchEvent(event);
+            this.performanceModal.style.display = 'flex';
+        }
+    }
+
+    /**
+     * Hide performance modal
+     */
+    hidePerformanceModal() {
+        if (this.performanceModal) {
+            this.performanceModal.style.display = 'none';
+        }
+    }
+
+    /**
+     * Populate performance modal with metrics data
+     * @param {Object} metrics - Performance metrics object
+     */
+    populatePerformanceModal(metrics) {
+        if (!this.performanceModalBody) return;
+        
+        const html = `
+            <div class="metric-item">
+                <span class="metric-label">Active Todos:</span>
+                <span class="metric-value">${metrics.activeTodos}</span>
+            </div>
+            <div class="metric-item">
+                <span class="metric-label">Completed Todos:</span>
+                <span class="metric-value">${metrics.completedTodos}</span>
+            </div>
+            <div class="metric-item">
+                <span class="metric-label">Archived Todos:</span>
+                <span class="metric-value">${metrics.archivedTodos}</span>
+            </div>
+            <div class="metric-item">
+                <span class="metric-label">Total Todos:</span>
+                <span class="metric-value">${metrics.totalTodos}</span>
+            </div>
+            <div class="metric-item">
+                <span class="metric-label">Search Cache Size:</span>
+                <span class="metric-value">${metrics.searchCacheSize}</span>
+            </div>
+            <div class="metric-item">
+                <span class="metric-label">Performance Status:</span>
+                <span class="metric-value performance-status ${metrics.performanceStatus}">${metrics.performanceStatus}</span>
+            </div>
+            ${metrics.recommendations.length > 0 ? `
+                <div class="recommendations">
+                    <h4>Recommendations:</h4>
+                    ${metrics.recommendations.map(rec => `
+                        <div class="recommendation-item">${rec}</div>
+                    `).join('')}
+                </div>
+            ` : ''}
+        `;
+        
+        this.performanceModalBody.innerHTML = html;
     }
 
     render(todos, allTodos = [], searchTerm = '', dragDropSupported = true) {
@@ -129,6 +275,8 @@ class TodoView {
             <span class="todo-text"></span>
             <div class="todo-actions">
                 <button class="edit-btn">Edit</button>
+                <button class="archive-btn" style="display: none;">Archive</button>
+                <button class="restore-btn" style="display: none;">Restore</button>
                 <button class="delete-btn">Delete</button>
             </div>
         `;
@@ -168,28 +316,57 @@ class TodoView {
         const textSpan = element.querySelector('.todo-text');
         const editBtn = element.querySelector('.edit-btn');
         const deleteBtn = element.querySelector('.delete-btn');
+        const archiveBtn = element.querySelector('.archive-btn');
+        const restoreBtn = element.querySelector('.restore-btn');
         
         element.setAttribute('data-id', todo.id);
+        
+        // Handle archived todos styling
+        const isArchived = !!todo.archivedAt;
+        element.classList.toggle('archived', isArchived);
         
         if (checkbox) {
             checkbox.checked = todo.completed;
             checkbox.setAttribute('data-action', 'toggle');
             checkbox.setAttribute('data-id', todo.id);
+            checkbox.disabled = isArchived; // Disable checkbox for archived todos
         }
         
         if (textSpan) {
             textSpan.textContent = todo.text;
             textSpan.className = todo.completed ? 'todo-text completed' : 'todo-text';
+            
+            // Add archive badge if archived
+            if (isArchived) {
+                const badge = document.createElement('span');
+                badge.className = 'archive-badge';
+                badge.textContent = 'Archived';
+                textSpan.appendChild(badge);
+            }
         }
         
         if (editBtn) {
             editBtn.setAttribute('data-action', 'edit');
             editBtn.setAttribute('data-id', todo.id);
+            editBtn.style.display = isArchived ? 'none' : 'inline-block'; // Hide edit for archived
         }
         
         if (deleteBtn) {
             deleteBtn.setAttribute('data-action', 'delete');
             deleteBtn.setAttribute('data-id', todo.id);
+        }
+        
+        // Archive/Restore button visibility based on current view and todo state
+        if (archiveBtn) {
+            archiveBtn.setAttribute('data-action', 'archive');
+            archiveBtn.setAttribute('data-id', todo.id);
+            archiveBtn.style.display = (!isArchived && this.currentView === 'active') ? 'inline-block' : 'none';
+        }
+        
+        if (restoreBtn) {
+            restoreBtn.setAttribute('data-action', 'restore');
+            restoreBtn.setAttribute('data-id', todo.id);
+            restoreBtn.style.display = (isArchived && this.currentView === 'archive') ? 'inline-block' : 'none';
         }
         
         // Handle editing state

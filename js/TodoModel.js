@@ -56,6 +56,20 @@ class TodoModel {
     }
 
     /**
+     * Save archived todos to storage with fallback support
+     */
+    saveArchivedTodos() {
+        try {
+            const success = this.storage.setItem('archived-todos', JSON.stringify(this.archivedTodos));
+            if (!success) {
+                console.warn('Failed to save archived todos to persistent storage, using memory fallback');
+            }
+        } catch (e) {
+            console.warn('Failed to save archived todos:', e);
+        }
+    }
+
+    /**
      * Archive a todo by moving it from active todos to archived todos
      * @param {string} id - Todo ID to archive
      * @returns {boolean} True if todo was archived, false if not found
@@ -278,7 +292,7 @@ class TodoModel {
     }
 
     /**
-     * Filter todos by search term with enhanced matching
+     * Filter todos by search term with enhanced matching and caching
      * @param {string} searchTerm - Term to search for in todo text
      * @returns {Array} Array of filtered todos
      */
@@ -287,10 +301,23 @@ class TodoModel {
             return this.getAllTodos();
         }
         
-        // Normalize the search term: trim and collapse multiple spaces
+        // Normalize the search term
         const normalizedTerm = searchTerm.toLowerCase().trim().replace(/\s+/g, ' ');
         
-        return this.todos.filter(todo => {
+        // Check cache first for performance
+        const cacheKey = `search:${normalizedTerm}`;
+        if (this.searchCache.has(cacheKey)) {
+            const cached = this.searchCache.get(cacheKey);
+            // Check if cache is still valid (within timeout)
+            if (Date.now() - cached.timestamp < this.searchCacheTimeout) {
+                return cached.results;
+            }
+            // Remove expired cache entry
+            this.searchCache.delete(cacheKey);
+        }
+        
+        // Perform search
+        const results = this.todos.filter(todo => {
             const todoText = todo.text.toLowerCase();
             
             // If the search term contains multiple words, check if all words are present
@@ -302,6 +329,37 @@ class TodoModel {
             
             // Single word or phrase search - use original substring matching
             return todoText.includes(normalizedTerm);
+        });
+        
+        // Cache the results
+        this.searchCache.set(cacheKey, {
+            results: [...results],
+            timestamp: Date.now()
+        });
+        
+        // Limit cache size to prevent memory issues
+        if (this.searchCache.size > 50) {
+            const oldestKey = this.searchCache.keys().next().value;
+            this.searchCache.delete(oldestKey);
+        }
+        
+        return results;
+    }
+
+    /**
+     * Search in archived todos
+     * @param {string} searchTerm - Term to search for
+     * @returns {Array} Array of filtered archived todos
+     */
+    searchArchivedTodos(searchTerm) {
+        if (!searchTerm || !searchTerm.trim()) {
+            return this.getArchivedTodos();
+        }
+        
+        const normalizedTerm = searchTerm.toLowerCase().trim();
+        
+        return this.archivedTodos.filter(todo => {
+            return todo.text.toLowerCase().includes(normalizedTerm);
         });
     }
 
@@ -315,5 +373,67 @@ class TodoModel {
         const pending = total - completed;
         
         return { total, completed, pending };
+    }
+
+    /**
+     * Get performance metrics for large lists
+     * @returns {Object} Performance metrics and monitoring data
+     */
+    getPerformanceMetrics() {
+        const stats = this.getStats();
+        const archivedCount = this.archivedTodos.length;
+        const searchCacheSize = this.searchCache.size;
+        
+        return {
+            activeTodos: stats.total,
+            completedTodos: stats.completed,
+            pendingTodos: stats.pending,
+            archivedTodos: archivedCount,
+            totalTodos: stats.total + archivedCount,
+            searchCacheSize: searchCacheSize,
+            maxActiveTodos: this.maxActiveTodos,
+            performanceStatus: this.getPerformanceStatus(stats.total),
+            recommendations: this.getPerformanceRecommendations(stats.total, stats.completed)
+        };
+    }
+
+    /**
+     * Get performance status based on active todo count
+     * @param {number} activeTodoCount - Number of active todos
+     * @returns {string} Performance status (optimal, good, fair, poor)
+     */
+    getPerformanceStatus(activeTodoCount) {
+        if (activeTodoCount <= 100) return 'optimal';
+        if (activeTodoCount <= 250) return 'good';
+        if (activeTodoCount <= 500) return 'fair';
+        return 'poor';
+    }
+
+    /**
+     * Get performance recommendations based on current state
+     * @param {number} activeTodoCount - Number of active todos
+     * @param {number} completedCount - Number of completed todos
+     * @returns {Array} Array of recommendation strings
+     */
+    getPerformanceRecommendations(activeTodoCount, completedCount) {
+        const recommendations = [];
+        
+        if (activeTodoCount > this.maxActiveTodos) {
+            recommendations.push('Consider archiving completed todos to improve performance');
+        }
+        
+        if (completedCount > 50 && activeTodoCount > 200) {
+            recommendations.push('Archive completed todos to reduce list size');
+        }
+        
+        if (activeTodoCount > 300) {
+            recommendations.push('Use search functionality to find specific todos quickly');
+        }
+        
+        if (this.searchCache.size > 20) {
+            recommendations.push('Search cache is active and improving search performance');
+        }
+        
+        return recommendations;
     }
 }
