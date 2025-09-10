@@ -1,5 +1,14 @@
 /**
- * StorageManager - Robust storage abstraction with fallback mechanisms
+ * StorageManager - Enhanced storage abstraction with comprehensive fallback mechanisms
+ * 
+ * Features:
+ * - Automatic Safari private browsing detection and handling
+ * - Storage fallback chain: localStorage → sessionStorage → memory storage
+ * - Enhanced user notifications with animations and click-to-dismiss
+ * - Storage validation methods with detailed error reporting
+ * - Quota management and estimation capabilities
+ * - Comprehensive storage functionality testing
+ * 
  * Handles localStorage limitations in Safari private browsing and other edge cases
  */
 class StorageManager {
@@ -68,7 +77,7 @@ class StorageManager {
     }
 
     /**
-     * Show notification about private browsing limitations
+     * Show enhanced notification about private browsing limitations
      */
     notifyPrivateBrowsing() {
         // Only show once per session
@@ -79,13 +88,6 @@ class StorageManager {
             // Show enhanced user-friendly notification
             this.showEnhancedNotification('private');
         }
-    }
-
-    /**
-     * Show user notification about private browsing (legacy method for compatibility)
-     */
-    showUserNotification() {
-        this.showEnhancedNotification('private');
     }
 
     /**
@@ -160,7 +162,7 @@ class StorageManager {
     }
 
     /**
-     * Handle quota exceeded error
+     * Handle quota exceeded error with enhanced user feedback
      * @param {string} key - Storage key that failed
      * @param {string} value - Value that failed to store
      */
@@ -176,7 +178,7 @@ class StorageManager {
     }
 
     /**
-     * Show storage fallback notification
+     * Show enhanced storage fallback notification
      */
     notifyStorageFallback() {
         if (!this.memoryStorage.has('__fallback_notified__')) {
@@ -184,13 +186,6 @@ class StorageManager {
             this.memoryStorage.set('__fallback_notified__', true);
             this.showEnhancedNotification('fallback');
         }
-    }
-
-    /**
-     * Show quota exceeded notification (legacy method for compatibility)
-     */
-    showQuotaNotification() {
-        this.showEnhancedNotification('quota');
     }
 
     /**
@@ -250,34 +245,131 @@ class StorageManager {
     }
 
     /**
-     * Validate storage key format
+     * Validate storage key format with detailed validation
      * @param {string} key - Storage key to validate
-     * @returns {boolean} True if key is valid
+     * @returns {Object} Validation result with details
      */
     isValidKey(key) {
-        if (typeof key !== 'string') return false;
-        if (key.length === 0) return false;
-        if (key.length > 255) return false; // Reasonable key length limit
-        return true;
+        const result = {
+            valid: true,
+            error: null,
+            details: {
+                type: typeof key,
+                length: key ? key.length : 0,
+                isEmpty: !key || key.length === 0,
+                tooLong: key && key.length > 255
+            }
+        };
+
+        if (typeof key !== 'string') {
+            result.valid = false;
+            result.error = `Key must be a string, got ${typeof key}`;
+            console.warn('Storage key validation failed:', result.error);
+            return result;
+        }
+
+        if (key.length === 0) {
+            result.valid = false;
+            result.error = 'Key cannot be empty';
+            console.warn('Storage key validation failed:', result.error);
+            return result;
+        }
+
+        if (key.length > 255) {
+            result.valid = false;
+            result.error = `Key too long (${key.length} chars), maximum is 255`;
+            console.warn('Storage key validation failed:', result.error);
+            return result;
+        }
+
+        return result;
     }
 
     /**
-     * Validate storage value
+     * Simple boolean validation for backward compatibility
+     * @param {string} key - Storage key to validate
+     * @returns {boolean} True if key is valid
+     */
+    isValidKeySimple(key) {
+        return this.isValidKey(key).valid;
+    }
+
+    /**
+     * Validate storage value with detailed error reporting and logging
+     * @param {*} value - Value to validate
+     * @returns {Object} Detailed validation result with error information
+     */
+    isValidValue(value) {
+        const result = {
+            valid: true,
+            error: null,
+            details: {
+                type: typeof value,
+                isNull: value === null,
+                isUndefined: value === undefined,
+                size: 0,
+                sizeLimit: 5 * 1024 * 1024 // 5MB
+            }
+        };
+
+        // Null and undefined are valid (will be stored as strings)
+        if (value === null || value === undefined) {
+            result.details.size = String(value).length;
+            return result;
+        }
+
+        if (typeof value !== 'string') {
+            result.valid = false;
+            result.error = `Value must be a string, null, or undefined. Got ${typeof value}`;
+            console.warn('Storage value validation failed:', result.error, {
+                valueType: typeof value,
+                value: value
+            });
+            return result;
+        }
+        
+        // Calculate value size with enhanced error reporting
+        try {
+            const size = new Blob([value]).size;
+            result.details.size = size;
+            
+            if (size >= result.details.sizeLimit) {
+                result.valid = false;
+                result.error = `Value too large (${Math.round(size / 1024 / 1024 * 100) / 100}MB), maximum is ${Math.round(result.details.sizeLimit / 1024 / 1024)}MB`;
+                console.warn('Storage value validation failed:', result.error, {
+                    valueSize: size,
+                    sizeLimit: result.details.sizeLimit,
+                    valueLengthChars: value.length
+                });
+                return result;
+            }
+        } catch (error) {
+            // Fallback for older browsers
+            const charLength = value.length;
+            result.details.size = charLength; // Approximate
+            
+            if (charLength >= result.details.sizeLimit) {
+                result.valid = false;
+                result.error = `Value too large (~${Math.round(charLength / 1024 / 1024 * 100) / 100}MB), maximum is ${Math.round(result.details.sizeLimit / 1024 / 1024)}MB`;
+                console.warn('Storage value validation failed (fallback method):', result.error, {
+                    valueLength: charLength,
+                    sizeLimit: result.details.sizeLimit,
+                    blobError: error.message
+                });
+                return result;
+            }
+        }
+
+        return result;
+    }
+
+    /**
+     * Simple boolean validation for backward compatibility
      * @param {*} value - Value to validate
      * @returns {boolean} True if value can be stored
      */
-    isValidValue(value) {
-        if (value === null || value === undefined) return true;
-        if (typeof value !== 'string') return false;
-        
-        // Check if value is too large (approximate check)
-        try {
-            const size = new Blob([value]).size;
-            return size < 5 * 1024 * 1024; // 5MB limit
-        } catch (error) {
-            // Fallback for older browsers
-            return value.length < 5 * 1024 * 1024;
-        }
+    isValidValueSimple(value) {
+        return this.isValidValue(value).valid;
     }
 
     /**
@@ -310,8 +402,8 @@ class StorageManager {
     }
 
     /**
-     * Test storage functionality
-     * @returns {Object} Test results
+     * Test storage functionality with comprehensive validation
+     * @returns {Object} Detailed test results
      */
     testStorage() {
         const results = {
@@ -319,13 +411,21 @@ class StorageManager {
             canRead: false,
             canDelete: false,
             persistent: false,
-            errors: []
+            errors: [],
+            validation: {
+                keyTest: null,
+                valueTest: null
+            }
         };
 
         const testKey = '__storage_test_' + Date.now();
         const testValue = 'test_value_' + Math.random();
 
         try {
+            // Test validation methods
+            results.validation.keyTest = this.isValidKey(testKey);
+            results.validation.valueTest = this.isValidValue(testValue);
+
             // Test write
             this.setItem(testKey, testValue);
             results.canWrite = true;
@@ -350,35 +450,54 @@ class StorageManager {
     }
 
     /**
-     * Safely set item with validation
+     * Safely set item with comprehensive validation and detailed error reporting
      * @param {string} key - Storage key
      * @param {string} value - Value to store
-     * @returns {Object} Result with success status and validation info
+     * @returns {Object} Result with success status and detailed validation info
      */
     safeSetItem(key, value) {
+        const keyValidation = this.isValidKey(key);
+        const valueValidation = this.isValidValue(value);
+        
         const result = {
             success: false,
             error: null,
             validation: {
-                keyValid: this.isValidKey(key),
-                valueValid: this.isValidValue(value)
+                key: keyValidation,
+                value: valueValidation,
+                // Backward compatibility properties
+                keyValid: keyValidation.valid,
+                valueValid: valueValidation.valid
             }
         };
 
-        if (!result.validation.keyValid) {
-            result.error = 'Invalid key format';
+        if (!keyValidation.valid) {
+            result.error = `Key validation failed: ${keyValidation.error}`;
+            console.warn('safeSetItem failed due to key validation:', keyValidation);
             return result;
         }
 
-        if (!result.validation.valueValid) {
-            result.error = 'Invalid value format or too large';
+        if (!valueValidation.valid) {
+            result.error = `Value validation failed: ${valueValidation.error}`;
+            console.warn('safeSetItem failed due to value validation:', valueValidation);
             return result;
         }
 
         try {
             result.success = this.setItem(key, value);
+            if (result.success) {
+                // Use console.log for Node.js compatibility
+                if (typeof console.debug === 'function') {
+                    console.debug('safeSetItem succeeded:', {
+                        key: key,
+                        valueSize: valueValidation.details.size,
+                        storageType: this.storageType
+                    });
+                }
+            }
         } catch (error) {
             result.error = error.message;
+            console.warn('safeSetItem failed during storage operation:', error);
         }
 
         return result;

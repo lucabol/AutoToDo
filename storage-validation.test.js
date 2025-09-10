@@ -111,20 +111,20 @@ runner.test('should validate storage keys correctly', () => {
     const storage = new StorageManager();
     
     // Valid keys
-    runner.assert(storage.isValidKey('valid-key'), 'Should accept valid string key');
-    runner.assert(storage.isValidKey('key123'), 'Should accept alphanumeric key');
-    runner.assert(storage.isValidKey('a'), 'Should accept single character key');
+    runner.assert(storage.isValidKey('valid-key').valid, 'Should accept valid string key');
+    runner.assert(storage.isValidKey('key123').valid, 'Should accept alphanumeric key');
+    runner.assert(storage.isValidKey('a').valid, 'Should accept single character key');
     
     // Invalid keys
-    runner.assert(!storage.isValidKey(''), 'Should reject empty string key');
-    runner.assert(!storage.isValidKey(null), 'Should reject null key');
-    runner.assert(!storage.isValidKey(undefined), 'Should reject undefined key');
-    runner.assert(!storage.isValidKey(123), 'Should reject numeric key');
-    runner.assert(!storage.isValidKey({}), 'Should reject object key');
+    runner.assert(!storage.isValidKey('').valid, 'Should reject empty string key');
+    runner.assert(!storage.isValidKey(null).valid, 'Should reject null key');
+    runner.assert(!storage.isValidKey(undefined).valid, 'Should reject undefined key');
+    runner.assert(!storage.isValidKey(123).valid, 'Should reject numeric key');
+    runner.assert(!storage.isValidKey({}).valid, 'Should reject object key');
     
     // Very long key
     const longKey = 'x'.repeat(300);
-    runner.assert(!storage.isValidKey(longKey), 'Should reject very long key');
+    runner.assert(!storage.isValidKey(longKey).valid, 'Should reject very long key');
 });
 
 // Test 2: Value Validation
@@ -132,19 +132,19 @@ runner.test('should validate storage values correctly', () => {
     const storage = new StorageManager();
     
     // Valid values
-    runner.assert(storage.isValidValue('valid string'), 'Should accept valid string value');
-    runner.assert(storage.isValidValue(''), 'Should accept empty string value');
-    runner.assert(storage.isValidValue(null), 'Should accept null value');
-    runner.assert(storage.isValidValue(undefined), 'Should accept undefined value');
+    runner.assert(storage.isValidValue('valid string').valid, 'Should accept valid string value');
+    runner.assert(storage.isValidValue('').valid, 'Should accept empty string value');
+    runner.assert(storage.isValidValue(null).valid, 'Should accept null value');
+    runner.assert(storage.isValidValue(undefined).valid, 'Should accept undefined value');
     
     // Invalid values
-    runner.assert(!storage.isValidValue(123), 'Should reject numeric value');
-    runner.assert(!storage.isValidValue({}), 'Should reject object value');
-    runner.assert(!storage.isValidValue([]), 'Should reject array value');
+    runner.assert(!storage.isValidValue(123).valid, 'Should reject numeric value');
+    runner.assert(!storage.isValidValue({}).valid, 'Should reject object value');
+    runner.assert(!storage.isValidValue([]).valid, 'Should reject array value');
     
     // Large value
     const largeValue = 'x'.repeat(6 * 1024 * 1024); // 6MB
-    runner.assert(!storage.isValidValue(largeValue), 'Should reject very large value');
+    runner.assert(!storage.isValidValue(largeValue).valid, 'Should reject very large value');
 });
 
 // Test 3: Safe Set Item
@@ -162,13 +162,13 @@ runner.test('should perform safe set operations with validation', () => {
     const result2 = storage.safeSetItem('', 'test-value');
     runner.assert(!result2.success, 'Should fail with invalid key');
     runner.assert(!result2.validation.keyValid, 'Should validate key as invalid');
-    runner.assert(result2.error === 'Invalid key format', 'Should provide key error message');
+    runner.assert(result2.error.includes('Key validation failed'), 'Should provide key error message');
     
     // Invalid value
     const result3 = storage.safeSetItem('test-key', 123);
     runner.assert(!result3.success, 'Should fail with invalid value');
     runner.assert(!result3.validation.valueValid, 'Should validate value as invalid');
-    runner.assert(result3.error === 'Invalid value format or too large', 'Should provide value error message');
+    runner.assert(result3.error.includes('Value validation failed'), 'Should provide value error message');
 });
 
 // Test 4: Storage Testing
