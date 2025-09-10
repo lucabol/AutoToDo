@@ -2,9 +2,10 @@
  * TodoController - Handles user interactions and coordinates between Model and View
  */
 class TodoController {
-    constructor(model, view) {
+    constructor(model, view, storageManager = window.storageManager) {
         this.model = model;
         this.view = view;
+        this.storage = storageManager;
         this.searchTerm = '';
         
         // Performance optimizations
@@ -34,25 +35,30 @@ class TodoController {
      * Initialize theme management
      */
     initializeTheme() {
-        // Check for saved theme preference or system preference
-        const savedTheme = localStorage.getItem('todo-theme');
-        const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        
-        const initialTheme = savedTheme || (systemPrefersDark ? 'dark' : 'light');
-        this.setTheme(initialTheme, false); // false = don't save to localStorage on init
-        
-        // Listen for system theme changes
-        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
-            if (!localStorage.getItem('todo-theme')) {
-                this.setTheme(e.matches ? 'dark' : 'light', false);
-            }
-        });
+        try {
+            // Check for saved theme preference or system preference
+            const savedTheme = this.storage.getItem('todo-theme');
+            const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            
+            const initialTheme = savedTheme || (systemPrefersDark ? 'dark' : 'light');
+            this.setTheme(initialTheme, false); // false = don't save to storage on init
+            
+            // Listen for system theme changes
+            window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+                if (!this.storage.getItem('todo-theme')) {
+                    this.setTheme(e.matches ? 'dark' : 'light', false);
+                }
+            });
+        } catch (e) {
+            console.warn('Failed to initialize theme, using default light theme:', e);
+            this.setTheme('light', false);
+        }
     }
 
     /**
      * Set the application theme
      * @param {string} theme - 'light' or 'dark'
-     * @param {boolean} save - Whether to save preference to localStorage
+     * @param {boolean} save - Whether to save preference to storage
      */
     setTheme(theme, save = true) {
         const body = document.body;
@@ -71,7 +77,11 @@ class TodoController {
         }
 
         if (save) {
-            localStorage.setItem('todo-theme', theme);
+            try {
+                this.storage.setItem('todo-theme', theme);
+            } catch (e) {
+                console.warn('Failed to save theme preference:', e);
+            }
         }
 
         this.currentTheme = theme;

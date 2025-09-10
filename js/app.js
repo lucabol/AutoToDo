@@ -11,22 +11,30 @@ let todoApp = null;
  */
 function initializeApp() {
     try {
+        // Ensure storage manager is available
+        if (!window.storageManager) {
+            console.error('StorageManager not available - creating fallback');
+            window.storageManager = new StorageManager();
+        }
+        
         // Create model, view, and controller instances
-        const model = new TodoModel();
+        const model = new TodoModel(window.storageManager);
         const view = new TodoView();
-        const controller = new TodoController(model, view);
+        const controller = new TodoController(model, view, window.storageManager);
 
         // Store reference for debugging/testing purposes
         todoApp = {
             model,
             view,
-            controller
+            controller,
+            storage: window.storageManager
         };
 
         // Expose globally for backward compatibility and debugging
         window.todoApp = todoApp;
 
         console.log('AutoToDo application initialized successfully');
+        console.log('Storage info:', window.storageManager.getStorageInfo());
         
     } catch (error) {
         console.error('Failed to initialize AutoToDo application:', error);
