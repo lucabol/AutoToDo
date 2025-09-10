@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Storage Integration Test - AutoToDo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .pass {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .fail {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background-color: #cce8ff;
+            color: #004085;
+            border: 1px solid #b3d7ff;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        pre {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>Storage Integration Test</h1>
+    <p>This page tests the StorageManager functionality in the browser.</p>
+
+    <div class="test-container">
+        <h2>Test Results</h2>
+        <div id="test-results"></div>
+    </div>
+
+    <div class="test-container">
+        <h2>Storage Information</h2>
+        <div id="storage-info"></div>
+    </div>
+
+    <div class="test-container">
+        <h2>Manual Tests</h2>
+        <button onclick="testBasicOperations()">Test Basic Operations</button>
+        <button onclick="testPrivateBrowsingSimulation()">Simulate Private Browsing</button>
+        <button onclick="testQuotaExceeded()">Test Quota Exceeded</button>
+        <button onclick="clearResults()">Clear Results</button>
+    </div>
+
+    <div class="test-container">
+        <h2>Todo App Integration</h2>
+        <p>The main app is available at <a href="index.html">index.html</a>. Test it in:</p>
+        <ul>
+            <li>Normal browsing mode</li>
+            <li>Private browsing mode (to see fallback behavior)</li>
+            <li>With storage disabled (to test memory fallback)</li>
+        </ul>
+    </div>
+
+    <!-- Load the StorageManager -->
+    <script src="js/StorageManager.js"></script>
+
+    <script>
+        let testResults = [];
+        
+        function addResult(message, isPass, isInfo = false) {
+            const className = isInfo ? 'info' : (isPass ? 'pass' : 'fail');
+            const icon = isInfo ? 'ℹ️' : (isPass ? '✅' : '❌');
+            testResults.push(`<div class="test-result ${className}">${icon} ${message}</div>`);
+            updateDisplay();
+        }
+        
+        function updateDisplay() {
+            document.getElementById('test-results').innerHTML = testResults.join('');
+        }
+        
+        function clearResults() {
+            testResults = [];
+            updateDisplay();
+        }
+        
+        function displayStorageInfo() {
+            const info = storageManager.getStorageInfo();
+            document.getElementById('storage-info').innerHTML = `
+                <pre>${JSON.stringify(info, null, 2)}</pre>
+            `;
+        }
+        
+        function testBasicOperations() {
+            addResult('Testing basic storage operations...', true, true);
+            
+            try {
+                // Test set/get
+                const success = storageManager.setItem('test-key', 'test-value');
+                addResult('setItem returned: ' + success, success);
+                
+                const value = storageManager.getItem('test-key');
+                addResult('Retrieved value: ' + value, value === 'test-value');
+                
+                // Test JSON storage
+                const testData = { name: 'Test Todo', completed: false };
+                storageManager.setItem('test-json', JSON.stringify(testData));
+                const retrieved = JSON.parse(storageManager.getItem('test-json'));
+                addResult('JSON data round-trip', retrieved.name === testData.name);
+                
+                // Test removal
+                storageManager.removeItem('test-key');
+                const removedValue = storageManager.getItem('test-key');
+                addResult('Value removed successfully', removedValue === null);
+                
+                addResult('Basic operations test completed', true, true);
+                
+            } catch (error) {
+                addResult('Basic operations failed: ' + error.message, false);
+            }
+        }
+        
+        function testPrivateBrowsingSimulation() {
+            addResult('Simulating private browsing conditions...', true, true);
+            
+            try {
+                // Create a new storage manager to simulate different conditions
+                const testStorage = new StorageManager();
+                const info = testStorage.getStorageInfo();
+                
+                addResult('Storage type detected: ' + info.type, true, true);
+                addResult('Private browsing detected: ' + info.isPrivateBrowsing, true, true);
+                addResult('Is persistent: ' + info.isPersistent, true, true);
+                
+                // Test that it still works
+                testStorage.setItem('private-test', 'working');
+                const value = testStorage.getItem('private-test');
+                addResult('Storage works in current mode', value === 'working');
+                
+            } catch (error) {
+                addResult('Private browsing simulation failed: ' + error.message, false);
+            }
+        }
+        
+        function testQuotaExceeded() {
+            addResult('Testing quota exceeded handling...', true, true);
+            
+            try {
+                // Try to store a large amount of data
+                const largeData = 'x'.repeat(1024 * 1024); // 1MB
+                const success = storageManager.setItem('large-test', largeData);
+                
+                if (success) {
+                    addResult('Large data stored successfully', true);
+                    // Clean up
+                    storageManager.removeItem('large-test');
+                } else {
+                    addResult('Large data failed to store (quota exceeded)', true, true);
+                }
+                
+                // Verify storage still works after potential quota issue
+                const testSuccess = storageManager.setItem('after-quota-test', 'small-data');
+                const testValue = storageManager.getItem('after-quota-test');
+                addResult('Storage works after quota test', testValue === 'small-data');
+                
+            } catch (error) {
+                addResult('Quota exceeded test failed: ' + error.message, false);
+            }
+        }
+        
+        // Run initial tests on page load
+        window.addEventListener('load', function() {
+            displayStorageInfo();
+            addResult('StorageManager loaded successfully', true, true);
+            addResult('Page loaded in: ' + storageManager.getStorageInfo().type + ' mode', true, true);
+            
+            if (storageManager.getStorageInfo().isPrivateBrowsing) {
+                addResult('🔒 Private browsing mode detected!', true, true);
+            }
+        });
+    </script>
+</body>
+</html>
