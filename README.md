@@ -152,12 +152,289 @@ Your todos are automatically saved in your browser's local storage. Data persist
 - Check "Develop" menu for JavaScript errors
 - localStorage restrictions are common in private browsing
 
+**For Safari 14+ (Specific Issues and Solutions):**
+
+Safari 14 and later versions include enhanced privacy features and stricter security policies that can affect web applications like AutoToDo. Here are common issues and their solutions:
+
+*localStorage and Data Persistence Issues:*
+- **Intelligent Tracking Prevention (ITP) clears data:** Safari 14+ may automatically clear localStorage after 7 days of inactivity
+  - Solution: Regularly use the app to prevent automatic data clearing
+  - Workaround: Export/backup your todos periodically (copy from browser console: `JSON.stringify(localStorage.getItem('todos'))`)
+  - Consider adding AutoToDo to your Home Screen (iOS) for app-like persistence
+
+- **Private browsing severely limits storage:** 
+  - Solution: Use regular browsing mode for persistent todo storage
+  - Alternative: Keep Safari window open to maintain session storage during private browsing
+
+- **Cross-site tracking settings interfere with localStorage:**
+  - Go to Safari Preferences → Privacy → Uncheck "Prevent cross-site tracking" if you experience data loss
+  - Or: Safari Settings → Privacy & Security → Allow "Website tracking" for better localStorage reliability
+
+*CSS Rendering and Layout Issues:*
+- **Flexbox gap property not supported (Safari 14.0):**
+  - Issue: Todo items may appear too close together
+  - Auto-fixed: The app uses margin-based spacing as fallback
+  - Update to Safari 14.1+ for full flexbox gap support
+
+- **CSS Grid behavior differences:**
+  - Some grid layouts may render slightly differently than other browsers
+  - The app includes Safari-specific CSS adjustments
+  - If layout appears broken, try zooming in/out (Cmd +/-) to force re-render
+
+- **Dark mode CSS variable issues:**
+  - Theme switching may not work smoothly on Safari 14.0-14.2
+  - Solution: Update to Safari 14.3+ for improved CSS custom properties support
+  - Workaround: Refresh the page after switching themes if colors don't update
+
+*JavaScript and Performance Issues:*
+- **Crypto.randomUUID() not available (Safari 14.0-14.5):**
+  - The app automatically falls back to alternative ID generation methods
+  - No action required - this is handled transparently
+
+- **Performance with large todo lists:**
+  - Safari 14+ may be slower with 500+ todos due to enhanced memory management
+  - Solution: Use search functionality to filter large lists
+  - Consider archiving completed todos by exporting them and starting fresh
+
+*Mobile Safari (iOS 14+) Specific Issues:*
+- **Viewport scaling problems:**
+  - Add AutoToDo to Home Screen for better mobile experience (Share → Add to Home Screen)
+  - This provides app-like viewport handling and persistent storage
+
+- **Touch interaction delays:**
+  - Enable "Fast clicking" by ensuring JavaScript is enabled
+  - Disable "Reduce Motion" in iOS Accessibility settings if animations feel sluggish
+
+- **Keyboard shortcuts not working:**
+  - External keyboard shortcuts work better with AutoToDo added to Home Screen
+  - Some shortcuts may conflict with iOS system shortcuts
+
+*Troubleshooting Steps for Safari 14+:*
+1. **First, try these quick fixes:**
+   - Update Safari to the latest version (Safari → About Safari)
+   - Clear browser cache and cookies for the AutoToDo domain
+   - Disable browser extensions temporarily to rule out conflicts
+
+2. **For localStorage issues:**
+   - Check Storage settings: Safari Preferences → Websites → Local Storage → Allow for this website
+   - Verify you're not in Private Browsing mode (file:// or domain should show normal, not dark address bar)
+   - Test with a local server (http://localhost) instead of file:// protocol
+
+3. **For layout/rendering issues:**
+   - Try force-refresh with Cmd+Shift+R (macOS) or Ctrl+Shift+R
+   - Check zoom level is at 100% (View → Actual Size or Cmd+0)
+   - Enable "Show Develop menu" and use "Disable Caches" while testing
+
+4. **If problems persist:**
+   - Use Safari's Web Inspector (Develop → Show Web Inspector) to check Console for errors
+   - Compare behavior with Chrome/Firefox to confirm if it's Safari-specific
+   - Consider using Chrome or Firefox as alternatives if Safari issues can't be resolved
+
 #### Getting Help
 If you continue experiencing issues:
 1. Check the browser console (F12 → Console tab) for error messages
 2. Try the app in a different browser to isolate the problem
 3. Ensure you're using a supported browser version (see Browser Compatibility section)
 4. Use the local server installation method for the most reliable experience
+
+### Mobile Browser Troubleshooting
+
+AutoToDo is designed to work seamlessly on mobile devices, but mobile browsers can present unique challenges. This section provides comprehensive solutions for mobile-specific issues.
+
+#### Touch and Interaction Issues
+
+##### Touch Events Not Responding
+- **Symptoms:** Buttons, checkboxes, or input fields don't respond to taps
+- **Solutions:**
+  - Ensure JavaScript is enabled in your mobile browser settings
+  - Try tapping more precisely on the center of interactive elements
+  - Disable any ad blockers or script blockers temporarily
+  - Clear browser cache and reload the page
+  - Try using a different mobile browser (Chrome, Firefox, Safari, Edge)
+
+##### Delayed or Double-Tap Issues
+- **Symptoms:** Need to tap twice or experience delays when interacting with elements
+- **Solutions:**
+  - Disable "double-tap to zoom" in browser settings if available
+  - Use single, deliberate taps rather than quick successive taps
+  - Ensure the viewport meta tag is working properly (refresh the page)
+  - Try rotating device orientation and back to reset touch calibration
+
+##### Scroll and Swipe Conflicts
+- **Symptoms:** Difficulty scrolling through todos or accidental interactions while scrolling
+- **Solutions:**
+  - Use slower, more deliberate scroll gestures
+  - Scroll using empty areas between todo items
+  - If using iOS Safari, disable "Prevent Cross-Site Tracking" temporarily
+  - Clear browser data to reset touch gesture recognition
+
+#### Mobile Layout and Display Issues
+
+##### Cramped or Overlapping Interface
+- **Symptoms:** Elements appear too close together or overlap on small screens
+- **Solutions:**
+  - Rotate device to landscape mode for more space
+  - Zoom out slightly using browser zoom controls (pinch gesture)
+  - Use browser's "Request Desktop Site" for temporary wider layout
+  - Update to latest browser version for improved responsive design support
+
+##### Text Too Small to Read
+- **Symptoms:** Todo text, buttons, or interface elements are difficult to read
+- **Solutions:**
+  - Use device accessibility settings to increase system font size
+  - Zoom in using pinch gesture or browser zoom controls
+  - Enable "Large Text" or "Bold Text" in device accessibility settings
+  - Try landscape orientation for wider text display
+
+##### Cut-off or Hidden Elements
+- **Symptoms:** Parts of the interface are not visible or cut off
+- **Solutions:**
+  - Refresh the page to recalculate viewport dimensions
+  - Rotate device orientation and back to trigger layout recalculation
+  - Clear browser cache and reload
+  - Disable browser zoom and reset to 100% (double-tap address bar area)
+
+#### iOS Safari Specific Issues
+
+##### App Constantly Reloads or Refreshes
+- **Symptoms:** App restarts or loses state when switching between apps
+- **Solutions:**
+  - Add the app to home screen for better memory management
+  - Close unnecessary browser tabs to free up memory
+  - Restart Safari app completely (double-tap home button, swipe up on Safari)
+  - Update iOS to latest version for improved memory management
+
+##### LocalStorage Data Loss
+- **Symptoms:** Todos disappear after closing browser or switching apps
+- **Solutions:**
+  - Disable "Private Browsing" mode - check if URL bar is dark
+  - Turn off "Prevent Cross-Site Tracking" in Safari settings
+  - Enable "Block All Cookies" → Never in Safari settings
+  - Add app to home screen to run in standalone mode
+
+##### Keyboard Issues
+- **Symptoms:** Virtual keyboard doesn't appear, hides content, or causes layout issues
+- **Solutions:**
+  - Tap directly in the center of input fields
+  - If keyboard doesn't appear, double-tap the input field
+  - Scroll manually when keyboard hides input fields
+  - Use "Done" button on keyboard instead of hiding manually
+
+##### Touch Target Problems
+- **Symptoms:** Difficulty tapping small buttons or checkboxes
+- **Solutions:**
+  - Use iOS accessibility feature "AssistiveTouch" for more precise taps
+  - Enable "Button Shapes" in iOS accessibility settings for clearer targets
+  - Try tapping slightly above or below the target if direct taps don't work
+  - Use landscape mode for larger touch targets
+
+#### Android Browser Compatibility
+
+##### Chrome Mobile Issues
+- **Symptoms:** App doesn't load properly or features don't work
+- **Solutions:**
+  - Update Chrome to latest version from Google Play Store
+  - Clear Chrome app data: Settings → Apps → Chrome → Storage → Clear Data
+  - Disable Chrome's "Lite Mode" or "Data Saver" if enabled
+  - Try loading in Chrome's incognito mode to rule out extension conflicts
+
+##### Samsung Internet Browser
+- **Symptoms:** Layout issues or functionality problems
+- **Solutions:**
+  - Enable "Desktop Mode" temporarily to test compatibility
+  - Update Samsung Internet to latest version
+  - Clear browser data and cache
+  - Disable "Smart Anti-Tracking" if todos don't save properly
+
+##### Default Android Browser (older versions)
+- **Symptoms:** App doesn't work on older Android devices
+- **Solutions:**
+  - Install Chrome, Firefox, or Opera for better compatibility
+  - Enable JavaScript in browser settings
+  - Clear all browser data and try again
+  - Consider using "Desktop Site" mode for fuller compatibility
+
+#### Performance Optimization for Mobile
+
+##### App Feels Slow or Unresponsive
+- **Solutions:**
+  - Close other browser tabs to free up memory
+  - Restart browser app completely
+  - Clear browser cache and cookies
+  - Disable browser extensions if any are installed
+  - Free up device storage space (keep at least 1GB free)
+  - Charge device - some browsers reduce performance on low battery
+
+##### Large Number of Todos Causing Lag
+- **Solutions:**
+  - Consider archiving completed todos by deleting them periodically
+  - Use the search feature to filter large lists instead of scrolling
+  - Break down large todos into smaller, more manageable tasks
+  - Clear completed todos regularly using Ctrl+Shift+D
+
+##### Slow Loading or Network Issues
+- **Solutions:**
+  - Use local server method instead of file:// protocol
+  - Ensure strong Wi-Fi or mobile data connection
+  - Disable mobile data restrictions for your browser app
+  - Try loading in airplane mode (if files are cached locally)
+
+#### Battery and Performance Optimization
+
+##### High Battery Usage
+- **Solutions:**
+  - Enable browser's "Data Saver" or "Lite Mode" when available
+  - Use dark theme to reduce screen power consumption
+  - Close the app when not in use rather than leaving it open
+  - Reduce screen brightness while using the app
+
+##### Memory Optimization
+- **Solutions:**
+  - Regularly clear browser cache and data
+  - Close other apps running in background
+  - Restart device if experiencing persistent slowness
+  - Use "Low Power Mode" (iOS) or "Battery Saver" (Android) if needed
+
+#### Mobile-Specific Keyboard Shortcuts
+
+Since mobile devices don't have physical keyboards, most keyboard shortcuts won't work. However:
+- **iOS with External Keyboard:** All keyboard shortcuts work as documented
+- **Android with External Keyboard:** Most shortcuts work, some may require different key combinations
+- **Virtual Keyboards:** Focus shortcuts work - tapping input fields will show relevant virtual keyboards
+- **Voice Input:** Use device voice input features in todo input fields for hands-free todo creation
+
+#### Connectivity and Offline Usage
+
+##### Using AutoToDo Offline
+- **Solutions:**
+  - Load the app while connected to internet first
+  - Once loaded, the app works offline for basic todo operations
+  - Data syncs to localStorage immediately (no internet required)
+  - For local server method, ensure server remains running for offline access
+
+##### Network-Related Issues
+- **Solutions:**
+  - Use local server method (http://localhost:8000) instead of file:// access
+  - Check mobile data or Wi-Fi connectivity
+  - Try different network (mobile data vs Wi-Fi) to isolate issues
+  - Disable VPN temporarily if app doesn't load
+
+#### Getting Mobile-Specific Help
+
+If mobile issues persist:
+1. **Check Device Compatibility:** Ensure iOS 11+ or Android 5.0+ with modern browser
+2. **Test in Different Browser:** Try Chrome, Firefox, Safari, or Edge mobile
+3. **Reset Browser:** Clear all browser data and restart browser app
+4. **Device Restart:** Restart your mobile device to clear memory issues
+5. **Update Everything:** Update browser app, device OS, and clear storage space
+6. **Use Desktop Version Temporarily:** For complex todo management, use desktop browser as backup
+
+**Mobile Browser Testing Priority:**
+1. Chrome Mobile (best compatibility)
+2. Safari iOS (if on iPhone/iPad) 
+3. Firefox Mobile (good fallback)
+4. Samsung Internet (Android Samsung devices)
+5. Edge Mobile (Microsoft ecosystem)
 
 ## Features
 - ✅ Create new todos with a simple form

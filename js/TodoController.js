@@ -6,6 +6,11 @@ class TodoController {
         this.model = model;
         this.view = view;
         this.searchTerm = '';
+        
+        // Performance optimizations
+        this.searchMonitor = PerformanceUtils.createMonitor('Search Performance');
+        this.debouncedSearch = PerformanceUtils.debounce(this.performSearch.bind(this), 300);
+        
         this.keyboardManager = new KeyboardShortcutManager({
             debug: false, // Set to true for debugging
             enableLogging: false,
@@ -84,13 +89,31 @@ class TodoController {
      * Set up keyboard shortcuts using the enhanced KeyboardShortcutManager
      */
     setupKeyboardShortcuts() {
-        // Register editing context
-        this.keyboardManager.registerContext('editing', () => this.view.isEditing());
-        
-        // Get all handler functions from the KeyboardHandlers class
-        const handlers = this.keyboardHandlers.getAllHandlers();
+        try {
+            this._initializeKeyboardContext();
+            this._registerAllShortcuts();
+            this._validateCriticalShortcuts();
+            this._logSetupCompletion();
+        } catch (error) {
+            console.error('Failed to setup keyboard shortcuts:', error);
+            this._registerEmergencyShortcuts();
+        }
+    }
 
-        // Get shortcuts configuration and register all shortcuts
+    /**
+     * Initialize keyboard context for editing
+     * @private
+     */
+    _initializeKeyboardContext() {
+        this.keyboardManager.registerContext('editing', () => this.view.isEditing());
+    }
+
+    /**
+     * Register all keyboard shortcuts from configuration
+     * @private
+     */
+    _registerAllShortcuts() {
+        const handlers = this.keyboardHandlers.getAllHandlers();
         const shortcuts = ShortcutsConfig.getShortcuts(handlers);
         
         // Validate shortcuts before registering
@@ -99,24 +122,46 @@ class TodoController {
             console.warn('Shortcut validation found errors:', validation);
         }
         
-        // Register all shortcuts with error handling
-        let registeredCount = 0;
-        shortcuts.forEach(shortcut => {
+        // Register shortcuts with batch error handling
+        this.registeredCount = 0;
+        shortcuts.forEach((shortcut, index) => {
             try {
                 this.keyboardManager.registerShortcut(shortcut);
-                registeredCount++;
+                this.registeredCount++;
             } catch (error) {
-                console.error('Failed to register shortcut:', shortcut, error);
+                console.error(`Failed to register shortcut ${index}:`, shortcut, error);
             }
         });
-        
-        // Verify critical shortcuts are registered
+
+        this.totalShortcuts = shortcuts.length;
+    }
+
+    /**
+     * Validate that critical shortcuts are registered
+     * @private
+     */
+    _validateCriticalShortcuts() {
         this.verifyCriticalShortcuts();
-        
+    }
+
+    /**
+     * Log setup completion information
+     * @private
+     */
+    _logSetupCompletion() {
         if (this.keyboardManager.options.debug) {
-            console.log(`Keyboard shortcuts setup completed: ${registeredCount}/${shortcuts.length} shortcuts registered`);
+            console.log(`Keyboard shortcuts setup completed: ${this.registeredCount}/${this.totalShortcuts} shortcuts registered`);
             console.log('Debug info:', this.keyboardManager.getDebugInfo());
         }
+    }
+
+    /**
+     * Register emergency shortcuts if main setup fails
+     * @private
+     */
+    _registerEmergencyShortcuts() {
+        console.log('Registering emergency shortcuts due to setup failure...');
+        this.registerFallbackShortcuts();
     }
 
     /**
@@ -304,12 +349,33 @@ class TodoController {
     }
 
     /**
-     * Handle search input changes
+     * Handle search input changes with debouncing for performance
      * @param {string} searchTerm - The search term
      */
     handleSearch(searchTerm) {
+        // Update search term immediately for UI responsiveness
         this.searchTerm = searchTerm;
-        this.render();
+        
+        // Debounce the actual search to avoid excessive filtering
+        this.debouncedSearch(searchTerm);
+    }
+    
+    /**
+     * Perform the actual search operation (debounced)
+     * @param {string} searchTerm - The search term
+     * @private
+     */
+    performSearch(searchTerm) {
+        this.searchMonitor.start();
+        
+        try {
+            // Only render if the search term hasn't changed
+            if (this.searchTerm === searchTerm) {
+                this.render();
+            }
+        } finally {
+            this.searchMonitor.end();
+        }
     }
 
     /**
@@ -463,10 +529,22 @@ class TodoController {
     }
 
     /**
-     * Get application statistics
-     * @returns {Object} Stats object with todo counts
+     * Get application statistics including performance data
+     * @returns {Object} Stats object with todo counts and performance metrics
      */
     getStats() {
-        return this.model.getStats();
+        const modelStats = this.model.getStats();
+        const viewStats = this.view.getPerformanceStats();
+        const searchStats = this.searchMonitor.getStats();
+        
+        return {
+            ...modelStats,
+            performance: {
+                view: viewStats,
+                search: searchStats,
+                isMobile: PerformanceUtils.isMobile(),
+                isSafari: PerformanceUtils.isSafari()
+            }
+        };
     }
 }
