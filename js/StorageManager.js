@@ -77,11 +77,6 @@ class StorageManager {
             this.verificationInterval = 2; // Verify every 2 operations
             console.log('StorageManager: Safari 14+ mode enabled with enhanced data protection');
         }
-        
-        // Notify if in private browsing mode
-        if (this.isPrivateBrowsing) {
-            this.notifyPrivateBrowsing();
-        }
     }
 
     /**
@@ -240,10 +235,62 @@ class StorageManager {
                     notification.parentNode.removeChild(notification);
                 }
             }, 5000);
-        }
+    /**
+     * Create an emergency fallback system if module initialization fails
+     * Provides basic functionality even if the modular system can't be initialized
+     */
+    createEmergencyFallback() {
+        console.warn('StorageManager: Using emergency fallback system');
+        
+        this.memoryStorage = new Map();
+        this.storageType = 'memory';
+        this.isPrivateMode = true;
+        this.hasLocalStorage = false;
+        this.hasSessionStorage = false;
+        
+        // Create minimal operations object for emergency use
+        this.operations = {
+            getItem: (key) => this.memoryStorage.get(key) || null,
+            setItem: (key, value) => { this.memoryStorage.set(key, value); return true; },
+            removeItem: (key) => { this.memoryStorage.delete(key); return true; },
+            clear: () => { this.memoryStorage.clear(); return true; },
+            isAvailable: () => true
+        };
     }
 
     /**
+     * Log initialization results for debugging and monitoring
+     * Provides detailed information about the storage system setup
+     */
+    logInitialization() {
+        const info = this.getStorageInfo();
+        
+        console.log(`StorageManager initialized successfully:`, {
+            primaryStorage: info.currentType,
+            privateMode: info.isPrivateMode,
+            capabilities: {
+                localStorage: info.hasLocalStorage,
+                sessionStorage: info.hasSessionStorage
+            },
+            modulesLoaded: {
+                detector: !!this.detector,
+                fallbackHandler: !!this.fallbackHandler,
+                operations: !!this.operations
+            }
+        });
+
+        if (info.isPrivateMode) {
+            console.warn('StorageManager: Private browsing mode detected - enhanced fallbacks active');
+        }
+    }
+
+    // ============================================================================
+    // PUBLIC API METHODS
+    // These methods provide the main interface for storage operations
+    // ============================================================================
+
+    /**
+<<<<<<< HEAD
      * Initialize legacy compatibility properties
      * Maintains compatibility with existing code that expects certain properties
      */
@@ -319,6 +366,8 @@ class StorageManager {
     // ============================================================================
 
     /**
+=======
+>>>>>>> main
      * Get an item from storage with comprehensive fallback support
      * 
      * This method attempts to retrieve data using the most reliable mechanism
