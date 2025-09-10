@@ -346,26 +346,31 @@ class KeyboardHandlers {
     }
 
     /**
-     * Focus the search input field
+     * Focus the search input field and handle the '/' character appropriately
+     * This is called when the '/' shortcut is triggered
+     * @param {Event} event - The keyboard event that triggered this
      */
-    focusSearchInput() {
-        // Add small delay to ensure DOM is ready and avoid race conditions
-        setTimeout(() => {
-            const searchInput = document.getElementById('searchInput');
-            if (searchInput && typeof searchInput.focus === 'function') {
-                try {
-                    searchInput.focus();
-                    // Only select text if focus was successful and element is focusable
-                    if (document.activeElement === searchInput && typeof searchInput.select === 'function') {
-                        searchInput.select();
-                    }
-                } catch (error) {
-                    console.warn('KeyboardHandlers: Failed to focus search input:', error.message);
+    focusSearchInput(event) {
+        const searchInput = document.getElementById('searchInput');
+        if (searchInput) {
+            const wasAlreadyFocused = document.activeElement === searchInput;
+            
+            if (!wasAlreadyFocused) {
+                // Prevent the default '/' from being typed since we'll handle it ourselves
+                if (event) {
+                    event.preventDefault();
                 }
-            } else {
-                console.warn('KeyboardHandlers: Search input element not found or not focusable');
+                
+                searchInput.focus();
+                // Clear any existing text and add the '/' character
+                searchInput.value = '/';
+                // Position cursor after the '/' character (at index 1) so users can immediately continue typing their search query
+                searchInput.setSelectionRange(1, 1);
+                // Trigger input event to update search
+                searchInput.dispatchEvent(new Event('input', { bubbles: true }));
             }
-        }, 0);
+            // If already focused, don't prevent default - let the '/' be typed normally
+        }
     }
 
     // =================
