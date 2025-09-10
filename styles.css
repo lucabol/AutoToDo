@@ -1,50 +1,319 @@
-/* AutoToDo Styles */
+/* AutoToDo Styles - Performance Optimized */
+
+/* Performance Optimizations */
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
 }
 
-:root {
-    /* Light theme colors */
-    --bg-primary: #f5f5f7;
-    --bg-secondary: white;
-    --bg-tertiary: #fafafa;
-    --bg-quaternary: #f8f8f8;
-    --bg-hover: #f0f0f2;
-    --text-primary: #1d1d1f;
-    --text-secondary: #86868b;
-    --border-primary: #e5e5e7;
-    --border-hover: #d1d1d6;
-    --accent-primary: #007aff;
-    --accent-hover: #0056cc;
-    --success: #34c759;
-    --warning: #ff9500;
-    --warning-hover: #e6850e;
-    --danger: #ff3b30;
-    --danger-hover: #d70015;
-    --shadow: rgba(0, 0, 0, 0.1);
+/* Enable hardware acceleration and optimizations */
+.todo-list {
+    contain: layout style paint;
+    transform: translateZ(0);
+    will-change: auto;
+    backface-visibility: hidden;
 }
 
+/* ========================================================================
+ * SAFARI-SPECIFIC PERFORMANCE AND DARK MODE OPTIMIZATIONS
+ * ========================================================================
+ * 
+ * PURPOSE: Provides enhanced compatibility and performance optimizations
+ * specifically for Safari's WebKit rendering engine.
+ * 
+ * FEATURES:
+ * - Hardware acceleration enhancements for smoother performance
+ * - Native dark mode integration via color-scheme properties
+ * - Dark mode form element styling for proper rendering
+ * - Custom scrollbar styling that matches theme
+ * 
+ * BROWSER TARGET: Safari (all versions, with enhanced features for 14.3+)
+ */
+@supports (-webkit-appearance: none) {
+    /* ================================================================
+     * ENHANCED HARDWARE ACCELERATION FOR SAFARI WEBKIT ENGINE
+     * ================================================================
+     * Provides additional performance optimizations beyond the base
+     * hardware acceleration, specifically tuned for WebKit.
+     */
+    .todo-list {
+        -webkit-transform: translateZ(0);      /* Force GPU layer */
+        -webkit-backface-visibility: hidden;   /* Prevent flicker */
+        -webkit-perspective: 1000px;           /* Enable 3D context */
+    }
+    
+    /* ================================================================
+     * SAFARI 14.3+ NATIVE DARK MODE INTEGRATION
+     * ================================================================
+     * Enables automatic dark mode detection and native browser
+     * integration. These properties tell Safari to respect system
+     * dark mode preferences and render native elements appropriately.
+     */
+    :root {
+        /* Standard color-scheme property for modern browsers */
+        color-scheme: light dark;
+        /* Safari-specific webkit prefix for enhanced compatibility */
+        -webkit-color-scheme: light dark;
+    }
+    
+    /* ================================================================
+     * SAFARI DARK MODE FORM ELEMENTS AND SCROLLBAR OPTIMIZATIONS
+     * ================================================================
+     * PURPOSE: Ensures form elements and scrollbars render properly
+     * when Safari's automatic dark mode is active.
+     * APPLIES: Only when user has system dark mode enabled
+     * BENEFIT: Consistent styling across all Safari interface elements
+     */
+    @media (prefers-color-scheme: dark) {
+        /* Override Safari's default form styling in dark mode */
+        input, button, select, textarea {
+            -webkit-appearance: none;           /* Remove Safari defaults */
+            background-color: var(--bg-quaternary);
+            color: var(--text-primary);
+            border-color: var(--border-primary);
+        }
+        
+        /* Custom Safari scrollbar styling for dark mode consistency */
+        ::-webkit-scrollbar {
+            width: 8px;
+            background-color: var(--bg-tertiary);
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background-color: var(--border-hover);
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background-color: var(--text-secondary);
+        }
+    }
+}
+
+/* Virtual scroll container styles */
+.virtual-scroll-container {
+    height: 400px;
+    overflow-y: auto;
+    position: relative;
+    contain: strict;
+}
+
+.virtual-scroll-items {
+    position: relative;
+    min-height: 0;
+}
+
+.virtual-scroll-item {
+    position: absolute;
+    left: 0;
+    right: 0;
+    box-sizing: border-box;
+    contain: layout style paint;
+}
+
+/* Optimize todo items for performance */
+.todo-item {
+    contain: layout;
+    will-change: auto;
+}
+
+.todo-item:hover {
+    will-change: transform;
+}
+
+/* Reduce paint on animations */
+.todo-text.completed {
+    contain: paint;
+}
+
+/* Optimize form inputs */
+.edit-input {
+    contain: layout;
+}
+
+/* Performance-optimized search input */
+.search-input {
+    contain: layout;
+    will-change: auto;
+}
+
+.search-input:focus {
+    will-change: contents;
+}
+
+/* ========================================================================
+ * CSS CUSTOM PROPERTIES (VARIABLES) FOR THEME MANAGEMENT
+ * ========================================================================
+ * 
+ * BASE LAYER: Light theme colors with Safari 14.3+ dark mode support
+ * The color-scheme property enables native browser dark mode detection
+ */
+:root {
+    /* ================================================================
+     * SAFARI 14.3+ NATIVE DARK MODE SUPPORT
+     * ================================================================
+     * PURPOSE: Tells the browser this app supports both themes
+     * ENABLES: Automatic detection of system theme preference
+     * BENEFIT: Native browser integration with OS dark mode settings
+     */
+    color-scheme: light dark;
+    
+    /* ================================================================
+     * DEFAULT LIGHT THEME COLOR PALETTE
+     * ================================================================
+     * These variables define the default (light) appearance and serve
+     * as fallbacks. They are automatically overridden by the media
+     * query above when system dark mode is detected.
+     */
+    
+    /* Background Colors - Light and airy with subtle variations */
+    --bg-primary: #f5f5f7;        /* Main app background - light gray */
+    --bg-secondary: white;         /* Container background - pure white */
+    --bg-tertiary: #fafafa;       /* Card/item background - off-white */
+    --bg-quaternary: #f8f8f8;     /* Input/form background - light gray */
+    --bg-hover: #f0f0f2;          /* Interactive hover states */
+    
+    /* Text Colors - Dark on light for optimal readability */
+    --text-primary: #1d1d1f;      /* Primary text - near black */
+    --text-secondary: #86868b;    /* Secondary text - medium gray */
+    
+    /* Border Colors - Subtle definition with soft contrast */
+    --border-primary: #e5e5e7;    /* Default borders - light gray */
+    --border-hover: #d1d1d6;      /* Interactive borders - medium gray */
+    
+    /* Accent Colors - iOS system blue for familiarity */
+    --accent-primary: #007aff;    /* Primary actions - iOS blue */
+    --accent-hover: #0056cc;      /* Primary hover - darker blue */
+    
+    /* Status Colors - Standard meanings with good contrast */
+    --success: #34c759;           /* Success states - green */
+    --warning: #ff9500;           /* Warning states - orange */
+    --warning-hover: #e6850e;     /* Warning hover - darker orange */
+    --danger: #ff3b30;            /* Danger states - red */
+    --danger-hover: #d70015;      /* Danger hover - darker red */
+    
+    /* Effects - Subtle shadows for depth without heaviness */
+    --shadow: rgba(0, 0, 0, 0.1); /* Light shadows for subtle elevation */
+}
+
+/* ========================================================================
+ * AUTOMATIC DARK MODE DETECTION FOR MODERN BROWSERS
+ * ========================================================================
+ * 
+ * PURPOSE: This media query automatically detects when the user's operating
+ * system is set to dark mode and applies dark theme colors without requiring
+ * any manual action from the user.
+ * 
+ * HOW IT WORKS:
+ * - Browser queries the OS for theme preference via 'prefers-color-scheme'
+ * - When OS is in dark mode, this media query activates automatically
+ * - Overrides the default light theme colors defined in :root
+ * - Provides seamless integration with system preferences
+ * 
+ * BROWSER SUPPORT:
+ * - Safari 14.3+: Full support with native color-scheme integration
+ * - Chrome 76+: Full support via CSS media queries
+ * - Firefox 67+: Full support via CSS media queries
+ * - Edge 79+: Full support via CSS media queries
+ * 
+ * PRIORITY: Lower than manual .dark-theme class (no !important declarations)
+ * This allows manual theme selection to override automatic detection
+ */
+@media (prefers-color-scheme: dark) {
+    :root {
+        /* ================================================================
+         * AUTOMATIC DARK THEME COLOR PALETTE
+         * ================================================================
+         * Applied automatically when system dark mode is detected.
+         * These colors provide optimal contrast and readability in dark
+         * environments while maintaining visual hierarchy and accessibility.
+         */
+        
+        /* Background Colors - Progressive depth for visual hierarchy */
+        --bg-primary: #1c1c1e;        /* Main app background - deepest dark */
+        --bg-secondary: #2c2c2e;      /* Container background - medium dark */
+        --bg-tertiary: #3a3a3c;       /* Card/item background - lighter dark */
+        --bg-quaternary: #48484a;     /* Input/form background - lightest dark */
+        --bg-hover: #4a4a4c;          /* Interactive hover states */
+        
+        /* Text Colors - High contrast for readability */
+        --text-primary: #ffffff;      /* Primary text - pure white for max contrast */
+        --text-secondary: #98989d;    /* Secondary text - muted gray for hierarchy */
+        
+        /* Border Colors - Subtle definition without harsh lines */
+        --border-primary: #48484a;    /* Default borders - blend with backgrounds */
+        --border-hover: #6d6d70;      /* Interactive borders - visible on hover */
+        
+        /* Accent Colors - Bright and vibrant for dark backgrounds */
+        --accent-primary: #0a84ff;    /* Primary actions - iOS system blue */
+        --accent-hover: #409cff;      /* Primary hover - lighter blue */
+        
+        /* Status Colors - Enhanced brightness for visibility */
+        --success: #32d74b;           /* Success states - bright green */
+        --warning: #ff9f0a;           /* Warning states - bright orange */
+        --warning-hover: #ffb340;     /* Warning hover - lighter orange */
+        --danger: #ff453a;            /* Danger states - bright red */
+        --danger-hover: #ff6961;      /* Danger hover - lighter red */
+        
+        /* Effects - Enhanced shadows for depth in dark theme */
+        --shadow: rgba(0, 0, 0, 0.3); /* Stronger shadows for visual separation */
+    }
+}
+
+/* ========================================================================
+ * MANUAL DARK THEME OVERRIDE WITH HIGH SPECIFICITY
+ * ========================================================================
+ * 
+ * PURPOSE: Ensures manual theme selection always takes precedence over
+ * automatic system detection when user explicitly chooses a theme.
+ * 
+ * HOW IT WORKS:
+ * - Uses CSS class selector with !important declarations
+ * - Higher specificity than @media query rules
+ * - Applied when user manually toggles theme via button
+ * - Persists across browser sessions via localStorage
+ * 
+ * PRIORITY: Highest (overrides automatic detection and system preferences)
+ * This allows users to choose opposite of their system preference
+ */
 .dark-theme {
-    /* Dark theme colors */
-    --bg-primary: #1c1c1e;
-    --bg-secondary: #2c2c2e;
-    --bg-tertiary: #3a3a3c;
-    --bg-quaternary: #48484a;
-    --bg-hover: #4a4a4c;
-    --text-primary: #ffffff;
-    --text-secondary: #98989d;
-    --border-primary: #48484a;
-    --border-hover: #6d6d70;
-    --accent-primary: #0a84ff;
-    --accent-hover: #409cff;
-    --success: #32d74b;
-    --warning: #ff9f0a;
-    --warning-hover: #ffb340;
-    --danger: #ff453a;
-    --danger-hover: #ff6961;
-    --shadow: rgba(0, 0, 0, 0.3);
+    /* ================================================================
+     * HIGH-PRIORITY DARK THEME VARIABLES
+     * ================================================================
+     * The !important declarations ensure manual selection beats all
+     * automatic detection mechanisms including media queries.
+     * Applied when user explicitly chooses dark theme via toggle.
+     */
+    
+    /* Background Colors - Same as automatic dark mode for consistency */
+    --bg-primary: #1c1c1e !important;        /* Main app background */
+    --bg-secondary: #2c2c2e !important;      /* Container background */
+    --bg-tertiary: #3a3a3c !important;       /* Card/item background */
+    --bg-quaternary: #48484a !important;     /* Input/form background */
+    --bg-hover: #4a4a4c !important;          /* Interactive hover states */
+    
+    /* Text Colors - High contrast for readability */
+    --text-primary: #ffffff !important;      /* Primary text - pure white */
+    --text-secondary: #98989d !important;    /* Secondary text - muted gray */
+    
+    /* Border Colors - Subtle definition without harsh lines */
+    --border-primary: #48484a !important;    /* Default borders */
+    --border-hover: #6d6d70 !important;      /* Interactive borders */
+    
+    /* Accent Colors - Bright and vibrant for dark backgrounds */
+    --accent-primary: #0a84ff !important;    /* Primary actions */
+    --accent-hover: #409cff !important;      /* Primary hover states */
+    
+    /* Status Colors - Enhanced brightness for visibility */
+    --success: #32d74b !important;           /* Success states */
+    --warning: #ff9f0a !important;           /* Warning states */
+    --warning-hover: #ffb340 !important;     /* Warning hover states */
+    --danger: #ff453a !important;            /* Danger states */
+    --danger-hover: #ff6961 !important;      /* Danger hover states */
+    
+    /* Effects - Enhanced shadows for depth in dark theme */
+    --shadow: rgba(0, 0, 0, 0.3) !important; /* Stronger shadows */
 }
 
 body {
@@ -270,11 +539,49 @@ h1 {
     margin-bottom: 8px;
     background: var(--bg-tertiary);
     transition: all 0.3s ease;
+    cursor: move;
 }
 
 .todo-item:hover {
     background: var(--bg-hover);
     border-color: var(--border-hover);
+}
+
+.todo-item.dragging {
+    opacity: 0.5;
+    transform: scale(1.05);
+    z-index: 1000;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.todo-item.drag-over {
+    border-color: #007aff;
+    background: #e3f2fd;
+    transform: translateY(-2px);
+}
+
+.drag-handle {
+    color: #86868b;
+    font-size: 18px;
+    cursor: grab;
+    user-select: none;
+    padding: 4px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.drag-handle:hover {
+    color: #007aff;
+}
+
+.drag-handle:focus {
+    outline: 2px solid #007aff;
+    outline-offset: 2px;
+    color: #007aff;
+}
+
+.drag-handle:active {
+    cursor: grabbing;
 }
 
 .todo-checkbox {
@@ -369,6 +676,47 @@ h1 {
 .cancel-btn {
     background: var(--text-secondary);
     color: white;
+}
+
+/* Drag handle styles for unsupported browsers */
+.drag-handle-disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+    color: #999;
+    font-weight: bold;
+    font-size: 14px;
+    user-select: none;
+    padding: 0 8px;
+    border-radius: 4px;
+}
+
+.drag-handle-disabled:focus {
+    outline: 2px solid #999;
+    outline-offset: 2px;
+}
+
+/* Accessibility Media Queries */
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .drag-handle, .drag-handle-disabled {
+        border: 1px solid;
+    }
+    
+    .todo-item:focus-within {
+        border: 2px solid;
+    }
+}
+
+/* Reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+    .todo-item.dragging,
+    .todo-item.drag-over,
+    .drag-handle {
+        transition: none !important;
+        transform: none !important;
+        animation: none !important;
+    }
 }
 
 /* Keyboard Shortcuts Help Modal */

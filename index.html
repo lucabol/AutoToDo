@@ -22,6 +22,7 @@
                 class="search-input" 
                 id="searchInput" 
                 placeholder="Search todos..."
+                aria-label="Search todos"
             >
             <button class="clear-search-btn" id="clearSearchBtn" type="button">Clear</button>
         </div>
@@ -37,12 +38,13 @@
                 class="todo-input" 
                 id="todoInput" 
                 placeholder="What needs to be done?"
+                aria-label="Enter new todo"
                 required
             >
-            <button type="submit" class="add-btn">Add Todo</button>
+            <button type="submit" class="add-btn" aria-label="Add new todo">Add Todo</button>
         </form>
 
-        <ul class="todo-list" id="todoList">
+        <ul class="todo-list" id="todoList" role="list" aria-label="Todo items">
             <!-- Todos will be dynamically inserted here -->
         </ul>
 
@@ -52,7 +54,17 @@
     </div>
 
     <!-- JavaScript Modules -->
+    <script src="js/StorageManager.js"></script>
+    <script src="js/PerformanceUtils.js"></script>
+    <script src="js/VirtualScrollManager.js"></script>
+    <script src="js/ShortcutModules.js"></script>
     <script src="js/ShortcutsConfig.js"></script>
+    <!-- Keyboard Shortcut Manager Utilities -->
+    <script src="js/ShortcutValidator.js"></script>
+    <script src="js/ShortcutCache.js"></script>
+    <script src="js/ShortcutStatistics.js"></script>
+    <script src="js/DebugLogger.js"></script>
+    <!-- Main Keyboard Shortcut Manager -->
     <script src="js/KeyboardShortcutManager.js"></script>
     <script src="js/HelpModalBuilder.js"></script>
     <script src="js/KeyboardHandlers.js"></script>

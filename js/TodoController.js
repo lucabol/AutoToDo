@@ -9,6 +9,14 @@ class TodoController {
         this.searchDebounceTimer = null;
         this.showArchived = false; // New flag for showing archived todos
         
+        // Drag and drop functionality
+        this.draggedId = null;
+        this.dragDropSupported = this.checkDragDropSupport();
+        
+        // Performance optimizations
+        this.searchMonitor = PerformanceUtils.createMonitor('Search Performance');
+        this.debouncedSearch = PerformanceUtils.debounce(this.performSearch.bind(this), 300);
+        
         // Configuration options with defaults
         this.options = {
             searchDebounceDelay: 150, // Default 150ms debounce delay
@@ -28,29 +36,59 @@ class TodoController {
     }
 
     /**
+     * Check if browser supports HTML5 Drag and Drop API
+     * @returns {boolean} True if drag and drop is supported
+     */
+    checkDragDropSupport() {
+        // Check for essential drag and drop features
+        const testElement = document.createElement('div');
+        
+        return (
+            'draggable' in testElement &&
+            'ondragstart' in testElement &&
+            'ondrop' in testElement &&
+            typeof DataTransfer !== 'undefined' &&
+            typeof DragEvent !== 'undefined'
+        );
+    }
+
+    /**
      * Initialize the controller and set up event listeners
      */
     init() {
         this.bindEvents();
+        this.handleDragDropCompatibility();
         this.initializeTheme();
         this.setupKeyboardShortcuts();
         this.render();
     }
 
     /**
+     * Handle drag and drop compatibility
+     */
+    handleDragDropCompatibility() {
+        if (!this.dragDropSupported) {
+            this.view.showDragDropUnsupportedMessage();
+        }
+    }
+
+    /**
      * Initialize theme management
      */
     initializeTheme() {
+        // Use the same storage manager as the model
+        this.storage = this.model.storage;
+        
         // Check for saved theme preference or system preference
-        const savedTheme = localStorage.getItem('todo-theme');
+        const savedTheme = this.storage.getItem('todo-theme');
         const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
         
         const initialTheme = savedTheme || (systemPrefersDark ? 'dark' : 'light');
-        this.setTheme(initialTheme, false); // false = don't save to localStorage on init
+        this.setTheme(initialTheme, false); // false = don't save to storage on init
         
         // Listen for system theme changes
         window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
-            if (!localStorage.getItem('todo-theme')) {
+            if (!this.storage.getItem('todo-theme')) {
                 this.setTheme(e.matches ? 'dark' : 'light', false);
             }
         });
@@ -59,7 +97,7 @@ class TodoController {
     /**
      * Set the application theme
      * @param {string} theme - 'light' or 'dark'
-     * @param {boolean} save - Whether to save preference to localStorage
+     * @param {boolean} save - Whether to save preference to storage
      */
     setTheme(theme, save = true) {
         const body = document.body;
@@ -77,8 +115,9 @@ class TodoController {
             if (themeText) themeText.textContent = 'Dark';
         }
 
-        if (save) {
-            localStorage.setItem('todo-theme', theme);
+        if (save && this.storage) {
+            this.storage.setItem('todo-theme', theme);
+        }
         }
 
         this.currentTheme = theme;
@@ -242,6 +281,133 @@ class TodoController {
     }
 
     /**
+     * Initialize keyboard context for editing
+     * @private
+     */
+    _initializeKeyboardContext() {
+        this.keyboardManager.registerContext('editing', () => this.view.isEditing());
+    }
+
+    /**
+     * Register all keyboard shortcuts from configuration
+     * @private
+     */
+    _registerAllShortcuts() {
+        const handlers = this.keyboardHandlers.getAllHandlers();
+        const shortcuts = ShortcutsConfig.getShortcuts(handlers);
+        
+        // Validate shortcuts before registering
+        const validation = ShortcutsConfig.validateShortcutCollection(shortcuts);
+        if (validation.errors > 0) {
+            console.warn('Shortcut validation found errors:', validation);
+        }
+        
+        // Register shortcuts with batch error handling
+        this.registeredCount = 0;
+        shortcuts.forEach((shortcut, index) => {
+            try {
+                this.keyboardManager.registerShortcut(shortcut);
+                this.registeredCount++;
+            } catch (error) {
+                console.error(`Failed to register shortcut ${index}:`, shortcut, error);
+            }
+        });
+
+        this.totalShortcuts = shortcuts.length;
+    }
+
+    /**
+     * Validate that critical shortcuts are registered
+     * @private
+     */
+    _validateCriticalShortcuts() {
+        this.verifyCriticalShortcuts();
+    }
+
+    /**
+     * Log setup completion information
+     * @private
+     */
+    _logSetupCompletion() {
+        if (this.keyboardManager.options.debug) {
+            console.log(`Keyboard shortcuts setup completed: ${this.registeredCount}/${this.totalShortcuts} shortcuts registered`);
+            console.log('Debug info:', this.keyboardManager.getDebugInfo());
+        }
+    }
+
+    /**
+     * Register emergency shortcuts if main setup fails
+     * @private
+     */
+    _registerEmergencyShortcuts() {
+        console.log('Registering emergency shortcuts due to setup failure...');
+        this.registerFallbackShortcuts();
+    }
+
+    /**
+     * Verify that critical shortcuts like Ctrl+F are properly registered
+     * @private
+     */
+    verifyCriticalShortcuts() {
+        const criticalShortcuts = [
+            { key: 'f', ctrlKey: true, context: 'global', name: 'Ctrl+F (Focus Search)' },
+            { key: '/', ctrlKey: false, context: 'global', name: '/ (Focus Search)' },
+            { key: 'n', ctrlKey: true, context: 'global', name: 'Ctrl+N (Focus New Todo)' }
+        ];
+        
+        for (const critical of criticalShortcuts) {
+            const shortcutKey = this.keyboardManager.generateShortcutKey(
+                critical.key, critical.ctrlKey, false, false, critical.context
+            );
+            
+            const registered = this.keyboardManager.shortcuts.has(shortcutKey);
+            if (!registered) {
+                console.error(`Critical shortcut not registered: ${critical.name}`);
+                // Try to re-register this specific shortcut
+                this.registerFallbackShortcuts();
+                break;
+            }
+        }
+    }
+
+    /**
+     * Register fallback shortcuts for critical functionality
+     * @private
+     */
+    registerFallbackShortcuts() {
+        console.log('Registering fallback shortcuts...');
+        
+        // Ensure search focus shortcuts are available
+        const searchFocus = () => this.keyboardHandlers.focusSearchInput();
+        const todoFocus = () => this.keyboardHandlers.focusNewTodoInput();
+        
+        try {
+            this.keyboardManager.registerShortcut({
+                key: 'f',
+                ctrlKey: true,
+                context: 'global',
+                action: searchFocus,
+                preventDefault: true,
+                description: 'Focus search input (Ctrl+F) - Fallback',
+                category: 'Navigation'
+            });
+            
+            this.keyboardManager.registerShortcut({
+                key: '/',
+                context: 'global',
+                action: searchFocus,
+                preventDefault: true,
+                description: 'Focus search input (/) - Fallback',
+                category: 'Navigation'
+            });
+            
+            console.log('Fallback shortcuts registered successfully');
+        } catch (error) {
+            console.error('Failed to register fallback shortcuts:', error);
+        }
+    }
+
+    /**
      * Set up all event listeners using event delegation
      */
     bindEvents() {
@@ -251,6 +417,7 @@ class TodoController {
         this.bindTodoListClick();
         this.bindTodoListSubmit();
         this.bindTodoListChange();
+        this.bindDragAndDrop();
         this.bindThemeToggle();
         this.bindKeyboardShortcuts();
         this.bindArchiveControls();
@@ -416,6 +583,45 @@ class TodoController {
         document.addEventListener('keydown', (e) => {
             this.keyboardManager.handleKeyboard(e);
         });
+        
+        // Add keyboard support for drag handles
+        this.view.todoList.addEventListener('keydown', (e) => {
+            this.handleDragHandleKeyboard(e);
+        });
+    }
+
+    /**
+     * Bind drag and drop event handlers
+     */
+    bindDragAndDrop() {
+        // Only bind drag and drop events if supported
+        if (!this.dragDropSupported) {
+            return;
+        }
+
+        this.view.todoList.addEventListener('dragstart', (e) => {
+            this.handleDragStart(e);
+        });
+
+        this.view.todoList.addEventListener('dragover', (e) => {
+            this.handleDragOver(e);
+        });
+
+        this.view.todoList.addEventListener('drop', (e) => {
+            this.handleDrop(e);
+        });
+
+        this.view.todoList.addEventListener('dragend', (e) => {
+            this.handleDragEnd(e);
+        });
+
+        this.view.todoList.addEventListener('dragenter', (e) => {
+            this.handleDragEnter(e);
+        });
+
+        this.view.todoList.addEventListener('dragleave', (e) => {
+            this.handleDragLeave(e);
+        });
     }
 
     /**
@@ -440,45 +646,33 @@ class TodoController {
     }
 
     /**
-     * Handle search input changes with debouncing for better performance
+     * Handle search input changes with debouncing for performance
      * @param {string} searchTerm - The search term
      */
     handleSearch(searchTerm) {
-        // Clear any existing debounce timer to reset the delay
-        // This prevents multiple rapid searches from executing simultaneously
-        if (this.searchDebounceTimer) {
-            clearTimeout(this.searchDebounceTimer);
-        }
+        // Update search term immediately for UI responsiveness
+        this.searchTerm = searchTerm;
         
-        // Implement debounced search to optimize performance with large datasets
-        // The delay prevents excessive DOM updates during rapid typing
-        // The configurable delay allows customization for different use cases:
-        // - Lower delay (50-100ms) for responsive UX with smaller lists
-        // - Higher delay (200-300ms) for performance with very large lists
-        this.searchDebounceTimer = setTimeout(() => {
-            // Update the search term and trigger a re-render
-            // This happens only after the user stops typing for the configured delay
-            this.searchTerm = searchTerm;
-            this.render();
-        }, this.options.searchDebounceDelay);
+        // Debounce the actual search to avoid excessive filtering
+        this.debouncedSearch(searchTerm);
     }
-
+    
     /**
-     * Set the search debounce delay (useful for testing and customization)
-     * @param {number} delay - The debounce delay in milliseconds
+     * Perform the actual search operation (debounced)
+     * @param {string} searchTerm - The search term
+     * @private
      */
-    setSearchDebounceDelay(delay) {
-        if (typeof delay === 'number' && delay >= 0) {
-            this.options.searchDebounceDelay = delay;
+    performSearch(searchTerm) {
+        this.searchMonitor.start();
+        
+        try {
+            // Only render if the search term hasn't changed
+            if (this.searchTerm === searchTerm) {
+                this.render();
+            }
+        } finally {
+            this.searchMonitor.end();
         }
-    }
-
-    /**
-     * Get the current search debounce delay
-     * @returns {number} The current debounce delay in milliseconds
-     */
-    getSearchDebounceDelay() {
-        return this.options.searchDebounceDelay;
     }
 
     /**
@@ -544,6 +738,99 @@ class TodoController {
 
         if (action === 'toggle' && id) {
             this.handleToggleTodo(id);
+        }
+    }
+
+    /**
+     * Handle keyboard interactions for drag handles
+     * @param {Event} e - Keyboard event
+     */
+    handleDragHandleKeyboard(e) {
+        // Only handle if target is a drag handle
+        if (!e.target.classList.contains('drag-handle') || !this.dragDropSupported) {
+            return;
+        }
+
+        const todoItem = e.target.closest('.todo-item');
+        if (!todoItem) return;
+
+        const todoId = todoItem.dataset.id;
+        const currentTodos = this.getCurrentTodos();
+        const currentIndex = currentTodos.findIndex(t => t.id === todoId);
+        
+        if (currentIndex === -1) return;
+
+        let newIndex = currentIndex;
+        let moved = false;
+
+        // Arrow keys for reordering
+        switch (e.key) {
+            case 'ArrowUp':
+                if (currentIndex > 0) {
+                    newIndex = currentIndex - 1;
+                    moved = true;
+                }
+                break;
+            case 'ArrowDown':
+                if (currentIndex < currentTodos.length - 1) {
+                    newIndex = currentIndex + 1;
+                    moved = true;
+                }
+                break;
+            case 'Home':
+                if (currentIndex > 0) {
+                    newIndex = 0;
+                    moved = true;
+                }
+                break;
+            case 'End':
+                if (currentIndex < currentTodos.length - 1) {
+                    newIndex = currentTodos.length - 1;
+                    moved = true;
+                }
+                break;
+            case 'Enter':
+            case ' ':
+                // Activate drag handle (could be extended for alternative reorder UI)
+                e.preventDefault();
+                this.view.showMessage(`Todo "${currentTodos[currentIndex].text}" selected. Use arrow keys to move.`, 'info');
+                return;
+        }
+
+        if (moved) {
+            e.preventDefault();
+            this.handleReorderTodo(todoId, newIndex);
+            
+            // Keep focus on the drag handle after reorder
+            setTimeout(() => {
+                const newTodoItem = document.querySelector(`[data-id="${todoId}"] .drag-handle`);
+                if (newTodoItem) {
+                    newTodoItem.focus();
+                }
+            }, 100);
+        }
+    }
+
+    /**
+     * Handle reordering a todo
+     * @param {string} todoId - ID of todo to reorder
+     * @param {number} newIndex - New index position
+     */
+    handleReorderTodo(todoId, newIndex) {
+        // Calculate actual index if we're dealing with filtered results
+        if (this.searchTerm) {
+            const filteredTodos = this.model.filterTodos(this.searchTerm);
+            const allTodos = this.model.getAllTodos();
+            const targetTodo = filteredTodos[newIndex];
+            const actualTargetIndex = allTodos.findIndex(todo => todo.id === targetTodo.id);
+            
+            if (this.model.reorderTodo(todoId, actualTargetIndex)) {
+                this.render();
+            }
+        } else {
+            if (this.model.reorderTodo(todoId, newIndex)) {
+                this.render();
+            }
         }
     }
 
@@ -632,16 +919,139 @@ class TodoController {
      * Render the current state with archive filtering
      */
     render() {
-        const allTodos = this.model.getTodosFiltered(this.showArchived);
-        const filteredTodos = this.model.filterTodos(this.searchTerm, this.showArchived);
-        this.view.render(filteredTodos, allTodos, this.searchTerm, this.showArchived);
+        const allTodos = this.model.getAllTodos();
+        const filteredTodos = this.model.filterTodos(this.searchTerm);
+        this.view.render(filteredTodos, allTodos, this.searchTerm, this.dragDropSupported);
     }
 
     /**
-     * Get application statistics with archive information
-     * @returns {Object} Stats object with todo counts including archived
+     * Get application statistics including performance data
+     * @returns {Object} Stats object with todo counts and performance metrics
      */
     getStats() {
-        return this.model.getStats(this.showArchived);
+        const modelStats = this.model.getStats();
+        const viewStats = this.view.getPerformanceStats();
+        const searchStats = this.searchMonitor.getStats();
+        
+        return {
+            ...modelStats,
+            performance: {
+                view: viewStats,
+                search: searchStats,
+                isMobile: PerformanceUtils.isMobile(),
+                isSafari: PerformanceUtils.isSafari()
+            }
+        };
+    }
+
+    /**
+     * Handle drag start event
+     * @param {Event} e - Drag start event
+     */
+    handleDragStart(e) {
+        const todoItem = e.target.closest('.todo-item');
+        if (!todoItem) return;
+
+        this.draggedId = todoItem.dataset.id;
+        todoItem.classList.add('dragging');
+        
+        // Set drag effect
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/html', todoItem.outerHTML);
+    }
+
+    /**
+     * Handle drag over event
+     * @param {Event} e - Drag over event
+     */
+    handleDragOver(e) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+    }
+
+    /**
+     * Handle drag enter event
+     * @param {Event} e - Drag enter event
+     */
+    handleDragEnter(e) {
+        const todoItem = e.target.closest('.todo-item');
+        if (todoItem && todoItem.dataset.id !== this.draggedId) {
+            todoItem.classList.add('drag-over');
+        }
+    }
+
+    /**
+     * Handle drag leave event
+     * @param {Event} e - Drag leave event
+     */
+    handleDragLeave(e) {
+        const todoItem = e.target.closest('.todo-item');
+        if (todoItem) {
+            todoItem.classList.remove('drag-over');
+        }
+    }
+
+    /**
+     * Handle drop event
+     * @param {Event} e - Drop event
+     */
+    handleDrop(e) {
+        e.preventDefault();
+        
+        const targetItem = e.target.closest('.todo-item');
+        if (!targetItem || !this.draggedId) return;
+
+        const targetId = targetItem.dataset.id;
+        if (targetId === this.draggedId) return;
+
+        // Calculate new index based on current filtered todos
+        const currentTodos = this.searchTerm ? 
+            this.model.filterTodos(this.searchTerm) : 
+            this.model.getAllTodos();
+        
+        const targetIndex = currentTodos.findIndex(todo => todo.id === targetId);
+        
+        // If we're dealing with filtered results, we need to find the actual index in the full list
+        if (this.searchTerm) {
+            const allTodos = this.model.getAllTodos();
+            const targetTodo = currentTodos[targetIndex];
+            const actualTargetIndex = allTodos.findIndex(todo => todo.id === targetTodo.id);
+            
+            if (this.model.reorderTodo(this.draggedId, actualTargetIndex)) {
+                this.render();
+            }
+        } else {
+            if (this.model.reorderTodo(this.draggedId, targetIndex)) {
+                this.render();
+            }
+        }
+
+        // Clean up drag classes
+        targetItem.classList.remove('drag-over');
+    }
+
+    /**
+     * Handle drag end event
+     * @param {Event} e - Drag end event
+     */
+    handleDragEnd(e) {
+        const todoItem = e.target.closest('.todo-item');
+        if (todoItem) {
+            todoItem.classList.remove('dragging');
+        }
+
+        // Clean up all drag-over classes
+        const dragOverItems = this.view.todoList.querySelectorAll('.drag-over');
+        dragOverItems.forEach(item => item.classList.remove('drag-over'));
+
+        this.draggedId = null;
+    }
+
+    /**
+     * Get current todos based on search filter
+     * @returns {Array} Current filtered todos
+     */
+    getCurrentTodos() {
+        return this.searchTerm ? this.model.filterTodos(this.searchTerm) : this.model.getAllTodos();
     }
 }
