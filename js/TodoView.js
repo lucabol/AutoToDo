@@ -178,16 +178,35 @@ class TodoView {
     }
     
     /**
-     * Initialize virtual scrolling manager
+     * Initialize virtual scrolling manager with optimized configuration
+     * 
+     * Creates a VirtualScrollManager instance configured specifically for todo items.
+     * This initialization only happens once per TodoView instance and sets up the
+     * infrastructure needed for high-performance rendering of large todo lists.
+     * 
+     * Configuration Parameters:
+     * - itemHeight (60px): Estimated height for each todo item based on CSS layout
+     * - bufferSize (5): Number of extra items to render outside viewport for smooth scrolling
+     * - renderCallback: Delegates item rendering to renderVirtualTodoItem method
+     * 
+     * Performance Considerations:
+     * - Clears existing DOM content to prevent memory leaks from traditional rendering
+     * - Uses estimated item height for scroll calculations (actual height may vary slightly)
+     * - Buffer size balances smoothness vs memory usage (5 items ≈ 300px buffer)
+     * 
+     * DOM Structure Changes:
+     * After initialization, the todoList container will have a specialized
+     * virtual scrolling structure with spacer elements and viewport management.
      */
     initVirtualScrolling() {
-        // Clear existing content
+        // Clear existing content to prevent conflicts between rendering methods
+        // Virtual scrolling manages its own DOM structure
         this.todoList.innerHTML = '';
         
         this.virtualScrollManager = new VirtualScrollManager({
             container: this.todoList,
-            itemHeight: 60, // Estimated height of each todo item
-            bufferSize: 5,
+            itemHeight: 60, // Matches CSS: .todo-item estimated height
+            bufferSize: 5,  // Render 5 extra items above/below viewport
             renderCallback: (todo, index) => this.renderVirtualTodoItem(todo, index)
         });
     }

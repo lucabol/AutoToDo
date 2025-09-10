@@ -231,8 +231,16 @@ class TodoModel {
 
     /**
      * Archive a todo by ID
-     * @param {string} id - Todo ID to archive
-     * @returns {Object|null} Updated todo object or null if not found
+     * 
+     * Archiving allows users to hide completed or less relevant todos from the main view
+     * while preserving them for future reference or search. Archived todos maintain all
+     * their properties and can be unarchived at any time.
+     * 
+     * This operation is atomic - either the todo is successfully archived and persisted,
+     * or the operation fails without side effects.
+     * 
+     * @param {string} id - Todo ID to archive (must exist in todos array)
+     * @returns {Object|null} Updated todo object with archived=true, or null if todo not found
      */
     archiveTodo(id) {
         const todo = this.todos.find(t => t.id === id);
@@ -246,8 +254,16 @@ class TodoModel {
 
     /**
      * Unarchive a todo by ID
-     * @param {string} id - Todo ID to unarchive
-     * @returns {Object|null} Updated todo object or null if not found
+     * 
+     * Restores an archived todo to the active todo list, making it visible in the main view.
+     * The todo retains all its original properties including completion status, text, and
+     * creation timestamp.
+     * 
+     * This operation is atomic - either the todo is successfully unarchived and persisted,
+     * or the operation fails without side effects.
+     * 
+     * @param {string} id - Todo ID to unarchive (must exist in todos array)
+     * @returns {Object|null} Updated todo object with archived=false, or null if todo not found
      */
     unarchiveTodo(id) {
         const todo = this.todos.find(t => t.id === id);
@@ -260,8 +276,21 @@ class TodoModel {
     }
 
     /**
-     * Archive all completed todos
-     * @returns {number} Number of todos archived
+     * Archive all completed todos in bulk
+     * 
+     * This is a high-efficiency batch operation that archives multiple todos in a single
+     * transaction. It's particularly useful for decluttering the todo list when users
+     * have accumulated many completed items.
+     * 
+     * Performance Characteristics:
+     * - Single iteration through todos array: O(n) time complexity
+     * - Single save operation regardless of number of todos archived
+     * - Atomic operation: either all eligible todos are archived or none are
+     * 
+     * Only todos that are both completed AND not already archived are affected.
+     * This prevents double-archiving and ensures idempotent behavior.
+     * 
+     * @returns {number} Number of todos archived (0 if none were eligible)
      */
     archiveCompleted() {
         let archivedCount = 0;

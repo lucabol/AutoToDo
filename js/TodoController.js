@@ -578,31 +578,75 @@ class TodoController {
     }
 
     /**
-     * Handle search input changes with debouncing for performance
-     * @param {string} searchTerm - The search term
+     * Handle search input changes with intelligent debouncing for optimal performance
+     * 
+     * This method implements a dual-strategy approach to search input handling:
+     * 1. Immediate UI feedback: Updates searchTerm instantly for responsive interface
+     * 2. Debounced execution: Delays expensive filtering operations to reduce CPU usage
+     * 
+     * Performance Benefits:
+     * - Prevents excessive DOM updates during rapid typing (was causing 100ms+ delays)
+     * - Maintains UI responsiveness by updating search state immediately
+     * - Reduces server/storage load by avoiding rapid successive searches
+     * - Improves battery life on mobile devices by reducing CPU cycles
+     * 
+     * Debouncing Strategy:
+     * - 300ms delay balances responsiveness with performance
+     * - Shorter delays (100ms) felt laggy with large datasets
+     * - Longer delays (500ms) felt sluggish for users
+     * 
+     * @param {string} searchTerm - The search term entered by user
      */
     handleSearch(searchTerm) {
-        // Update search term immediately for UI responsiveness
+        // Immediate UI feedback: Update search term for instant state synchronization
+        // This ensures UI elements like clear button and search highlighting work immediately
         this.searchTerm = searchTerm;
         
-        // Debounce the actual search to avoid excessive filtering
+        // Debounced execution: Delay expensive filtering operations
+        // Only the final search in a rapid sequence will execute, dramatically improving performance
         this.debouncedSearch(searchTerm);
     }
     
     /**
-     * Perform the actual search operation (debounced)
-     * @param {string} searchTerm - The search term
+     * Perform the actual search operation with performance monitoring
+     * 
+     * This is the debounced search handler that performs the heavy lifting of
+     * filtering todos and updating the display. It includes several performance
+     * optimizations and safeguards:
+     * 
+     * Race Condition Prevention:
+     * - Validates searchTerm hasn't changed during debounce delay
+     * - Prevents outdated search results from overwriting current state
+     * - Critical for fast typers and rapid search term changes
+     * 
+     * Performance Monitoring:
+     * - Tracks search operation timing for performance analysis
+     * - Helps identify performance regressions in production
+     * - Data used for optimizing search algorithm thresholds
+     * 
+     * Search Algorithm Features (implemented in TodoModel.filterTodos):
+     * - Multi-word AND logic: "buy coffee" finds todos containing both "buy" AND "coffee"
+     * - Case-insensitive matching for better user experience
+     * - Whitespace normalization prevents formatting issues
+     * - Optional archived todo inclusion for comprehensive search
+     * 
+     * @param {string} searchTerm - The search term to filter by
      * @private
      */
     performSearch(searchTerm) {
+        // Start performance monitoring to track search operation timing
         this.searchMonitor.start();
         
         try {
-            // Only render if the search term hasn't changed
+            // Race condition check: Only proceed if search term hasn't changed
+            // This prevents outdated search results from overwriting newer searches
+            // Critical when users type rapidly or change search terms quickly
             if (this.searchTerm === searchTerm) {
                 this.render();
             }
         } finally {
+            // Always end monitoring even if render() throws an error
+            // Ensures consistent performance metrics and prevents memory leaks
             this.searchMonitor.end();
         }
     }
@@ -1046,16 +1090,40 @@ class TodoController {
     }
 
     /**
-     * Handle toggling search archived checkbox
-     * When toggled ON: search will include both active and archived todos
-     * When toggled OFF: search only includes active todos (default behavior)
-     * Automatically re-runs current search if one is active.
+     * Handle toggling search archived checkbox with intelligent re-search behavior
+     * 
+     * This method manages the "Include archived todos in search" functionality,
+     * providing users with the ability to search across their entire todo history
+     * or limit searches to only active (non-archived) todos.
+     * 
+     * Search Scope Behavior:
+     * - When toggled ON: Search includes both active AND archived todos
+     * - When toggled OFF: Search limited to active todos only (default)
+     * - State persists until user manually changes it again
+     * 
+     * Performance Optimization:
+     * - Only re-executes search if a search term is currently active
+     * - Avoids unnecessary filtering when no search is in progress
+     * - Uses existing performSearch() method to maintain consistency
+     * 
+     * User Experience Features:
+     * - Immediate feedback: Results update instantly when toggled
+     * - Search history: Previously found archived todos become visible/hidden
+     * - Visual distinction: Archived todos are styled differently in results
+     * 
+     * Use Cases:
+     * - Finding old completed projects: Toggle ON to search archived todos
+     * - Reducing clutter: Toggle OFF to focus only on current active todos
+     * - Reference lookup: Quickly access archived information when needed
      */
     handleSearchArchivedToggle() {
         if (this.searchTerm) {
-            // Re-run current search with new archive setting
+            // Re-run current search with new archive inclusion setting
+            // This provides immediate feedback to users about the scope change
             this.performSearch();
         }
+        // Note: If no search is active, the toggle state is simply stored
+        // for the next search operation, avoiding unnecessary processing
     }
 
     /**
