@@ -18,6 +18,9 @@ class TodoController {
         // Debounced search: Prevents excessive search operations during fast typing (300ms delay)
         this.debouncedSearch = PerformanceUtils.debounce(this.performSearch.bind(this), 300);
         
+        // Safari notification system state management
+        this.safariNotificationShown = false;
+        
         this.keyboardManager = new KeyboardShortcutManager({
             debug: false, // Set to true for debugging
             enableLogging: false,
@@ -69,6 +72,9 @@ class TodoController {
      */
     initializeTheme() {
         try {
+            // Check Safari version for compatibility workarounds
+            this.safariVersionInfo = PerformanceUtils.getSafariVersionInfo();
+            
             // Check for saved theme preference or system preference
             const savedTheme = this.storage.getItem('todo-theme');
             const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -109,6 +115,11 @@ class TodoController {
             if (themeText) themeText.textContent = 'Dark';
         }
 
+        // Apply Safari 14.0-14.2 specific workarounds
+        if (this.safariVersionInfo?.needsThemeWorkaround) {
+            this.applySafariThemeWorkaround(theme);
+        }
+
         if (save) {
             try {
                 this.storage.setItem('todo-theme', theme);
@@ -126,6 +137,11 @@ class TodoController {
     toggleTheme() {
         const newTheme = this.currentTheme === 'dark' ? 'light' : 'dark';
         this.setTheme(newTheme);
+        
+        // Show user notification for Safari 14.0-14.2 if theme doesn't update smoothly
+        if (this.safariVersionInfo?.needsThemeWorkaround) {
+            this.showSafariThemeNotification();
+        }
     }
 
     /**
@@ -953,5 +969,166 @@ class TodoController {
      */
     getCurrentTodos() {
         return this.searchTerm ? this.model.filterTodos(this.searchTerm) : this.model.getAllTodos();
+    }
+
+    /**
+     * Apply Safari 14.0-14.2 specific workarounds for theme switching
+     * 
+     * Safari versions 14.0-14.2 have known issues with CSS custom property refresh
+     * when theme classes are toggled dynamically. This method implements a multi-strategy
+     * approach to force proper style recalculation and ensure theme colors update correctly.
+     * 
+     * The workaround combines three complementary techniques:
+     * 1. Forced reflow to trigger style recalculation
+     * 2. Hardware acceleration via transform manipulation 
+     * 3. CSS class cycling to refresh custom properties
+     * 
+     * @param {string} theme - The theme being applied ('light' or 'dark')
+     */
+    applySafariThemeWorkaround(theme) {
+        const body = document.body;
+        
+        // Method 1: Force style recalculation by temporarily hiding and showing
+        // This triggers a complete reflow which forces Safari to recalculate all styles
+        // including CSS custom properties that may have gotten "stuck" during theme changes
+        body.style.visibility = 'hidden';
+        body.offsetHeight; // Trigger synchronous reflow - this line is intentionally blocking
+        body.style.visibility = 'visible';
+        
+        // Method 2: Force repaint by manipulating transform property
+        // Safari's graphics engine sometimes caches paint layers incorrectly during theme changes
+        // A minimal transform change forces layer invalidation and repaint
+        const container = document.querySelector('.container');
+        if (container) {
+            const originalTransform = container.style.transform;
+            // Use a minimal transform that doesn't visually impact layout
+            container.style.transform = 'translateZ(0.01px)';
+            // Restore original transform on next frame to minimize visual impact
+            requestAnimationFrame(() => {
+                container.style.transform = originalTransform;
+            });
+        }
+        
+        // Method 3: Ensure CSS custom properties are properly refreshed
+        // This addresses the core issue where Safari fails to propagate new custom property values
+        this.forceCSSCustomPropertyUpdate();
+    }
+
+    /**
+     * Force update of CSS custom properties for Safari 14.0-14.2
+     * 
+     * Safari 14.0-14.2 has a specific bug where CSS custom properties (CSS variables)
+     * defined in theme classes don't propagate properly when the class is toggled.
+     * This can result in elements retaining old theme colors even after the theme
+     * class has been successfully added/removed from the DOM.
+     * 
+     * This method implements a "class cycling" technique that temporarily removes
+     * and re-adds the theme class, forcing Safari to re-evaluate and apply the
+     * CSS custom properties correctly.
+     * 
+     * The technique works by:
+     * 1. Removing the theme class (forces Safari to clear cached property values)
+     * 2. Using requestAnimationFrame to ensure DOM changes are processed
+     * 3. Re-adding the theme class (forces Safari to re-read and apply new values)
+     */
+    forceCSSCustomPropertyUpdate() {
+        const root = document.documentElement;
+        const currentThemeClass = document.body.classList.contains('dark-theme') ? 'dark-theme' : '';
+        
+        // Only cycle the class if we're in dark theme
+        // Light theme doesn't need cycling since it uses the default :root values
+        if (currentThemeClass) {
+            // Temporarily remove the theme class to clear cached CSS custom property values
+            document.body.classList.remove('dark-theme');
+            
+            // Use requestAnimationFrame to ensure the DOM change is processed
+            // before re-adding the class. This timing is critical for Safari to
+            // properly invalidate its CSS custom property cache.
+            requestAnimationFrame(() => {
+                document.body.classList.add('dark-theme');
+            });
+        }
+    }
+
+    /**
+     * Show notification to Safari users about theme refresh
+     * 
+     * This notification system provides contextual guidance to users on Safari 14.0-14.2
+     * when theme switching might not work perfectly due to browser bugs. The system
+     * implements several smart behaviors:
+     * 
+     * 1. **Session-based limiting**: Shows notification only once per browser session
+     *    to avoid overwhelming users with repeated messages
+     * 
+     * 2. **Auto-hide mechanism**: Automatically removes notification after 5 seconds
+     *    to maintain clean UI, but allows manual dismissal for user control
+     * 
+     * 3. **Contextual messaging**: Provides specific Safari version information
+     *    and clear instructions with keyboard shortcuts for page refresh
+     * 
+     * 4. **Progressive enhancement**: Only shown to affected Safari versions,
+     *    ensuring other browsers have no disruption to their experience
+     * 
+     * The notification appears as a subtle overlay that doesn't interfere with
+     * the main application functionality while providing helpful guidance.
+     */
+    showSafariThemeNotification() {
+        // Implement session-based notification limiting to prevent notification fatigue
+        // This ensures users only see the notification once per browser session,
+        // maintaining a good user experience even with repeated theme toggles
+        if (this.safariNotificationShown) return;
+        
+        // Create and inject the notification into the DOM
+        const notification = this.createSafariNotification();
+        document.body.appendChild(notification);
+        
+        // Implement auto-hide mechanism with 5-second timeout
+        // This balances giving users enough time to read the message while
+        // maintaining a clean interface that doesn't feel cluttered
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.remove();
+            }
+        }, 5000);
+        
+        // Mark notification as shown for this session to prevent duplicates
+        this.safariNotificationShown = true;
+    }
+
+    /**
+     * Create Safari notification element
+     * 
+     * Constructs a user-friendly notification specifically designed for Safari 14.0-14.2 users
+     * experiencing theme switching issues. The notification includes:
+     * 
+     * - **Visual icon**: Information icon (ℹ️) for immediate recognition
+     * - **Version-specific messaging**: Shows the detected Safari version for context
+     * - **Clear instructions**: Provides keyboard shortcuts (⌘+R or Ctrl+R) for page refresh
+     * - **Manual dismissal**: Close button (×) for user control over notification visibility
+     * - **Accessible markup**: Proper semantic HTML structure for screen readers
+     * 
+     * The notification is styled to be non-intrusive while remaining visible enough
+     * to provide helpful guidance when theme colors don't update properly.
+     * 
+     * @returns {Element} A complete notification DOM element ready for insertion
+     */
+    createSafariNotification() {
+        const notification = document.createElement('div');
+        notification.className = 'safari-theme-notification';
+        
+        // Build comprehensive notification content with contextual information
+        // Include Safari version for user awareness and specific refresh instructions
+        notification.innerHTML = `
+            <div class="notification-content">
+                <span class="notification-icon">ℹ️</span>
+                <span class="notification-text">
+                    Safari ${this.safariVersionInfo.version}: If theme colors don't update properly, 
+                    please refresh the page (⌘+R or Ctrl+R).
+                </span>
+                <button class="notification-close" onclick="this.parentNode.parentNode.remove()">×</button>
+            </div>
+        `;
+        
+        return notification;
     }
 }

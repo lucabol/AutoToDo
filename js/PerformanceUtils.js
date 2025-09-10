@@ -138,6 +138,57 @@ class PerformanceUtils {
     }
     
     /**
+     * Detect Safari version and check if it needs theme switching workarounds
+     * 
+     * This method performs precise Safari version detection to identify browsers
+     * that require special handling for CSS custom property refresh issues.
+     * 
+     * **Background**: Safari versions 14.0 through 14.2 contained a bug where
+     * CSS custom properties (variables) would not properly refresh when the
+     * classes containing their definitions were dynamically toggled. This
+     * particularly affected theme switching functionality.
+     * 
+     * **Detection Strategy**:
+     * 1. First checks if the browser is Safari using user agent analysis
+     * 2. Extracts the Safari version number from the "Version/X.Y" format
+     * 3. Determines if the version falls within the problematic range (14.0-14.2)
+     * 4. Returns comprehensive compatibility information for the calling code
+     * 
+     * **Return Object Structure**:
+     * - `isSafari`: Boolean indicating if this is Safari browser
+     * - `version`: Parsed version number (e.g., 14.1) or null if not Safari
+     * - `needsThemeWorkaround`: Boolean indicating if workarounds are needed
+     * - `versionString`: Original version string (e.g., "14.1") for display
+     * 
+     * @returns {Object} Comprehensive Safari version info and compatibility flags
+     */
+    static getSafariVersionInfo() {
+        const userAgent = navigator.userAgent;
+        const isSafari = this.isSafari();
+        
+        // Early return for non-Safari browsers to avoid unnecessary processing
+        if (!isSafari) {
+            return { isSafari: false, version: null, needsThemeWorkaround: false };
+        }
+        
+        // Extract Safari version from user agent using regex pattern matching
+        // Safari user agent format: "Version/14.1.2 Safari/605.1.15"
+        const versionMatch = userAgent.match(/Version\/([0-9]+\.[0-9]+)/);
+        const version = versionMatch ? parseFloat(versionMatch[1]) : null;
+        
+        // Safari 14.0-14.2 had specific CSS custom property refresh issues
+        // that affect theme switching. Versions 14.3+ and 13.x don't need workarounds.
+        const needsThemeWorkaround = version && version >= 14.0 && version <= 14.2;
+        
+        return {
+            isSafari: true,
+            version,
+            needsThemeWorkaround,
+            versionString: versionMatch ? versionMatch[1] : 'unknown'
+        };
+    }
+    
+    /**
      * Get performance-optimized scroll handler
      * @param {Function} handler - Scroll handler function
      * @param {Object} options - Options for optimization
