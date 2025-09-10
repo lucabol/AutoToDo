@@ -3,16 +3,23 @@
  * 
  * This utility provides a robust storage solution that automatically falls back to in-memory storage
  * when localStorage is unavailable, has quota exceeded, or throws exceptions.
+ * Includes comprehensive error handling and user notifications for different storage scenarios.
  */
 class StorageManager {
     constructor() {
         this.inMemoryStorage = new Map();
         this.storageType = this.detectStorageType();
         this.isStorageAvailable = this.storageType === 'localStorage';
+        this.isPrivateBrowsing = this.detectPrivateBrowsing();
         
         // Log the storage type being used
         if (!this.isStorageAvailable) {
             console.warn('LocalStorage unavailable. Using in-memory storage. Data will not persist between sessions.');
+        }
+        
+        // Notify if in private browsing mode
+        if (this.isPrivateBrowsing) {
+            this.notifyPrivateBrowsing();
         }
     }
 
@@ -55,6 +62,77 @@ class StorageManager {
             }
             return 'memory';
         }
+    }
+
+    /**
+     * Detect if running in private browsing mode
+     * @returns {boolean} True if likely in private browsing
+     */
+    detectPrivateBrowsing() {
+        try {
+            // Safari private browsing detection
+            if (this.storageType === 'localStorage') {
+                // Try to use localStorage quota
+                const testData = 'x'.repeat(1024 * 1024); // 1MB test
+                localStorage.setItem('__private_test__', testData);
+                localStorage.removeItem('__private_test__');
+                return false;
+            }
+            
+            // If we had to fall back to memory, likely private
+            return this.storageType !== 'localStorage';
+        } catch (error) {
+            // If quota exceeded or other error, likely private browsing
+            return true;
+        }
+    }
+
+    /**
+     * Show notification about private browsing limitations
+     */
+    notifyPrivateBrowsing() {
+        // Only show once per session
+        if (!this.inMemoryStorage.has('__private_notified__')) {
+            console.info('🔒 Private browsing detected. Todos will only persist during this session.');
+            this.inMemoryStorage.set('__private_notified__', true);
+            
+            // Show user-friendly notification if possible
+            this.showUserNotification();
+        }
+    }
+
+    /**
+     * Show user notification about private browsing
+     */
+    showUserNotification() {
+        // Create a subtle notification
+        const notification = document.createElement('div');
+        notification.style.cssText = `
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: #ff9500;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 5px;
+            font-size: 14px;
+            z-index: 1000;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            max-width: 300px;
+        `;
+        notification.innerHTML = `
+            🔒 <strong>Private Browsing</strong><br>
+            Todos will only be saved during this session
+        `;
+        
+        document.body.appendChild(notification);
+        
+        // Auto-hide after 5 seconds
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
+            }
+        }, 5000);
     }
 
     /**
@@ -106,11 +184,66 @@ class StorageManager {
             }
         } catch (error) {
             console.warn('Storage setItem failed, falling back to memory:', error);
+            
+            // If quota exceeded, try to handle it
+            if (error.name === 'QuotaExceededError') {
+                this.handleQuotaExceeded(key, value);
+                return false;
+            }
+            
             // Fall back to memory storage
             this.fallbackToMemory();
             this.inMemoryStorage.set(key, value);
             return false; // Return false to indicate localStorage failed
         }
+    }
+
+    /**
+     * Handle quota exceeded error
+     * @param {string} key - Storage key that failed
+     * @param {string} value - Value that failed to store
+     */
+    handleQuotaExceeded(key, value) {
+        console.warn('Storage quota exceeded. Switching to memory storage.');
+        
+        // Switch to memory storage
+        this.fallbackToMemory();
+        this.inMemoryStorage.set(key, value);
+        
+        // Notify user
+        this.showQuotaNotification();
+    }
+
+    /**
+     * Show quota exceeded notification
+     */
+    showQuotaNotification() {
+        const notification = document.createElement('div');
+        notification.style.cssText = `
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: #ff3b30;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 5px;
+            font-size: 14px;
+            z-index: 1000;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            max-width: 300px;
+        `;
+        notification.innerHTML = `
+            ⚠️ <strong>Storage Full</strong><br>
+            Using temporary storage for this session
+        `;
+        
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
+            }
+        }, 5000);
     }
 
     /**
@@ -259,6 +392,7 @@ class StorageManager {
      * @returns {Object} Object containing storage state information
      * @returns {string} returns.type - The storage type ('localStorage' or 'memory')
      * @returns {boolean} returns.isLocalStorageAvailable - Whether localStorage is available
+     * @returns {boolean} returns.isPrivateBrowsing - Whether likely in private browsing mode
      * @returns {number} returns.itemCount - Number of items currently stored
      * @example
      * const info = storage.getStorageInfo();
@@ -268,7 +402,10 @@ class StorageManager {
         return {
             type: this.storageType,
             isLocalStorageAvailable: this.isStorageAvailable,
-            itemCount: this.length
+            isPrivateBrowsing: this.isPrivateBrowsing,
+            itemCount: this.length,
+            isPersistent: this.storageType === 'localStorage',
+            memoryStorageSize: this.inMemoryStorage.size
         };
     }
 }
@@ -276,7 +413,10 @@ class StorageManager {
 // Create and export a singleton instance
 const storageManager = new StorageManager();
 
-// Also export the class for testing
+// Export for module systems and browser global
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = { StorageManager, storageManager };
+} else {
+    // Browser global
+    window.storageManager = storageManager;
 }

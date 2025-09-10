@@ -4,7 +4,7 @@
 class TodoModel {
     constructor(storage = null) {
         // Use provided storage or default to global storageManager
-        this.storage = storage || (typeof storageManager !== 'undefined' ? storageManager : null);
+        this.storage = storage || (typeof storageManager !== 'undefined' ? storageManager : window.storageManager);
         if (!this.storage) {
             throw new Error('StorageManager not available. Please ensure StorageManager.js is loaded.');
         }
@@ -20,13 +20,14 @@ class TodoModel {
             const saved = this.storage.getItem('todos');
             return saved ? JSON.parse(saved) : [];
         } catch (error) {
-            console.warn('Failed to load todos from storage:', error);
+            console.warn('Failed to load todos from storage:', error.message);
             return [];
         }
     }
 
     /**
      * Save todos to storage
+     * @returns {boolean} True if successfully saved
      */
     saveTodos() {
         try {
@@ -38,8 +39,19 @@ class TodoModel {
                     this._memoryWarningShown = true;
                 }
             }
+            return success;
         } catch (error) {
             console.error('Failed to save todos to storage:', error);
+            return false;
+        }
+    }
+            if (!success) {
+                console.warn('Failed to save todos to storage');
+            }
+            return success;
+        } catch (error) {
+            console.error('Failed to save todos to storage:', error);
+            return false;
         }
     }
 
