@@ -33,33 +33,43 @@ class TodoModel {
     }
 
     /**
-     * Generate unique ID for new todos
-     * Uses crypto.randomUUID() when available, falls back to robust custom implementation
+     * Generate unique ID for new todos using crypto.randomUUID() with fallback
      * @returns {string} Unique identifier
      */
     generateId() {
-        // Use modern crypto.randomUUID() if available (most modern browsers)
-        if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-            return crypto.randomUUID();
+        // Try to use crypto.randomUUID() for maximum uniqueness (supported in modern browsers)
+        if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+            let id;
+            do {
+                id = crypto.randomUUID();
+            } while (this.todos.some(todo => todo.id === id));
+            return id;
         }
         
-        // Fallback: More robust custom implementation
-        // Combines timestamp, high-precision timer, and crypto-random values
-        const timestamp = Date.now().toString(36);
-        const performance = (typeof window !== 'undefined' && window.performance?.now() || Date.now()).toString(36);
+        // Fallback for older browsers: enhanced timestamp + crypto random
+        let id;
+        do {
+            // Use performance.now() for higher precision than Date.now()
+            const timestamp = (typeof performance !== 'undefined' && performance.now) 
+                ? performance.now().toString(36) 
+                : Date.now().toString(36);
+            
+            // Use crypto.getRandomValues() if available for better randomness
+            let randomPart;
+            if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+                const array = new Uint8Array(8);
+                crypto.getRandomValues(array);
+                randomPart = Array.from(array, byte => byte.toString(36)).join('');
+            } else {
+                // Last resort: enhanced Math.random()
+                randomPart = Math.random().toString(36).substring(2) + 
+                            Math.random().toString(36).substring(2);
+            }
+            
+            id = timestamp + '-' + randomPart;
+        } while (this.todos.some(todo => todo.id === id)); // Ensure uniqueness
         
-        // Generate cryptographically random values if crypto.getRandomValues is available
-        let randomPart = '';
-        if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
-            const array = new Uint8Array(8);
-            crypto.getRandomValues(array);
-            randomPart = Array.from(array, byte => byte.toString(36)).join('');
-        } else {
-            // Final fallback for very old browsers
-            randomPart = Math.random().toString(36).substr(2) + Math.random().toString(36).substr(2);
-        }
-        
-        return timestamp + '-' + performance + '-' + randomPart;
+        return id;
     }
 
     /**
@@ -154,7 +164,7 @@ class TodoModel {
     }
 
     /**
-     * Filter todos by search term
+     * Filter todos by search term with enhanced matching
      * @param {string} searchTerm - Term to search for in todo text
      * @returns {Array} Array of filtered todos
      */
@@ -163,10 +173,22 @@ class TodoModel {
             return this.getAllTodos();
         }
         
-        const term = searchTerm.toLowerCase().trim();
-        return this.todos.filter(todo => 
-            todo.text.toLowerCase().includes(term)
-        );
+        // Normalize the search term: trim and collapse multiple spaces
+        const normalizedTerm = searchTerm.toLowerCase().trim().replace(/\s+/g, ' ');
+        
+        return this.todos.filter(todo => {
+            const todoText = todo.text.toLowerCase();
+            
+            // If the search term contains multiple words, check if all words are present
+            const searchWords = normalizedTerm.split(' ');
+            if (searchWords.length > 1) {
+                // All words must be present in the todo text
+                return searchWords.every(word => todoText.includes(word));
+            }
+            
+            // Single word or phrase search - use original substring matching
+            return todoText.includes(normalizedTerm);
+        });
     }
 
     /**

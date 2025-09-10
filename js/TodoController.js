@@ -6,8 +6,21 @@ class TodoController {
         this.model = model;
         this.view = view;
         this.searchTerm = '';
+        
+        // Drag and drop functionality
         this.draggedId = null;
         this.dragDropSupported = this.checkDragDropSupport();
+        
+        // Performance optimizations
+        this.searchMonitor = PerformanceUtils.createMonitor('Search Performance');
+        this.debouncedSearch = PerformanceUtils.debounce(this.performSearch.bind(this), 300);
+        
+        this.keyboardManager = new KeyboardShortcutManager({
+            debug: false, // Set to true for debugging
+            enableLogging: false,
+            validateConflicts: true
+        });
+        this.keyboardHandlers = new KeyboardHandlers(this);
         this.init();
     }
 
@@ -34,6 +47,8 @@ class TodoController {
     init() {
         this.bindEvents();
         this.handleDragDropCompatibility();
+        this.initializeTheme();
+        this.setupKeyboardShortcuts();
         this.render();
     }
 
@@ -47,16 +62,371 @@ class TodoController {
     }
 
     /**
+     * Initialize theme management
+     */
+    initializeTheme() {
+        // Check for saved theme preference or system preference
+        const savedTheme = localStorage.getItem('todo-theme');
+        const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        
+        const initialTheme = savedTheme || (systemPrefersDark ? 'dark' : 'light');
+        this.setTheme(initialTheme, false); // false = don't save to localStorage on init
+        
+        // Listen for system theme changes
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+            if (!localStorage.getItem('todo-theme')) {
+                this.setTheme(e.matches ? 'dark' : 'light', false);
+            }
+        });
+    }
+
+    /**
+     * Set the application theme
+     * @param {string} theme - 'light' or 'dark'
+     * @param {boolean} save - Whether to save preference to localStorage
+     */
+    setTheme(theme, save = true) {
+        const body = document.body;
+        const themeToggle = document.getElementById('themeToggle');
+        const themeIcon = themeToggle?.querySelector('.theme-icon');
+        const themeText = themeToggle?.querySelector('.theme-text');
+
+        if (theme === 'dark') {
+            body.classList.add('dark-theme');
+            if (themeIcon) themeIcon.textContent = '☀️';
+            if (themeText) themeText.textContent = 'Light';
+        } else {
+            body.classList.remove('dark-theme');
+            if (themeIcon) themeIcon.textContent = '🌙';
+            if (themeText) themeText.textContent = 'Dark';
+        }
+
+        if (save) {
+            localStorage.setItem('todo-theme', theme);
+        }
+
+        this.currentTheme = theme;
+    }
+
+    /**
+     * Toggle between light and dark themes
+     */
+    toggleTheme() {
+        const newTheme = this.currentTheme === 'dark' ? 'light' : 'dark';
+        this.setTheme(newTheme);
+    }
+
+    /**
+     * Set up keyboard shortcuts using the enhanced KeyboardShortcutManager
+     */
+    setupKeyboardShortcuts() {
+        try {
+            this._initializeKeyboardContext();
+            this._registerAllShortcuts();
+            this._validateCriticalShortcuts();
+            this._logSetupCompletion();
+        } catch (error) {
+            console.error('Failed to setup keyboard shortcuts:', error);
+            this._registerEmergencyShortcuts();
+        }
+    }
+
+    /**
+     * Initialize keyboard context for editing
+     * @private
+     */
+    _initializeKeyboardContext() {
+        this.keyboardManager.registerContext('editing', () => this.view.isEditing());
+    }
+
+    /**
+     * Register all keyboard shortcuts from configuration
+     * @private
+     */
+    _registerAllShortcuts() {
+        const handlers = this.keyboardHandlers.getAllHandlers();
+        const shortcuts = ShortcutsConfig.getShortcuts(handlers);
+        
+        // Validate shortcuts before registering
+        const validation = ShortcutsConfig.validateShortcutCollection(shortcuts);
+        if (validation.errors > 0) {
+            console.warn('Shortcut validation found errors:', validation);
+        }
+        
+        // Register shortcuts with batch error handling
+        this.registeredCount = 0;
+        shortcuts.forEach((shortcut, index) => {
+            try {
+                this.keyboardManager.registerShortcut(shortcut);
+                this.registeredCount++;
+            } catch (error) {
+                console.error(`Failed to register shortcut ${index}:`, shortcut, error);
+            }
+        });
+
+        this.totalShortcuts = shortcuts.length;
+    }
+
+    /**
+     * Validate that critical shortcuts are registered
+     * @private
+     */
+    _validateCriticalShortcuts() {
+        this.verifyCriticalShortcuts();
+    }
+
+    /**
+     * Log setup completion information
+     * @private
+     */
+    _logSetupCompletion() {
+        if (this.keyboardManager.options.debug) {
+            console.log(`Keyboard shortcuts setup completed: ${this.registeredCount}/${this.totalShortcuts} shortcuts registered`);
+            console.log('Debug info:', this.keyboardManager.getDebugInfo());
+        }
+    }
+
+    /**
+     * Register emergency shortcuts if main setup fails
+     * @private
+     */
+    _registerEmergencyShortcuts() {
+        console.log('Registering emergency shortcuts due to setup failure...');
+        this.registerFallbackShortcuts();
+    }
+
+    /**
+     * Verify that critical shortcuts like Ctrl+F are properly registered
+     * @private
+     */
+    verifyCriticalShortcuts() {
+        const criticalShortcuts = [
+            { key: 'f', ctrlKey: true, context: 'global', name: 'Ctrl+F (Focus Search)' },
+            { key: '/', ctrlKey: false, context: 'global', name: '/ (Focus Search)' },
+            { key: 'n', ctrlKey: true, context: 'global', name: 'Ctrl+N (Focus New Todo)' }
+        ];
+        
+        for (const critical of criticalShortcuts) {
+            const shortcutKey = this.keyboardManager.generateShortcutKey(
+                critical.key, critical.ctrlKey, false, false, critical.context
+            );
+            
+            const registered = this.keyboardManager.shortcuts.has(shortcutKey);
+            if (!registered) {
+                console.error(`Critical shortcut not registered: ${critical.name}`);
+                // Try to re-register this specific shortcut
+                this.registerFallbackShortcuts();
+                break;
+            }
+        }
+    }
+
+    /**
+     * Register fallback shortcuts for critical functionality
+     * @private
+     */
+    registerFallbackShortcuts() {
+        console.log('Registering fallback shortcuts...');
+        
+        // Ensure search focus shortcuts are available
+        const searchFocus = () => this.keyboardHandlers.focusSearchInput();
+        const todoFocus = () => this.keyboardHandlers.focusNewTodoInput();
+        
+        try {
+            this.keyboardManager.registerShortcut({
+                key: 'f',
+                ctrlKey: true,
+                context: 'global',
+                action: searchFocus,
+                preventDefault: true,
+                description: 'Focus search input (Ctrl+F) - Fallback',
+                category: 'Navigation'
+            });
+            
+            this.keyboardManager.registerShortcut({
+                key: '/',
+                context: 'global',
+                action: searchFocus,
+                preventDefault: true,
+                description: 'Focus search input (/) - Fallback',
+                category: 'Navigation'
+            });
+            
+            console.log('Fallback shortcuts registered successfully');
+        } catch (error) {
+            console.error('Failed to register fallback shortcuts:', error);
+        }
+    }
+
+    /**
+     * Show keyboard shortcuts help modal
+     */
+    showKeyboardHelp() {
+        HelpModalBuilder.showHelpModal(this.keyboardManager);
+    }
+
+    /**
+<<<<<<< HEAD
+=======
+     * Initialize keyboard context for editing
+     * @private
+     */
+    _initializeKeyboardContext() {
+        this.keyboardManager.registerContext('editing', () => this.view.isEditing());
+    }
+
+    /**
+     * Register all keyboard shortcuts from configuration
+     * @private
+     */
+    _registerAllShortcuts() {
+        const handlers = this.keyboardHandlers.getAllHandlers();
+        const shortcuts = ShortcutsConfig.getShortcuts(handlers);
+        
+        // Validate shortcuts before registering
+        const validation = ShortcutsConfig.validateShortcutCollection(shortcuts);
+        if (validation.errors > 0) {
+            console.warn('Shortcut validation found errors:', validation);
+        }
+        
+        // Register shortcuts with batch error handling
+        this.registeredCount = 0;
+        shortcuts.forEach((shortcut, index) => {
+            try {
+                this.keyboardManager.registerShortcut(shortcut);
+                this.registeredCount++;
+            } catch (error) {
+                console.error(`Failed to register shortcut ${index}:`, shortcut, error);
+            }
+        });
+
+        this.totalShortcuts = shortcuts.length;
+    }
+
+    /**
+     * Validate that critical shortcuts are registered
+     * @private
+     */
+    _validateCriticalShortcuts() {
+        this.verifyCriticalShortcuts();
+    }
+
+    /**
+     * Log setup completion information
+     * @private
+     */
+    _logSetupCompletion() {
+        if (this.keyboardManager.options.debug) {
+            console.log(`Keyboard shortcuts setup completed: ${this.registeredCount}/${this.totalShortcuts} shortcuts registered`);
+            console.log('Debug info:', this.keyboardManager.getDebugInfo());
+        }
+    }
+
+    /**
+     * Register emergency shortcuts if main setup fails
+     * @private
+     */
+    _registerEmergencyShortcuts() {
+        console.log('Registering emergency shortcuts due to setup failure...');
+        this.registerFallbackShortcuts();
+    }
+
+    /**
+     * Verify that critical shortcuts like Ctrl+F are properly registered
+     * @private
+     */
+    verifyCriticalShortcuts() {
+        const criticalShortcuts = [
+            { key: 'f', ctrlKey: true, context: 'global', name: 'Ctrl+F (Focus Search)' },
+            { key: '/', ctrlKey: false, context: 'global', name: '/ (Focus Search)' },
+            { key: 'n', ctrlKey: true, context: 'global', name: 'Ctrl+N (Focus New Todo)' }
+        ];
+        
+        for (const critical of criticalShortcuts) {
+            const shortcutKey = this.keyboardManager.generateShortcutKey(
+                critical.key, critical.ctrlKey, false, false, critical.context
+            );
+            
+            const registered = this.keyboardManager.shortcuts.has(shortcutKey);
+            if (!registered) {
+                console.error(`Critical shortcut not registered: ${critical.name}`);
+                // Try to re-register this specific shortcut
+                this.registerFallbackShortcuts();
+                break;
+            }
+        }
+    }
+
+    /**
+     * Register fallback shortcuts for critical functionality
+     * @private
+     */
+    registerFallbackShortcuts() {
+        console.log('Registering fallback shortcuts...');
+        
+        // Ensure search focus shortcuts are available
+        const searchFocus = () => this.keyboardHandlers.focusSearchInput();
+        const todoFocus = () => this.keyboardHandlers.focusNewTodoInput();
+        
+        try {
+            this.keyboardManager.registerShortcut({
+                key: 'f',
+                ctrlKey: true,
+                context: 'global',
+                action: searchFocus,
+                preventDefault: true,
+                description: 'Focus search input (Ctrl+F) - Fallback',
+                category: 'Navigation'
+            });
+            
+            this.keyboardManager.registerShortcut({
+                key: '/',
+                context: 'global',
+                action: searchFocus,
+                preventDefault: true,
+                description: 'Focus search input (/) - Fallback',
+                category: 'Navigation'
+            });
+            
+            console.log('Fallback shortcuts registered successfully');
+        } catch (error) {
+            console.error('Failed to register fallback shortcuts:', error);
+        }
+    }
+
+    /**
+     * Show keyboard shortcuts help modal
+     */
+    showKeyboardHelp() {
+        HelpModalBuilder.showHelpModal(this.keyboardManager);
+    }
+
+    /**
+>>>>>>> e698d9ffd0eb807023312a4b6f35294330b5944a
      * Set up all event listeners using event delegation
      */
     bindEvents() {
         this.bindAddTodoForm();
         this.bindSearchInput();
+        this.bindClearSearchButton();
         this.bindTodoListClick();
         this.bindTodoListSubmit();
         this.bindTodoListChange();
         this.bindDragAndDrop();
+        this.bindThemeToggle();
         this.bindKeyboardShortcuts();
+    }
+
+    /**
+     * Bind theme toggle button event
+     */
+    bindThemeToggle() {
+        const themeToggle = document.getElementById('themeToggle');
+        if (themeToggle) {
+            themeToggle.addEventListener('click', () => {
+                this.toggleTheme();
+            });
+        }
     }
 
     /**
@@ -77,6 +447,16 @@ class TodoController {
         const searchInput = document.getElementById('searchInput');
         searchInput.addEventListener('input', (e) => {
             this.handleSearch(e.target.value);
+        });
+    }
+
+    /**
+     * Bind clear search button event handler
+     */
+    bindClearSearchButton() {
+        const clearSearchBtn = document.getElementById('clearSearchBtn');
+        clearSearchBtn.addEventListener('click', () => {
+            this.handleClearSearch();
         });
     }
 
@@ -112,7 +492,7 @@ class TodoController {
      */
     bindKeyboardShortcuts() {
         document.addEventListener('keydown', (e) => {
-            this.handleKeyboardShortcuts(e);
+            this.keyboardManager.handleKeyboard(e);
         });
         
         // Add keyboard support for drag handles
@@ -177,11 +557,42 @@ class TodoController {
     }
 
     /**
-     * Handle search input changes
+     * Handle search input changes with debouncing for performance
      * @param {string} searchTerm - The search term
      */
     handleSearch(searchTerm) {
-        this.searchTerm = searchTerm.toLowerCase().trim();
+        // Update search term immediately for UI responsiveness
+        this.searchTerm = searchTerm;
+        
+        // Debounce the actual search to avoid excessive filtering
+        this.debouncedSearch(searchTerm);
+    }
+    
+    /**
+     * Perform the actual search operation (debounced)
+     * @param {string} searchTerm - The search term
+     * @private
+     */
+    performSearch(searchTerm) {
+        this.searchMonitor.start();
+        
+        try {
+            // Only render if the search term hasn't changed
+            if (this.searchTerm === searchTerm) {
+                this.render();
+            }
+        } finally {
+            this.searchMonitor.end();
+        }
+    }
+
+    /**
+     * Handle clearing the search input
+     */
+    handleClearSearch() {
+        const searchInput = document.getElementById('searchInput');
+        searchInput.value = '';
+        this.searchTerm = '';
         this.render();
     }
 
@@ -232,27 +643,6 @@ class TodoController {
 
         if (action === 'toggle' && id) {
             this.handleToggleTodo(id);
-        }
-    }
-
-    /**
-     * Handle keyboard shortcuts
-     * @param {Event} e - Keyboard event
-     */
-    handleKeyboardShortcuts(e) {
-        // Escape key to cancel editing
-        if (e.key === 'Escape' && this.view.isEditing()) {
-            this.handleCancelEdit();
-        }
-        
-        // Ctrl+S to save when editing
-        if (e.key === 's' && e.ctrlKey && this.view.isEditing()) {
-            e.preventDefault(); // Prevent browser's default save dialog
-            const editingId = this.view.getEditingId();
-            const editForm = document.querySelector(`.edit-form[data-id="${editingId}"]`);
-            if (editForm) {
-                this.handleSaveEdit(editingId, editForm);
-            }
         }
     }
 
@@ -327,6 +717,27 @@ class TodoController {
     }
 
     /**
+     * Handle reordering a todo
+     * @param {string} todoId - ID of todo to reorder
+     * @param {number} newIndex - New index position
+     */
+    handleReorderTodo(todoId, newIndex) {
+        // Calculate actual index if we're dealing with filtered results
+        if (this.searchTerm) {
+            const filteredTodos = this.model.filterTodos(this.searchTerm);
+            const allTodos = this.model.getAllTodos();
+            const targetTodo = filteredTodos[newIndex];
+            const actualTargetIndex = allTodos.findIndex(todo => todo.id === targetTodo.id);
+            
+            if (this.model.reorderTodo(todoId, actualTargetIndex)) {
+                this.render();
+            }
+        } else {
+            if (this.model.reorderTodo(todoId, newIndex)) {
+                this.render();
+            }
+        }
+    }
      * Handle toggling todo completion
      * @param {string} id - Todo ID
      */
@@ -417,11 +828,23 @@ class TodoController {
     }
 
     /**
-     * Get application statistics
-     * @returns {Object} Stats object with todo counts
+     * Get application statistics including performance data
+     * @returns {Object} Stats object with todo counts and performance metrics
      */
     getStats() {
-        return this.model.getStats();
+        const modelStats = this.model.getStats();
+        const viewStats = this.view.getPerformanceStats();
+        const searchStats = this.searchMonitor.getStats();
+        
+        return {
+            ...modelStats,
+            performance: {
+                view: viewStats,
+                search: searchStats,
+                isMobile: PerformanceUtils.isMobile(),
+                isSafari: PerformanceUtils.isSafari()
+            }
+        };
     }
 
     /**

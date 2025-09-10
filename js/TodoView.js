@@ -1,5 +1,5 @@
 /**
- * TodoView - Handles UI rendering and DOM manipulation
+ * TodoView - Handles UI rendering and DOM manipulation with performance optimizations
  */
 class TodoView {
     constructor() {
@@ -8,101 +8,318 @@ class TodoView {
         this.todoInput = document.getElementById('todoInput');
         this.editingId = null;
         this.dragDropMessageShown = false;
+        
+        // Performance optimizations
+        this.useVirtualScrolling = true;
+        this.virtualScrollThreshold = 50; // Use virtual scrolling for 50+ items
+        this.virtualScrollManager = null;
+        this.renderMonitor = PerformanceUtils.createMonitor('TodoView Render');
+        
+        // DOM element pool for reusing elements
+        this.elementPool = PerformanceUtils.createObjectPool(
+            () => this.createTodoElement(),
+            (element) => this.resetTodoElement(element)
+        );
+        
+        this.initializePerformanceOptimizations();
     }
 
+    
     /**
-     * Render the complete todo list
-     * @param {Array} todos - Array of todo objects to display
-     * @param {Array} allTodos - Array of all todos (for search context)
-     * @param {string} searchTerm - Current search term
-     * @param {boolean} dragDropSupported - Whether drag and drop is supported
+     * Initialize performance optimizations
      */
-    render(todos, allTodos = [], searchTerm = '', dragDropSupported = true) {
-        if (todos.length === 0) {
-            this.showEmptyState(allTodos.length === 0, searchTerm);
-            return;
+    initializePerformanceOptimizations() {
+        // Apply CSS optimizations for better performance
+        if (this.todoList) {
+            this.todoList.style.cssText += `
+                contain: layout style paint;
+                transform: translateZ(0);
+            `;
         }
-
-        this.hideEmptyState();
-        this.renderTodoList(todos, dragDropSupported);
+        
+        // Safari-specific optimizations
+        if (PerformanceUtils.isSafari()) {
+            this.applySafariOptimizations();
+        }
+    }
+    
+    /**
+     * Apply Safari-specific performance optimizations
+     */
+    applySafariOptimizations() {
+        if (this.todoList) {
+            this.todoList.style.cssText += `
+                -webkit-transform: translateZ(0);
+                -webkit-backface-visibility: hidden;
+                -webkit-perspective: 1000;
+            `;
+        }
     }
 
+    render(todos, allTodos = [], searchTerm = '', dragDropSupported = true) {
+        this.renderMonitor.start();
+        
+        try {
+            if (todos.length === 0) {
+                this.showEmptyState(allTodos.length === 0, searchTerm);
+                return;
+            }
+
+            this.hideEmptyState();
+            
+            // Use virtual scrolling for large lists (but disable for drag & drop)
+            if (this.useVirtualScrolling && todos.length >= this.virtualScrollThreshold && !dragDropSupported) {
+                this.renderWithVirtualScrolling(todos);
+            } else {
+                this.renderTraditional(todos, dragDropSupported);
+            }
+        } finally {
+            this.renderMonitor.end();
+        }
+    
     /**
-     * Render the todo list items
+     * Render using virtual scrolling for performance
+     * @param {Array} todos - Array of todo objects
+     */
+    renderWithVirtualScrolling(todos) {
+        if (!this.virtualScrollManager) {
+            this.initVirtualScrolling();
+        }
+        
+        this.virtualScrollManager.setItems(todos);
+    }
+    
+    /**
+     * Initialize virtual scrolling manager
+     */
+    initVirtualScrolling() {
+        // Clear existing content
+        this.todoList.innerHTML = '';
+        
+        this.virtualScrollManager = new VirtualScrollManager({
+            container: this.todoList,
+            itemHeight: 60, // Estimated height of each todo item
+            bufferSize: 5,
+            renderCallback: (todo, index) => this.renderVirtualTodoItem(todo, index)
+        });
+    }
+    
+    /**
+     * Render a todo item for virtual scrolling
+     * @param {Object} todo - Todo object
+     * @param {number} index - Item index
+     * @returns {Element} DOM element for the todo
+     */
+    renderVirtualTodoItem(todo, index) {
+        const element = this.elementPool.acquire();
+        this.populateTodoElement(element, todo);
+        return element;
+    }
+    
+    /**
+     * Create a reusable todo element
+     * @returns {Element} Empty todo element
+     */
+    createTodoElement() {
+        const li = document.createElement('li');
+        li.className = 'todo-item';
+        li.innerHTML = `
+            <input type="checkbox" class="todo-checkbox">
+            <span class="todo-text"></span>
+            <div class="todo-actions">
+                <button class="edit-btn">Edit</button>
+                <button class="delete-btn">Delete</button>
+            </div>
+        `;
+        return li;
+    }
+    
+    /**
+     * Reset a todo element for reuse
+     * @param {Element} element - Element to reset
+     */
+    resetTodoElement(element) {
+        const checkbox = element.querySelector('.todo-checkbox');
+        const textSpan = element.querySelector('.todo-text');
+        
+        if (checkbox) {
+            checkbox.checked = false;
+            checkbox.removeAttribute('data-id');
+            checkbox.removeAttribute('data-action');
+        }
+        
+        if (textSpan) {
+            textSpan.textContent = '';
+            textSpan.className = 'todo-text';
+        }
+        
+        element.removeAttribute('data-id');
+        element.className = 'todo-item';
+    }
+    
+    /**
+     * Populate a todo element with data
+     * @param {Element} element - Element to populate
+     * @param {Object} todo - Todo data
+     */
+    populateTodoElement(element, todo) {
+        const checkbox = element.querySelector('.todo-checkbox');
+        const textSpan = element.querySelector('.todo-text');
+        const editBtn = element.querySelector('.edit-btn');
+        const deleteBtn = element.querySelector('.delete-btn');
+        
+        element.setAttribute('data-id', todo.id);
+        
+        if (checkbox) {
+            checkbox.checked = todo.completed;
+            checkbox.setAttribute('data-action', 'toggle');
+            checkbox.setAttribute('data-id', todo.id);
+        }
+        
+        if (textSpan) {
+            textSpan.textContent = todo.text;
+            textSpan.className = todo.completed ? 'todo-text completed' : 'todo-text';
+        }
+        
+        if (editBtn) {
+            editBtn.setAttribute('data-action', 'edit');
+            editBtn.setAttribute('data-id', todo.id);
+        }
+        
+        if (deleteBtn) {
+            deleteBtn.setAttribute('data-action', 'delete');
+            deleteBtn.setAttribute('data-id', todo.id);
+        }
+        
+        // Handle editing state
+        if (this.editingId === todo.id) {
+            this.convertToEditForm(element, todo);
+        }
+    }
+    
+    /**
+     * Convert element to edit form
+     * @param {Element} element - Element to convert
+     * @param {Object} todo - Todo data
+     */
+    convertToEditForm(element, todo) {
+        element.innerHTML = `
+            <input type="checkbox" class="todo-checkbox" ${todo.completed ? 'checked' : ''} disabled>
+            <form class="edit-form" data-action="save-edit" data-id="${todo.id}">
+                <input 
+                    type="text" 
+                    class="edit-input" 
+                    value="${this.escapeHtml(todo.text)}"
+                    data-original-text="${this.escapeHtml(todo.text)}"
+                    autofocus
+                    required
+                >
+                <button type="submit" class="save-btn">Save</button>
+                <button type="button" class="cancel-btn" data-action="cancel-edit">Cancel</button>
+            </form>
+        `;
+    }
+    
+    /**
+     * Render using traditional DOM manipulation
      * @param {Array} todos - Array of todo objects
      * @param {boolean} dragDropSupported - Whether drag and drop is supported
      */
-    renderTodoList(todos, dragDropSupported = true) {
-        this.todoList.innerHTML = todos.map(todo => {
-            if (this.editingId === todo.id) {
-                return this.renderEditForm(todo, dragDropSupported);
-            }
-            return this.renderTodoItem(todo, dragDropSupported);
-        }).join('');
+    renderTraditional(todos, dragDropSupported = true) {
+        // Clean up virtual scrolling if it was active
+        if (this.virtualScrollManager) {
+            this.virtualScrollManager.destroy();
+            this.virtualScrollManager = null;
+        }
+        
+        // Use efficient rendering with DocumentFragment
+        PerformanceUtils.batchDOMOperations(() => {
+            this.renderTodoList(todos, dragDropSupported);
+        });
     }
 
-    /**
-     * Render a single todo item
-     * @param {Object} todo - Todo object
-     * @param {boolean} dragDropSupported - Whether drag and drop is supported
-     * @returns {string} HTML string for the todo item
-     */
-    renderTodoItem(todo, dragDropSupported = true) {
+    renderTodoList(todos, dragDropSupported = true) {
+        // Use DocumentFragment for performance when not using virtual scrolling
+        const fragment = document.createDocumentFragment();
+        
+        todos.forEach(todo => {
+            if (this.editingId === todo.id) {
+                fragment.appendChild(this.createEditFormElement(todo, dragDropSupported));
+            } else {
+                fragment.appendChild(this.createTodoItemElement(todo, dragDropSupported));
+            }
+        });
+        
+        // Batch DOM update
+        this.todoList.innerHTML = '';
+        this.todoList.appendChild(fragment);
+    }
+    
+    createTodoItemElement(todo, dragDropSupported = true) {
         const dragAttributes = dragDropSupported ? 'draggable="true"' : '';
         const dragHandle = dragDropSupported ? 
             '<span class="drag-handle" role="button" tabindex="0" aria-label="Drag to reorder todo" title="Drag to reorder this todo">≡</span>' : 
             '<span class="drag-handle-disabled" role="button" tabindex="0" aria-label="Drag to reorder (not supported)" title="Drag and drop not supported in this browser">≡</span>';
 
-        return `
-            <li class="todo-item" data-id="${todo.id}" ${dragAttributes} role="listitem" aria-label="Todo: ${this.escapeHtml(todo.text)}">
-                ${dragHandle}
-                <input 
-                    type="checkbox" 
-                    class="todo-checkbox" 
-                    ${todo.completed ? 'checked' : ''}
-                    data-action="toggle"
-                    data-id="${todo.id}"
-                    aria-label="Mark todo as ${todo.completed ? 'incomplete' : 'complete'}"
-                >
-                <span class="todo-text ${todo.completed ? 'completed' : ''}">${this.escapeHtml(todo.text)}</span>
-                <div class="todo-actions">
-                    <button class="edit-btn" data-action="edit" data-id="${todo.id}" aria-label="Edit todo">Edit</button>
-                    <button class="delete-btn" data-action="delete" data-id="${todo.id}" aria-label="Delete todo">Delete</button>
-                </div>
-            </li>
+        const li = document.createElement('li');
+        li.className = 'todo-item';
+        li.setAttribute('data-id', todo.id);
+        if (dragDropSupported) {
+            li.setAttribute('draggable', 'true');
+        }
+        li.setAttribute('role', 'listitem');
+        li.setAttribute('aria-label', `Todo: ${todo.text}`);
+        
+        li.innerHTML = `
+            ${dragHandle}
+            <input 
+                type="checkbox" 
+                class="todo-checkbox" 
+                ${todo.completed ? 'checked' : ''}
+                data-action="toggle"
+                data-id="${todo.id}"
+                aria-label="Mark todo as ${todo.completed ? 'incomplete' : 'complete'}"
+            >
+            <span class="todo-text ${todo.completed ? 'completed' : ''}">${this.escapeHtml(todo.text)}</span>
+            <div class="todo-actions">
+                <button class="edit-btn" data-action="edit" data-id="${todo.id}" aria-label="Edit todo">Edit</button>
+                <button class="delete-btn" data-action="delete" data-id="${todo.id}" aria-label="Delete todo">Delete</button>
+            </div>
         `;
+        
+        return li;
     }
-
-    /**
-     * Render the edit form for a todo
-     * @param {Object} todo - Todo object being edited
-     * @param {boolean} dragDropSupported - Whether drag and drop is supported
-     * @returns {string} HTML string for the edit form
-     */
-    renderEditForm(todo, dragDropSupported = true) {
+    
+    createEditFormElement(todo, dragDropSupported = true) {
         const dragHandle = dragDropSupported ? 
             '<span class="drag-handle" style="opacity: 0.3;" role="button" tabindex="-1" aria-label="Drag disabled while editing" title="Drag disabled while editing">≡</span>' : 
             '<span class="drag-handle-disabled" style="opacity: 0.3;" role="button" tabindex="-1" aria-label="Drag to reorder (not supported)" title="Drag and drop not supported in this browser">≡</span>';
 
-        return `
-            <li class="todo-item" data-id="${todo.id}" role="listitem" aria-label="Editing todo">
-                ${dragHandle}
-                <input type="checkbox" class="todo-checkbox" ${todo.completed ? 'checked' : ''} disabled aria-label="Todo completion status (disabled while editing)">
-                <form class="edit-form" data-action="save-edit" data-id="${todo.id}">
-                    <input 
-                        type="text" 
-                        class="edit-input" 
-                        value="${this.escapeHtml(todo.text)}"
-                        data-original-text="${this.escapeHtml(todo.text)}"
-                        autofocus
-                        required
-                        aria-label="Edit todo text"
-                    >
-                    <button type="submit" class="save-btn" aria-label="Save changes">Save</button>
-                    <button type="button" class="cancel-btn" data-action="cancel-edit" aria-label="Cancel editing">Cancel</button>
-                </form>
-            </li>
+        const li = document.createElement('li');
+        li.className = 'todo-item';
+        li.setAttribute('data-id', todo.id);
+        li.setAttribute('role', 'listitem');
+        li.setAttribute('aria-label', 'Editing todo');
+        
+        li.innerHTML = `
+            ${dragHandle}
+            <input type="checkbox" class="todo-checkbox" ${todo.completed ? 'checked' : ''} disabled aria-label="Todo completion status (disabled while editing)">
+            <form class="edit-form" data-action="save-edit" data-id="${todo.id}">
+                <input 
+                    type="text" 
+                    class="edit-input" 
+                    value="${this.escapeHtml(todo.text)}"
+                    data-original-text="${this.escapeHtml(todo.text)}"
+                    autofocus
+                    required
+                    aria-label="Edit todo text"
+                >
+                <button type="submit" class="save-btn" aria-label="Save changes">Save</button>
+                <button type="button" class="cancel-btn" data-action="cancel-edit" aria-label="Cancel editing">Cancel</button>
+            </form>
         `;
+        
+        return li;
     }
 
     /**
@@ -210,6 +427,30 @@ class TodoView {
         return div.innerHTML;
     }
 
+    /**
+     * Clean up resources
+     */
+    destroy() {
+        if (this.virtualScrollManager) {
+            this.virtualScrollManager.destroy();
+            this.virtualScrollManager = null;
+        }
+        
+        this.elementPool.clear();
+    }
+    
+    /**
+     * Get performance statistics
+     * @returns {Object} Performance statistics
+     */
+    getPerformanceStats() {
+        return {
+            renderStats: this.renderMonitor.getStats(),
+            isUsingVirtualScrolling: !!this.virtualScrollManager,
+            poolSize: this.elementPool.size()
+        };
+    }
+    
     /**
      * Show confirmation dialog
      * @param {string} message - Confirmation message
