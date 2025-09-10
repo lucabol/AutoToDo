@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Storage Manager Test - Safari Private Browsing</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        button {
+            background: #007AFF;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 6px;
+            font-weight: bold;
+        }
+        .status.success { background: #d4edda; color: #155724; }
+        .status.warning { background: #fff3cd; color: #856404; }
+        .status.error { background: #f8d7da; color: #721c24; }
+        .storage-info {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+        .test-data {
+            background: #e9ecef;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Storage Manager Test - Safari Private Browsing</h1>
+    
+    <div class="test-section">
+        <h2>Storage Information</h2>
+        <div id="storageInfo" class="storage-info">Loading...</div>
+        <button onclick="refreshStorageInfo()">Refresh Info</button>
+    </div>
+
+    <div class="test-section">
+        <h2>Storage Test</h2>
+        <p>This test simulates the todo app's storage behavior:</p>
+        
+        <button onclick="testBasicStorage()">Test Basic Storage</button>
+        <button onclick="testTodoStorage()">Test Todo Storage</button>
+        <button onclick="testLargeDataStorage()">Test Large Data Storage</button>
+        <button onclick="simulateQuotaExceeded()">Simulate Quota Exceeded</button>
+        <button onclick="clearAllStorage()">Clear All Storage</button>
+        
+        <div id="testResults"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Current Stored Data</h2>
+        <button onclick="viewStoredData()">View Stored Data</button>
+        <div id="storedData" class="test-data"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>TodoModel Integration Test</h2>
+        <p>Test the actual TodoModel class with StorageManager:</p>
+        <button onclick="testTodoModel()">Test TodoModel</button>
+        <div id="todoModelResults"></div>
+    </div>
+
+    <!-- Include the StorageManager -->
+    <script src="js/StorageManager.js"></script>
+    <script src="js/TodoModel.js"></script>
+    
+    <script>
+        let storageManager;
+        let testResults = document.getElementById('testResults');
+        
+        function init() {
+            storageManager = new StorageManager();
+            refreshStorageInfo();
+        }
+        
+        function showResult(message, type = 'success') {
+            const div = document.createElement('div');
+            div.className = `status ${type}`;
+            div.textContent = message;
+            testResults.appendChild(div);
+            
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                if (div.parentElement) {
+                    div.remove();
+                }
+            }, 5000);
+        }
+        
+        function refreshStorageInfo() {
+            const info = storageManager.getStorageInfo();
+            const infoDiv = document.getElementById('storageInfo');
+            
+            infoDiv.innerHTML = `
+                <strong>Storage Type:</strong> ${info.type}<br>
+                <strong>Is Persistent:</strong> ${info.isPersistent ? 'Yes' : 'No'}<br>
+                <strong>Is Session Based:</strong> ${info.isSessionBased ? 'Yes' : 'No'}<br>
+                <strong>Is In Memory:</strong> ${info.isInMemory ? 'Yes' : 'No'}<br>
+                <strong>Has Warning:</strong> ${info.warning ? 'Yes' : 'No'}
+            `;
+        }
+        
+        function testBasicStorage() {
+            try {
+                const key = 'test-key';
+                const value = 'test-value-' + Date.now();
+                
+                storageManager.setItem(key, value);
+                const retrieved = storageManager.getItem(key);
+                
+                if (retrieved === value) {
+                    showResult('✅ Basic storage test passed!', 'success');
+                } else {
+                    showResult('❌ Basic storage test failed: value mismatch', 'error');
+                }
+            } catch (error) {
+                showResult(`❌ Basic storage test failed: ${error.message}`, 'error');
+            }
+        }
+        
+        function testTodoStorage() {
+            try {
+                const todos = [
+                    { id: '1', text: 'Test todo 1', completed: false, createdAt: new Date().toISOString() },
+                    { id: '2', text: 'Test todo 2', completed: true, createdAt: new Date().toISOString() }
+                ];
+                
+                storageManager.setItem('todos', JSON.stringify(todos));
+                const retrieved = storageManager.getItem('todos');
+                const parsedTodos = JSON.parse(retrieved);
+                
+                if (parsedTodos.length === 2 && parsedTodos[0].text === 'Test todo 1') {
+                    showResult('✅ Todo storage test passed!', 'success');
+                } else {
+                    showResult('❌ Todo storage test failed: data corruption', 'error');
+                }
+            } catch (error) {
+                showResult(`❌ Todo storage test failed: ${error.message}`, 'error');
+            }
+        }
+        
+        function testLargeDataStorage() {
+            try {
+                // Create a large dataset to test storage limits
+                const largeTodos = [];
+                for (let i = 0; i < 1000; i++) {
+                    largeTodos.push({
+                        id: `todo-${i}`,
+                        text: `This is a longer todo item ${i} with some additional text to make it bigger and test storage capacity limitations`,
+                        completed: Math.random() > 0.5,
+                        createdAt: new Date().toISOString()
+                    });
+                }
+                
+                storageManager.setItem('large-todos', JSON.stringify(largeTodos));
+                const retrieved = storageManager.getItem('large-todos');
+                const parsedTodos = JSON.parse(retrieved);
+                
+                if (parsedTodos.length === 1000) {
+                    showResult('✅ Large data storage test passed!', 'success');
+                } else {
+                    showResult(`⚠️ Large data storage test partial: stored ${parsedTodos.length}/1000 items`, 'warning');
+                }
+            } catch (error) {
+                showResult(`❌ Large data storage test failed: ${error.message}`, 'error');
+            }
+        }
+        
+        function simulateQuotaExceeded() {
+            // This will attempt to store very large data to trigger quota errors
+            try {
+                const hugeString = 'x'.repeat(10 * 1024 * 1024); // 10MB string
+                storageManager.setItem('huge-data', hugeString);
+                showResult('⚠️ Quota exceeded simulation: storage accepted large data', 'warning');
+            } catch (error) {
+                if (storageManager.isQuotaExceededError(error)) {
+                    showResult('✅ Quota exceeded simulation: correctly detected and handled quota error', 'success');
+                } else {
+                    showResult(`❌ Quota exceeded simulation failed: ${error.message}`, 'error');
+                }
+            }
+        }
+        
+        function clearAllStorage() {
+            try {
+                storageManager.removeItem('test-key');
+                storageManager.removeItem('todos');
+                storageManager.removeItem('large-todos');
+                storageManager.removeItem('huge-data');
+                showResult('✅ All storage cleared!', 'success');
+            } catch (error) {
+                showResult(`❌ Failed to clear storage: ${error.message}`, 'error');
+            }
+        }
+        
+        function viewStoredData() {
+            const storedDataDiv = document.getElementById('storedData');
+            let output = '';
+            
+            const keys = ['test-key', 'todos', 'large-todos', 'huge-data'];
+            keys.forEach(key => {
+                const value = storageManager.getItem(key);
+                if (value !== null) {
+                    const displayValue = value.length > 200 ? 
+                        value.substring(0, 200) + '...' : value;
+                    output += `${key}:\n${displayValue}\n\n`;
+                }
+            });
+            
+            storedDataDiv.textContent = output || 'No data stored';
+        }
+        
+        function testTodoModel() {
+            const resultsDiv = document.getElementById('todoModelResults');
+            
+            try {
+                // Create a TodoModel instance which will use StorageManager
+                const todoModel = new TodoModel();
+                
+                // Test adding todos
+                const todo1 = todoModel.addTodo('Test todo from TodoModel');
+                const todo2 = todoModel.addTodo('Another test todo');
+                
+                // Test retrieval
+                const allTodos = todoModel.getAllTodos();
+                
+                // Test storage info
+                const storageInfo = todoModel.getStorageInfo();
+                
+                resultsDiv.innerHTML = `
+                    <div class="status success">
+                        ✅ TodoModel integration test passed!<br>
+                        Created ${allTodos.length} todos<br>
+                        Storage type: ${storageInfo.type}<br>
+                        Is persistent: ${storageInfo.isPersistent}
+                    </div>
+                `;
+            } catch (error) {
+                resultsDiv.innerHTML = `
+                    <div class="status error">
+                        ❌ TodoModel integration test failed: ${error.message}
+                    </div>
+                `;
+            }
+        }
+        
+        // Initialize when page loads
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>

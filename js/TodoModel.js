@@ -2,45 +2,30 @@
  * TodoModel - Handles data management and persistence for todos
  */
 class TodoModel {
-    constructor(storage = null) {
-        // Use provided storage or default to global storageManager
-        this.storage = storage || (typeof storageManager !== 'undefined' ? storageManager : window.storageManager);
-        if (!this.storage) {
-            throw new Error('StorageManager not available. Please ensure StorageManager.js is loaded.');
-        }
+    constructor(storageManager = window.storageManager) {
+        this.storage = storageManager;
         this.todos = this.loadTodos();
     }
 
     /**
-     * Load todos from storage
+     * Load todos from storage with fallback support
      * @returns {Array} Array of todo objects
      */
     loadTodos() {
         try {
-            // Handle Node.js environment
-            if (typeof this.storage === 'undefined' || typeof localStorage === 'undefined') {
-                return [];
-            }
-            
             const saved = this.storage.getItem('todos');
             return saved ? JSON.parse(saved) : [];
-        } catch (error) {
-            console.warn('Failed to load todos from storage:', error.message);
+        } catch (e) {
+            console.warn('Failed to load todos from storage:', e);
             return [];
         }
     }
 
     /**
-     * Save todos to storage
-     * @returns {boolean} True if successfully saved
+     * Save todos to storage with fallback support
      */
     saveTodos() {
         try {
-            // Handle Node.js environment
-            if (typeof this.storage === 'undefined' || typeof localStorage === 'undefined') {
-                return false;
-            }
-            
             const success = this.storage.setItem('todos', JSON.stringify(this.todos));
             if (!success && this.storage.getStorageType() === 'memory') {
                 // Show a warning only once when localStorage first fails
@@ -216,28 +201,6 @@ class TodoModel {
     }
 
     /**
-     * Reorder todos by moving a todo from one position to another
-     * @param {string} id - Todo ID to move
-     * @param {number} newIndex - New position index (0-based)
-     * @returns {boolean} True if reorder was successful, false otherwise
-     */
-    reorderTodo(id, newIndex) {
-        const todoIndex = this.todos.findIndex(t => t.id === id);
-        if (todoIndex === -1 || newIndex < 0 || newIndex >= this.todos.length) {
-            return false;
-        }
-
-        // Remove the todo from its current position
-        const [todo] = this.todos.splice(todoIndex, 1);
-        
-        // Insert it at the new position
-        this.todos.splice(newIndex, 0, todo);
-        
-        this.saveTodos();
-        return true;
-    }
-
-    /**
      * Get count of todos
      * @returns {Object} Object with total, completed, and pending counts
      */
@@ -248,9 +211,4 @@ class TodoModel {
         
         return { total, completed, pending };
     }
-}
-
-// Export for Node.js
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = TodoModel;
 }
