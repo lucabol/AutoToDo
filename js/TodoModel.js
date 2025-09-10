@@ -55,15 +55,6 @@ class TodoModel {
             return false;
         }
     }
-            if (!success) {
-                console.warn('Failed to save todos to storage');
-            }
-            return success;
-        } catch (error) {
-            console.error('Failed to save todos to storage:', error);
-            return false;
-        }
-    }
 
     /**
      * Generate unique ID for new todos using crypto.randomUUID() with fallback
