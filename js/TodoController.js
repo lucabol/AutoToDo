@@ -22,6 +22,10 @@ class TodoController {
             validateConflicts: true
         });
         this.keyboardHandlers = new KeyboardHandlers(this);
+        
+        // Touch event management for mobile optimization
+        this.touchManager = new TouchEventManager(this);
+        
         this.init();
     }
 
@@ -121,7 +125,6 @@ class TodoController {
             } catch (e) {
                 console.warn('Failed to save theme preference:', e);
             }
-        }
         }
 
         this.currentTheme = theme;
@@ -590,6 +593,9 @@ class TodoController {
         this.bindDragAndDrop();
         this.bindThemeToggle();
         this.bindKeyboardShortcuts();
+        
+        // Bind touch events for mobile optimization
+        this.bindTouchEvents();
     }
 
     /**
@@ -598,7 +604,9 @@ class TodoController {
     bindThemeToggle() {
         const themeToggle = document.getElementById('themeToggle');
         if (themeToggle) {
-            themeToggle.addEventListener('click', () => {
+            themeToggle.addEventListener('click', (e) => {
+                // Skip if handled by touch event
+                if (this.touchManager.isTouchHandled()) return;
                 this.toggleTheme();
             });
         }
@@ -611,6 +619,8 @@ class TodoController {
         const addTodoForm = document.getElementById('addTodoForm');
         addTodoForm.addEventListener('submit', (e) => {
             e.preventDefault();
+            // Skip if handled by touch event
+            if (this.touchManager.isTouchHandled()) return;
             this.handleAddTodo();
         });
     }
@@ -630,7 +640,9 @@ class TodoController {
      */
     bindClearSearchButton() {
         const clearSearchBtn = document.getElementById('clearSearchBtn');
-        clearSearchBtn.addEventListener('click', () => {
+        clearSearchBtn.addEventListener('click', (e) => {
+            // Skip if handled by touch event
+            if (this.touchManager.isTouchHandled()) return;
             this.handleClearSearch();
         });
     }
@@ -638,10 +650,23 @@ class TodoController {
     /**
      * Bind todo list click event delegation
      */
+    /**
+     * Bind todo list click events and touch optimization
+     */
     bindTodoListClick() {
         this.view.todoList.addEventListener('click', (e) => {
             this.handleTodoListClick(e);
         });
+    }
+
+    /**
+     * Bind touch events for mobile optimization using TouchEventManager
+     * This provides faster response times and eliminates the 300ms click delay
+     */
+    bindTouchEvents() {
+        if (this.touchManager) {
+            this.touchManager.bindAllTouchEvents();
+        }
     }
 
     /**
@@ -776,6 +801,11 @@ class TodoController {
      * @param {Event} e - Click event
      */
     handleTodoListClick(e) {
+        // Skip if this was already handled by touch event
+        if (this.touchManager.isTouchHandled()) {
+            return;
+        }
+        
         const action = e.target.dataset.action;
         const id = e.target.dataset.id;
 
