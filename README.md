@@ -180,32 +180,46 @@ If you continue experiencing issues:
 ## Keyboard Shortcuts
 AutoToDo supports comprehensive keyboard shortcuts to help you navigate and interact with the app more efficiently:
 
+> 💡 **Pro Tip**: Press **Ctrl+H**, **?**, or **F1** to see all available shortcuts in the help modal!
+
+### Quick Actions
+- **Ctrl+N** - Focus new todo input field
+- **Ctrl+F** or **/** - Focus search input field  
+- **Ctrl+Enter** - Add new todo (or focus input if empty)
+- **Ctrl+M** - **Toggle between light and dark themes** 🌙 ☀️
+- **Ctrl+H** - Show keyboard shortcuts help dialog
+
+### Todo Management
+- **Ctrl+T** - Toggle completion of first todo item
+- **Ctrl+Delete** - Delete first todo item  
+- **Ctrl+A** - Select all todos (visual feedback)
+- **Ctrl+Shift+D** - Clear all completed todos
+
 ### Adding Todos
 - **Enter** in "What needs to be done?" field - Add the new todo and automatically focus back to input field for quick consecutive additions
 - **Tab** from input field - Move focus to "Add Todo" button, then **Enter** or **Space** to add
 
 ### Search and Filtering
 - **Tab** to search field or click directly to focus
-- Type to search (real-time filtering as you type)
-- **Ctrl+A** - Select all text in search field
+- Type in search field for real-time filtering
+- **Enter** in search field - Apply search filter
 - **Backspace** or **Delete** - Clear search characters
-- **Enter** in search field - Apply search filter (though real-time search works automatically)
 
-### Todo List Navigation
+### Basic Navigation
 - **Tab** - Navigate between todo checkboxes, Edit buttons, and Delete buttons
 - **Shift+Tab** - Navigate backwards through elements
 - **Enter** or **Space** on focused buttons - Activate Edit/Delete actions
 - **Space** on focused checkbox - Toggle todo completion status
 - **Arrow keys** - Navigate within text when editing
 
-### Editing Todos
+### Editing Mode
+When editing a todo item:
 - **Enter** or click "Edit" button - Enter edit mode for a todo
-- **Enter** in edit field - Save changes and return to view mode
-- **Escape** - Cancel edit mode and discard changes
+- **Enter** or **Ctrl+S** in edit field - Save changes and exit edit mode
+- **Escape** - Cancel editing and discard changes
 - **Tab** within edit mode - Move between edit input, Save, and Cancel buttons
-- **Ctrl+A** in edit field - Select all text for quick replacement
 
-### Text Selection and Editing
+### Text Operations
 - **Ctrl+A** - Select all text in any input field
 - **Ctrl+C** / **Ctrl+V** - Copy and paste text (standard browser shortcuts)
 - **Home** / **End** - Move cursor to beginning/end of text
@@ -217,6 +231,9 @@ AutoToDo supports comprehensive keyboard shortcuts to help you navigate and inte
 - Focus indicators clearly show which element is active
 - Screen readers can navigate the todo list structure
 - No mouse required - complete keyboard-only operation is supported
+
+### Advanced Shortcuts
+For a complete list of all available keyboard shortcuts, including advanced combinations and context-specific shortcuts, see the [detailed keyboard shortcuts documentation](KEYBOARD_SHORTCUTS.md) or press **Ctrl+H** within the application.
 
 ### Tips for Efficient Use
 - After adding a todo, focus automatically returns to the input field for rapid todo creation
