@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Browser Compatibility Test - AutoToDo</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .test-info {
+            background: #e3f2fd;
+            border: 1px solid #2196f3;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 16px 0;
+        }
+        .test-info h3 {
+            margin-top: 0;
+            color: #1976d2;
+        }
+        .compatibility-results {
+            background: #f5f5f5;
+            border-radius: 8px;
+            padding: 12px;
+            margin: 8px 0;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="test-info">
+            <h3>🧪 Browser Compatibility Test</h3>
+            <p>This page tests AutoToDo's behavior when HTML5 Drag & Drop API is not supported.</p>
+            <div class="compatibility-results" id="compatibilityResults">
+                Checking compatibility...
+            </div>
+        </div>
+
+        <h1>AutoToDo</h1>
+        
+        <div class="search-container">
+            <input 
+                type="text" 
+                class="search-input" 
+                id="searchInput" 
+                placeholder="Search todos..."
+            >
+        </div>
+        
+        <form class="add-todo-form" id="addTodoForm">
+            <input 
+                type="text" 
+                class="todo-input" 
+                id="todoInput" 
+                placeholder="What needs to be done?"
+                required
+            >
+            <button type="submit" class="add-btn">Add Todo</button>
+        </form>
+
+        <ul class="todo-list" id="todoList">
+            <!-- Todos will be dynamically inserted here -->
+        </ul>
+
+        <div class="empty-state" id="emptyState" style="display: none;">
+            No todos yet. Add one above to get started!
+        </div>
+    </div>
+
+    <!-- JavaScript Modules -->
+    <script src="js/TodoModel.js"></script>
+    <script src="js/TodoView.js"></script>
+    <script src="js/TodoController.js"></script>
+    
+    <script>
+        // Simulate unsupported browser by removing drag and drop APIs
+        console.log('Simulating unsupported browser...');
+        
+        // Store original APIs if they exist
+        const originalDataTransfer = window.DataTransfer;
+        const originalDragEvent = window.DragEvent;
+        
+        // Remove drag and drop APIs to simulate unsupported browser
+        delete window.DataTransfer;
+        delete window.DragEvent;
+        
+        // Override createElement to remove draggable support
+        const originalCreateElement = document.createElement;
+        document.createElement = function(tagName) {
+            const element = originalCreateElement.call(this, tagName);
+            // Remove draggable property to simulate lack of support
+            Object.defineProperty(element, 'draggable', {
+                get: function() { return undefined; },
+                set: function() { /* ignore */ },
+                enumerable: false,
+                configurable: false
+            });
+            return element;
+        };
+
+        // Display compatibility results
+        function updateCompatibilityResults() {
+            const results = document.getElementById('compatibilityResults');
+            const testElement = document.createElement('div');
+            
+            const compatibility = {
+                'DataTransfer available': typeof DataTransfer !== 'undefined',
+                'DragEvent available': typeof DragEvent !== 'undefined',
+                'draggable property': 'draggable' in testElement,
+                'ondragstart event': 'ondragstart' in testElement,
+                'ondrop event': 'ondrop' in testElement
+            };
+            
+            results.innerHTML = Object.entries(compatibility)
+                .map(([key, value]) => `${key}: <strong style="color: ${value ? 'green' : 'red'}">${value}</strong>`)
+                .join('<br>');
+        }
+
+        // Initialize the app
+        document.addEventListener('DOMContentLoaded', () => {
+            updateCompatibilityResults();
+            
+            const model = new TodoModel();
+            const view = new TodoView();
+            const controller = new TodoController(model, view);
+            
+            // Add some test todos
+            model.addTodo('Test drag functionality (should be disabled)');
+            model.addTodo('Edit and delete should still work normally');
+            model.addTodo('Search functionality should work normally');
+            
+            controller.render();
+            
+            console.log('Drag & Drop supported:', controller.dragDropSupported);
+        });
+    </script>
+</body>
+</html>

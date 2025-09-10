@@ -158,9 +158,14 @@ Safari 14 and later versions include enhanced privacy features and stricter secu
 
 *localStorage and Data Persistence Issues:*
 - **Intelligent Tracking Prevention (ITP) clears data:** Safari 14+ may automatically clear localStorage after 7 days of inactivity
-  - Solution: Regularly use the app to prevent automatic data clearing
-  - Workaround: Export/backup your todos periodically (copy from browser console: `JSON.stringify(localStorage.getItem('todos'))`)
-  - Consider adding AutoToDo to your Home Screen (iOS) for app-like persistence
+  - ✅ **FIXED**: AutoToDo now includes comprehensive ITP protection:
+    - Automatic persistent storage requests to prevent data clearing
+    - Activity tracking to reset the 7-day ITP timer  
+    - Automatic backup and recovery system for data protection
+    - Risk monitoring with user notifications
+  - Solution: The app now automatically protects your data - no action needed!
+  - Fallback: If protection fails, data is automatically backed up and can be recovered
+  - Additional protection: Adding AutoToDo to your Home Screen (iOS) provides app-like persistence
 
 - **Private browsing severely limits storage:** 
   - Solution: Use regular browsing mode for persistent todo storage
@@ -439,20 +444,36 @@ If mobile issues persist:
 ## Features
 - ✅ Create new todos with a simple form
 - ✅ View all todos in a clean, organized list
+- ✅ **Drag & Drop reordering** with visual feedback and persistence
 - ✅ Search todos by keywords in real-time
 - ✅ Edit existing todos inline
 - ✅ Delete todos with confirmation dialog
 - ✅ Mark todos as completed with checkboxes
 - ✅ Data persistence using localStorage
 - ✅ Responsive design with modern UI
+- ✅ **Browser compatibility detection with graceful fallback**
+
+### Drag & Drop Functionality
+AutoToDo includes intuitive drag and drop functionality to reorder your todos:
+- **Visual Drag Handles:** Each todo displays a "≡" icon indicating it can be dragged
+- **Smooth Interaction:** Uses HTML5 Drag and Drop API with visual feedback
+- **Automatic Saving:** New order is instantly saved to localStorage
+- **Search Compatible:** Works correctly even when todos are filtered
+- **Browser Fallback:** Gracefully degrades on browsers without drag/drop support
+
+**Browser Support for Drag & Drop:**
+- ✅ Chrome 4+, Firefox 3.5+, Safari 3.1+, Edge (all versions)
+- ✅ Internet Explorer 9+, Opera 12+
+- ⚠️ Older browsers show a friendly message and maintain all other functionality
 
 ## How to Use
 1. Open `index.html` in a web browser
 2. Add new todos using the input field at the top
-3. Use the search field to filter todos by keywords
-4. Click checkboxes to mark todos as completed
-5. Use Edit buttons to modify todo text
-6. Use Delete buttons to remove todos (with confirmation)
+3. **Drag todos by their "≡" handle to reorder them**
+4. Use the search field to filter todos by keywords
+5. Click checkboxes to mark todos as completed
+6. Use Edit buttons to modify todo text
+7. Use Delete buttons to remove todos (with confirmation)
 
 ## Keyboard Shortcuts
 AutoToDo supports comprehensive keyboard shortcuts to help you navigate and interact with the app more efficiently:

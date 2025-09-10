@@ -2,39 +2,41 @@
  * TodoModel - Handles data management and persistence for todos
  */
 class TodoModel {
-    constructor() {
-        // Use the global storageManager instance
-        this.storage = window.storageManager || storageManager;
+    constructor(storageManager = window.storageManager) {
+        this.storage = storageManager;
         this.todos = this.loadTodos();
     }
 
     /**
-     * Load todos from storage
+     * Load todos from storage with fallback support
      * @returns {Array} Array of todo objects
      */
     loadTodos() {
         try {
             const saved = this.storage.getItem('todos');
             return saved ? JSON.parse(saved) : [];
-        } catch (error) {
-            console.warn('Failed to load todos from storage:', error.message);
+        } catch (e) {
+            console.warn('Failed to load todos from storage:', e);
             return [];
         }
     }
 
     /**
-     * Save todos to storage
-     * @returns {boolean} True if successfully saved
+     * Save todos to storage with fallback support
      */
     saveTodos() {
         try {
             const success = this.storage.setItem('todos', JSON.stringify(this.todos));
-            if (!success) {
-                console.warn('Failed to save todos to storage');
+            if (!success && this.storage.getStorageType() === 'memory') {
+                // Show a warning only once when localStorage first fails
+                if (!this._memoryWarningShown) {
+                    console.warn('Todos are being stored in memory only and will not persist between sessions.');
+                    this._memoryWarningShown = true;
+                }
             }
             return success;
         } catch (error) {
-            console.error('Error saving todos:', error.message);
+            console.error('Failed to save todos to storage:', error);
             return false;
         }
     }
