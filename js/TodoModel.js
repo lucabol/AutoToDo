@@ -58,10 +58,20 @@ class TodoModel {
 
     /**
      * Generate unique ID for new todos using crypto.randomUUID() with fallback
-     * @returns {string} Unique identifier
+     * 
+     * This method implements a tiered approach to ID generation for maximum compatibility:
+     * 1. First preference: crypto.randomUUID() for cryptographically secure UUIDs
+     * 2. Second preference: crypto.getRandomValues() + high-precision timestamp
+     * 3. Fallback: enhanced Math.random() + timestamp for legacy browser support
+     * 
+     * All generated IDs are validated against existing todos to ensure uniqueness,
+     * preventing potential conflicts in the todo list.
+     * 
+     * @returns {string} Unique identifier guaranteed to not conflict with existing todos
      */
     generateId() {
         // Try to use crypto.randomUUID() for maximum uniqueness (supported in modern browsers)
+        // This provides cryptographically secure random UUIDs following RFC 4122 standard
         if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
             let id;
             do {
@@ -71,27 +81,31 @@ class TodoModel {
         }
         
         // Fallback for older browsers: enhanced timestamp + crypto random
+        // This combines high-precision timing with cryptographically secure random values
         let id;
         do {
-            // Use performance.now() for higher precision than Date.now()
+            // Use performance.now() for sub-millisecond precision vs Date.now()'s millisecond precision
+            // Convert to base36 for compact string representation
             const timestamp = (typeof performance !== 'undefined' && performance.now) 
                 ? performance.now().toString(36) 
                 : Date.now().toString(36);
             
-            // Use crypto.getRandomValues() if available for better randomness
+            // Use crypto.getRandomValues() if available for cryptographically secure randomness
             let randomPart;
             if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+                // Generate 8 random bytes and convert to base36 for compactness
                 const array = new Uint8Array(8);
                 crypto.getRandomValues(array);
                 randomPart = Array.from(array, byte => byte.toString(36)).join('');
             } else {
-                // Last resort: enhanced Math.random()
+                // Last resort: enhanced Math.random() with double randomization
+                // Two random values reduce chance of collisions in rapid succession
                 randomPart = Math.random().toString(36).substring(2) + 
                             Math.random().toString(36).substring(2);
             }
             
             id = timestamp + '-' + randomPart;
-        } while (this.todos.some(todo => todo.id === id)); // Ensure uniqueness
+        } while (this.todos.some(todo => todo.id === id)); // Ensure uniqueness against existing todos
         
         return id;
     }
@@ -189,8 +203,21 @@ class TodoModel {
     }
 
     /**
-     * Get count of todos
-     * @returns {Object} Object with total, completed, pending, archived, and active counts
+     * Calculate comprehensive statistics for the todo collection
+     * 
+     * This method provides detailed metrics about the todo list state, enabling
+     * UI components to display accurate counts and progress indicators.
+     * 
+     * Performance Note: This method iterates through the todos array multiple times
+     * for clarity and maintainability. For extremely large datasets (10,000+ todos),
+     * consider optimizing with a single-pass algorithm if performance becomes critical.
+     * 
+     * @returns {Object} Statistics object containing:
+     *   - total: Total number of todos (including archived)
+     *   - completed: Number of completed todos (including archived completed)
+     *   - pending: Number of incomplete todos (total - completed)
+     *   - archived: Number of archived todos (both completed and incomplete)
+     *   - active: Number of non-archived todos (visible in main view)
      */
     getStats() {
         const total = this.todos.length;
@@ -312,9 +339,23 @@ class TodoModel {
 
     /**
      * Reorder todos by moving a todo from one position to another
-     * @param {string} id - Todo ID to move
-     * @param {number} newIndex - New position index (0-based)
-     * @returns {boolean} True if reorder was successful, false otherwise
+     * 
+     * This method enables drag-and-drop functionality by allowing users to 
+     * rearrange todo items within the list. The operation is performed using
+     * efficient array splice operations to minimize memory allocation.
+     * 
+     * Implementation Details:
+     * - Uses Array.splice() for atomic move operation (remove + insert)
+     * - Validates both source and target positions to prevent errors
+     * - Automatically saves changes to persistence layer
+     * - Returns boolean to indicate success/failure for UI feedback
+     * 
+     * Performance: O(n) time complexity due to array element shifting,
+     * acceptable for typical todo list sizes (< 1000 items).
+     * 
+     * @param {string} id - Todo ID to move (must exist in todos array)
+     * @param {number} newIndex - Target position index (0-based, must be valid)
+     * @returns {boolean} True if reorder was successful, false if invalid parameters
      */
     reorderTodo(id, newIndex) {
         const todoIndex = this.todos.findIndex(t => t.id === id);

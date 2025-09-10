@@ -1,30 +1,61 @@
 /**
- * VirtualScrollManager - High-performance virtual scrolling for large lists
- * Dramatically improves performance by only rendering visible items
+ * VirtualScrollManager - High-performance virtual scrolling implementation for large lists
+ * 
+ * Virtual scrolling dramatically improves performance by only rendering DOM elements
+ * for items currently visible in the viewport, plus a small buffer for smooth scrolling.
+ * This allows handling thousands of items without performance degradation.
+ * 
+ * Key Performance Benefits:
+ * - Constant O(1) DOM nodes regardless of data size
+ * - Reduced layout/paint cycles for better frame rates
+ * - Lower memory usage by recycling DOM elements
+ * - Smooth scrolling maintained even with 1000+ items
+ * 
+ * Technical Implementation:
+ * - Uses invisible spacer elements to maintain scroll height
+ * - Throttles scroll events to 60fps (16ms intervals) for optimal performance
+ * - Implements buffer zones above/below viewport for smoother scrolling
+ * - Dynamically calculates visible item range based on scroll position
+ * 
+ * Browser Compatibility:
+ * - Requires modern browser support for passive event listeners
+ * - Uses translate3d for hardware-accelerated scrolling
+ * - Falls back gracefully on older browsers with reduced performance
  */
 class VirtualScrollManager {
+    /**
+     * Initialize virtual scroll manager with configuration options
+     * 
+     * @param {Object} options Configuration options
+     * @param {HTMLElement} options.container - Container element for the virtual scroller
+     * @param {number} [options.itemHeight=60] - Estimated height of each item in pixels
+     * @param {number} [options.bufferSize=5] - Number of extra items to render outside viewport
+     * @param {Window|Element} [options.viewport=window] - Viewport for scroll calculations
+     * @param {Function} [options.renderCallback] - Callback to render individual items
+     */
     constructor(options = {}) {
         this.container = options.container;
-        this.itemHeight = options.itemHeight || 60; // Estimated item height
-        this.bufferSize = options.bufferSize || 5; // Extra items to render for smooth scrolling
+        this.itemHeight = options.itemHeight || 60; // Estimated item height in pixels
+        this.bufferSize = options.bufferSize || 5; // Extra items above/below viewport for smooth scrolling
         this.viewport = options.viewport || window;
         this.renderCallback = options.renderCallback || (() => {});
         
-        // State
-        this.items = [];
-        this.visibleRange = { start: 0, end: 0 };
-        this.scrollTop = 0;
-        this.containerHeight = 0;
-        this.totalHeight = 0;
+        // Virtual scrolling state management
+        this.items = []; // Source data array
+        this.visibleRange = { start: 0, end: 0 }; // Currently visible item indices
+        this.scrollTop = 0; // Current scroll position
+        this.containerHeight = 0; // Viewport height
+        this.totalHeight = 0; // Total scrollable height
         
-        // Performance optimization: throttled scroll handler
-        this.handleScroll = this.throttle(this._handleScroll.bind(this), 16); // 60fps
+        // Performance optimization: throttled scroll handler to maintain 60fps
+        // Throttling prevents excessive redraws during rapid scroll events
+        this.handleScroll = this.throttle(this._handleScroll.bind(this), 16); // 16ms = 60fps
         
-        // DOM elements
-        this.scrollContainer = null;
-        this.itemContainer = null;
-        this.topSpacer = null;
-        this.bottomSpacer = null;
+        // DOM element references for virtual scroll structure
+        this.scrollContainer = null; // Main scrollable container
+        this.itemContainer = null;   // Container for rendered items
+        this.topSpacer = null;       // Invisible spacer above visible items
+        this.bottomSpacer = null;    // Invisible spacer below visible items
         
         this.init();
     }
@@ -41,10 +72,25 @@ class VirtualScrollManager {
     }
     
     /**
-     * Set up the DOM structure for virtual scrolling
+     * Set up the DOM structure required for virtual scrolling
+     * 
+     * Creates a specialized DOM hierarchy optimized for virtual scrolling:
+     * 
+     * Container Structure:
+     * - scrollContainer: Main scrollable viewport with fixed height
+     * - itemContainer: Holds all rendered items and spacers
+     * - topSpacer: Invisible element maintaining space for items above viewport
+     * - bottomSpacer: Invisible element maintaining space for items below viewport
+     * 
+     * This structure ensures:
+     * - Browser maintains correct scrollbar size and position
+     * - Scrolling feels natural to users (no jumping or jank)
+     * - Screen readers and accessibility tools work correctly
+     * - CSS containment can be applied for optimal performance
      */
     setupDOM() {
-        // Create scroll container
+        // Create main scrollable container with fixed viewport height
+        // Position relative enables absolute positioning of child items
         this.scrollContainer = document.createElement('div');
         this.scrollContainer.className = 'virtual-scroll-container';
         this.scrollContainer.style.cssText = `
@@ -53,7 +99,8 @@ class VirtualScrollManager {
             position: relative;
         `;
         
-        // Create item container
+        // Create container for actual rendered items
+        // Minimum height 0 prevents unwanted layout expansion
         this.itemContainer = document.createElement('div');
         this.itemContainer.className = 'virtual-scroll-items';
         this.itemContainer.style.cssText = `
@@ -61,19 +108,21 @@ class VirtualScrollManager {
             min-height: 0;
         `;
         
-        // Create spacers for maintaining scroll height
+        // Create invisible spacer elements to maintain proper scroll height
+        // These elements "reserve" space for non-rendered items above and below
+        // the visible viewport, ensuring correct scrollbar behavior
         this.topSpacer = document.createElement('div');
         this.topSpacer.className = 'virtual-scroll-spacer-top';
         
         this.bottomSpacer = document.createElement('div');
         this.bottomSpacer.className = 'virtual-scroll-spacer-bottom';
         
-        // Assemble DOM
+        // Assemble the DOM hierarchy
         this.itemContainer.appendChild(this.topSpacer);
         this.itemContainer.appendChild(this.bottomSpacer);
         this.scrollContainer.appendChild(this.itemContainer);
         
-        // Replace original container
+        // Replace original container content with virtual scroll structure
         this.container.appendChild(this.scrollContainer);
     }
     
