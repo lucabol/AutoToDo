@@ -11,9 +11,31 @@ class KeyboardHandlers {
         this.model = controller.model;
         this.view = controller.view;
         
-        // Initialize shortcut modules for enhanced functionality
-        this.moduleManager = new ShortcutModuleManager();
-        this.initializeModules();
+        // Initialize handler categorization maps for better organization
+        this._initializeHandlerMaps();
+        
+        // Initialize shortcut modules for enhanced functionality (if available)
+        try {
+            if (typeof ShortcutModuleManager !== 'undefined') {
+                this.moduleManager = new ShortcutModuleManager();
+                this.initializeModules();
+            }
+        } catch (error) {
+            console.warn('KeyboardHandlers: Enhanced modules not available, using basic functionality');
+        }
+    }
+
+    /**
+     * Initialize handler categorization maps for better organization
+     * @private
+     */
+    _initializeHandlerMaps() {
+        this.handlerCategories = {
+            navigation: ['focusNewTodo', 'focusSearch'],
+            todoManagement: ['addTodo', 'toggleFirstTodo', 'deleteFirstTodo', 'selectAll', 'clearCompleted'],
+            editing: ['cancelEdit', 'saveEdit'],
+            general: ['showHelp', 'toggleTheme']
+        };
     }
 
     /**
@@ -107,55 +129,82 @@ class KeyboardHandlers {
      */
     getAllHandlers() {
         const baseHandlers = {
-            // Navigation and focus shortcuts using navigation module
-            focusNewTodo: this.navigationModule.createFocusAction('newTodo'),
-            focusSearch: this.navigationModule.createFocusAction('search'),
+            // Navigation and focus shortcuts - use enhanced modules if available, fallback to safe execution
+            focusNewTodo: this.navigationModule ? 
+                this.navigationModule.createFocusAction('newTodo') : 
+                () => this._safeExecute('focusNewTodoInput', 'focusing new todo input'),
+            focusSearch: this.navigationModule ? 
+                this.navigationModule.createFocusAction('search') : 
+                (event) => this._safeExecute('focusSearchInput', 'focusing search input', event),
             
-            // Todo management shortcuts with undo support
-            addTodo: this.actionModule.createUndoableAction(
-                () => this.handleAddTodoFromShortcut(),
-                null, // No undo for add todo (would need to track the added todo)
-                'Add Todo'
-            ),
-            toggleFirstTodo: this.actionModule.createUndoableAction(
-                () => this.handleToggleFirstTodo(),
-                () => this.handleToggleFirstTodo(), // Toggle is its own undo
-                'Toggle First Todo'
-            ),
-            deleteFirstTodo: this.createDeleteAction(),
-            selectAll: () => this.handleSelectAllTodos(),
-            clearCompleted: this.createClearCompletedAction(),
+            // Todo management shortcuts with undo support when available
+            addTodo: this.actionModule ? 
+                this.actionModule.createUndoableAction(
+                    () => this.handleAddTodoFromShortcut(),
+                    null, // No undo for add todo (would need to track the added todo)
+                    'Add Todo'
+                ) : 
+                () => this._safeExecute('handleAddTodoFromShortcut', 'adding todo from shortcut'),
+            toggleFirstTodo: this.actionModule ? 
+                this.actionModule.createUndoableAction(
+                    () => this.handleToggleFirstTodo(),
+                    () => this.handleToggleFirstTodo(), // Toggle is its own undo
+                    'Toggle First Todo'
+                ) : 
+                () => this._safeExecute('handleToggleFirstTodo', 'toggling first todo'),
+            deleteFirstTodo: this.actionModule ? 
+                this.createDeleteAction() : 
+                () => this._safeExecute('handleDeleteFirstTodo', 'deleting first todo'),
+            selectAll: () => this._safeExecute('handleSelectAllTodos', 'selecting all todos'),
+            clearCompleted: this.actionModule ? 
+                this.createClearCompletedAction() : 
+                () => this._safeExecute('handleClearCompleted', 'clearing completed todos'),
             
-            // Editing shortcuts with context awareness
-            cancelEdit: this.contextModule.createContextAwareAction({
-                editing: () => this.handleCancelEdit(),
-                global: () => false // No-op in global context
-            }),
-            saveEdit: this.contextModule.createContextAwareAction({
-                editing: () => this.handleSaveEditFromShortcut(),
-                global: () => false // No-op in global context
-            }),
+            // Editing shortcuts with context awareness when available
+            cancelEdit: this.contextModule ? 
+                this.contextModule.createContextAwareAction({
+                    editing: () => this.handleCancelEdit(),
+                    global: () => false // No-op in global context
+                }) : 
+                () => this._safeExecute('handleCancelEdit', 'canceling edit'),
+            saveEdit: this.contextModule ? 
+                this.contextModule.createContextAwareAction({
+                    editing: () => this.handleSaveEditFromShortcut(),
+                    global: () => false // No-op in global context
+                }) : 
+                () => this._safeExecute('handleSaveEditFromShortcut', 'saving edit from shortcut'),
             
             // General shortcuts
-            showHelp: () => this.showKeyboardHelp(),
-            toggleTheme: () => this.controller.toggleTheme(),
+            showHelp: () => this._safeExecute('showKeyboardHelp', 'showing keyboard help'),
+            toggleTheme: () => this._safeExecute(() => this.controller.toggleTheme(), 'toggling theme'),
             
-            // New enhanced shortcuts
-            undo: () => this.handleUndo(),
-            showStats: () => this.showShortcutStats()
+            // New enhanced shortcuts (only available when modules are loaded)
+            undo: this.actionModule ? () => this.handleUndo() : undefined,
+            showStats: this.moduleManager ? () => this.showShortcutStats() : undefined
         };
 
-        // Apply plugins to enhance all handlers
-        const enhancedHandlers = {};
+        // Filter out undefined handlers and apply plugins when module manager is available
+        const filteredHandlers = {};
         for (const [key, handler] of Object.entries(baseHandlers)) {
-            enhancedHandlers[key] = this.moduleManager.applyPlugins({
-                action: handler,
-                name: key,
-                description: this.getHandlerDescription(key)
-            }).action;
+            if (handler !== undefined) {
+                filteredHandlers[key] = handler;
+            }
         }
 
-        return enhancedHandlers;
+        // Apply plugins to enhance all handlers when module manager is available
+        if (this.moduleManager) {
+            const enhancedHandlers = {};
+            for (const [key, handler] of Object.entries(filteredHandlers)) {
+                enhancedHandlers[key] = this.moduleManager.applyPlugins({
+                    action: handler,
+                    name: key,
+                    description: this.getHandlerDescription(key)
+                }).action;
+            }
+            return enhancedHandlers;
+        }
+
+        return filteredHandlers;
     }
 
     /**
@@ -179,6 +228,68 @@ class KeyboardHandlers {
         };
         
         return descriptions[handlerName] || handlerName;
+    }
+
+    /**
+     * Safely execute a handler method with error handling
+     * @param {string|Function} methodOrFunction - Method name or function to execute
+     * @param {string} actionDescription - Description of the action for error logging
+     * @param {...any} args - Arguments to pass to the method/function
+     * @private
+     */
+    _safeExecute(methodOrFunction, actionDescription, ...args) {
+        try {
+            if (typeof methodOrFunction === 'string') {
+                return this[methodOrFunction](...args);
+            } else if (typeof methodOrFunction === 'function') {
+                return methodOrFunction(...args);
+            } else {
+                throw new Error(`Invalid method or function: ${methodOrFunction}`);
+            }
+        } catch (error) {
+            console.error(`KeyboardHandlers: Error ${actionDescription}:`, error);
+            this._showErrorMessage(actionDescription, error);
+        }
+    }
+
+    /**
+     * Show user-friendly error message
+     * @param {string} actionDescription - Description of the failed action
+     * @param {Error} error - The error that occurred
+     * @private
+     */
+    _showErrorMessage(actionDescription, error) {
+        if (this.view && typeof this.view.showMessage === 'function') {
+            this.view.showMessage(`Error ${actionDescription}. Please try again.`, 'error');
+        }
+    }
+
+    /**
+     * Get handlers for a specific category
+     * @param {string} category - Category name (navigation, todoManagement, editing, general)
+     * @returns {Object} Object containing handlers for the specified category
+     */
+    getHandlersByCategory(category) {
+        const allHandlers = this.getAllHandlers();
+        const categoryHandlers = {};
+        
+        if (this.handlerCategories[category]) {
+            for (const handlerName of this.handlerCategories[category]) {
+                if (allHandlers[handlerName]) {
+                    categoryHandlers[handlerName] = allHandlers[handlerName];
+                }
+            }
+        }
+        
+        return categoryHandlers;
+    }
+
+    /**
+     * Get all available handler categories
+     * @returns {Array} Array of category names
+     */
+    getAvailableCategories() {
+        return Object.keys(this.handlerCategories);
     }
 
     // =================
