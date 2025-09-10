@@ -1,8 +1,78 @@
-/* AutoToDo Styles */
+/* AutoToDo Styles - Performance Optimized */
+
+/* Performance Optimizations */
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
+}
+
+/* Enable hardware acceleration and optimizations */
+.todo-list {
+    contain: layout style paint;
+    transform: translateZ(0);
+    will-change: auto;
+    backface-visibility: hidden;
+}
+
+/* Safari-specific optimizations */
+@supports (-webkit-appearance: none) {
+    .todo-list {
+        -webkit-transform: translateZ(0);
+        -webkit-backface-visibility: hidden;
+        -webkit-perspective: 1000px;
+    }
+}
+
+/* Virtual scroll container styles */
+.virtual-scroll-container {
+    height: 400px;
+    overflow-y: auto;
+    position: relative;
+    contain: strict;
+}
+
+.virtual-scroll-items {
+    position: relative;
+    min-height: 0;
+}
+
+.virtual-scroll-item {
+    position: absolute;
+    left: 0;
+    right: 0;
+    box-sizing: border-box;
+    contain: layout style paint;
+}
+
+/* Optimize todo items for performance */
+.todo-item {
+    contain: layout;
+    will-change: auto;
+}
+
+.todo-item:hover {
+    will-change: transform;
+}
+
+/* Reduce paint on animations */
+.todo-text.completed {
+    contain: paint;
+}
+
+/* Optimize form inputs */
+.edit-input {
+    contain: layout;
+}
+
+/* Performance-optimized search input */
+.search-input {
+    contain: layout;
+    will-change: auto;
+}
+
+.search-input:focus {
+    will-change: contents;
 }
 
 :root {

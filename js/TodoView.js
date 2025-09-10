@@ -1,5 +1,5 @@
 /**
- * TodoView - Handles UI rendering and DOM manipulation
+ * TodoView - Handles UI rendering and DOM manipulation with performance optimizations
  */
 class TodoView {
     constructor() {
@@ -7,84 +7,317 @@ class TodoView {
         this.emptyState = document.getElementById('emptyState');
         this.todoInput = document.getElementById('todoInput');
         this.editingId = null;
+        
+        // Performance optimizations
+        this.useVirtualScrolling = true;
+        this.virtualScrollThreshold = 50; // Use virtual scrolling for 50+ items
+        this.virtualScrollManager = null;
+        this.renderMonitor = PerformanceUtils.createMonitor('TodoView Render');
+        
+        // DOM element pool for reusing elements
+        this.elementPool = PerformanceUtils.createObjectPool(
+            () => this.createTodoElement(),
+            (element) => this.resetTodoElement(element)
+        );
+        
+        this.initializePerformanceOptimizations();
+    }
+
+    
+    /**
+     * Initialize performance optimizations
+     */
+    initializePerformanceOptimizations() {
+        // Apply CSS optimizations for better performance
+        if (this.todoList) {
+            this.todoList.style.cssText += `
+                contain: layout style paint;
+                transform: translateZ(0);
+            `;
+        }
+        
+        // Safari-specific optimizations
+        if (PerformanceUtils.isSafari()) {
+            this.applySafariOptimizations();
+        }
+    }
+    
+    /**
+     * Apply Safari-specific performance optimizations
+     */
+    applySafariOptimizations() {
+        if (this.todoList) {
+            this.todoList.style.cssText += `
+                -webkit-transform: translateZ(0);
+                -webkit-backface-visibility: hidden;
+                -webkit-perspective: 1000;
+            `;
+        }
     }
 
     /**
-     * Render the complete todo list
+     * Render the complete todo list with performance optimizations
      * @param {Array} todos - Array of todo objects to display
      * @param {Array} allTodos - Array of all todos (for search context)
      * @param {string} searchTerm - Current search term
      */
     render(todos, allTodos = [], searchTerm = '') {
-        if (todos.length === 0) {
-            this.showEmptyState(allTodos.length === 0, searchTerm);
-            return;
-        }
+        this.renderMonitor.start();
+        
+        try {
+            if (todos.length === 0) {
+                this.showEmptyState(allTodos.length === 0, searchTerm);
+                return;
+            }
 
-        this.hideEmptyState();
-        this.renderTodoList(todos);
+            this.hideEmptyState();
+            
+            // Use virtual scrolling for large lists
+            if (this.useVirtualScrolling && todos.length >= this.virtualScrollThreshold) {
+                this.renderWithVirtualScrolling(todos);
+            } else {
+                this.renderTraditional(todos);
+            }
+        } finally {
+            this.renderMonitor.end();
+        }
+    }
+    
+    /**
+     * Render using virtual scrolling for performance
+     * @param {Array} todos - Array of todo objects
+     */
+    renderWithVirtualScrolling(todos) {
+        if (!this.virtualScrollManager) {
+            this.initVirtualScrolling();
+        }
+        
+        this.virtualScrollManager.setItems(todos);
+    }
+    
+    /**
+     * Initialize virtual scrolling manager
+     */
+    initVirtualScrolling() {
+        // Clear existing content
+        this.todoList.innerHTML = '';
+        
+        this.virtualScrollManager = new VirtualScrollManager({
+            container: this.todoList,
+            itemHeight: 60, // Estimated height of each todo item
+            bufferSize: 5,
+            renderCallback: (todo, index) => this.renderVirtualTodoItem(todo, index)
+        });
+    }
+    
+    /**
+     * Render a todo item for virtual scrolling
+     * @param {Object} todo - Todo object
+     * @param {number} index - Item index
+     * @returns {Element} DOM element for the todo
+     */
+    renderVirtualTodoItem(todo, index) {
+        const element = this.elementPool.acquire();
+        this.populateTodoElement(element, todo);
+        return element;
+    }
+    
+    /**
+     * Create a reusable todo element
+     * @returns {Element} Empty todo element
+     */
+    createTodoElement() {
+        const li = document.createElement('li');
+        li.className = 'todo-item';
+        li.innerHTML = `
+            <input type="checkbox" class="todo-checkbox">
+            <span class="todo-text"></span>
+            <div class="todo-actions">
+                <button class="edit-btn">Edit</button>
+                <button class="delete-btn">Delete</button>
+            </div>
+        `;
+        return li;
+    }
+    
+    /**
+     * Reset a todo element for reuse
+     * @param {Element} element - Element to reset
+     */
+    resetTodoElement(element) {
+        const checkbox = element.querySelector('.todo-checkbox');
+        const textSpan = element.querySelector('.todo-text');
+        
+        if (checkbox) {
+            checkbox.checked = false;
+            checkbox.removeAttribute('data-id');
+            checkbox.removeAttribute('data-action');
+        }
+        
+        if (textSpan) {
+            textSpan.textContent = '';
+            textSpan.className = 'todo-text';
+        }
+        
+        element.removeAttribute('data-id');
+        element.className = 'todo-item';
+    }
+    
+    /**
+     * Populate a todo element with data
+     * @param {Element} element - Element to populate
+     * @param {Object} todo - Todo data
+     */
+    populateTodoElement(element, todo) {
+        const checkbox = element.querySelector('.todo-checkbox');
+        const textSpan = element.querySelector('.todo-text');
+        const editBtn = element.querySelector('.edit-btn');
+        const deleteBtn = element.querySelector('.delete-btn');
+        
+        element.setAttribute('data-id', todo.id);
+        
+        if (checkbox) {
+            checkbox.checked = todo.completed;
+            checkbox.setAttribute('data-action', 'toggle');
+            checkbox.setAttribute('data-id', todo.id);
+        }
+        
+        if (textSpan) {
+            textSpan.textContent = todo.text;
+            textSpan.className = todo.completed ? 'todo-text completed' : 'todo-text';
+        }
+        
+        if (editBtn) {
+            editBtn.setAttribute('data-action', 'edit');
+            editBtn.setAttribute('data-id', todo.id);
+        }
+        
+        if (deleteBtn) {
+            deleteBtn.setAttribute('data-action', 'delete');
+            deleteBtn.setAttribute('data-id', todo.id);
+        }
+        
+        // Handle editing state
+        if (this.editingId === todo.id) {
+            this.convertToEditForm(element, todo);
+        }
+    }
+    
+    /**
+     * Convert element to edit form
+     * @param {Element} element - Element to convert
+     * @param {Object} todo - Todo data
+     */
+    convertToEditForm(element, todo) {
+        element.innerHTML = `
+            <input type="checkbox" class="todo-checkbox" ${todo.completed ? 'checked' : ''} disabled>
+            <form class="edit-form" data-action="save-edit" data-id="${todo.id}">
+                <input 
+                    type="text" 
+                    class="edit-input" 
+                    value="${this.escapeHtml(todo.text)}"
+                    data-original-text="${this.escapeHtml(todo.text)}"
+                    autofocus
+                    required
+                >
+                <button type="submit" class="save-btn">Save</button>
+                <button type="button" class="cancel-btn" data-action="cancel-edit">Cancel</button>
+            </form>
+        `;
+    }
+    
+    /**
+     * Render using traditional DOM manipulation
+     * @param {Array} todos - Array of todo objects
+     */
+    renderTraditional(todos) {
+        // Clean up virtual scrolling if it was active
+        if (this.virtualScrollManager) {
+            this.virtualScrollManager.destroy();
+            this.virtualScrollManager = null;
+        }
+        
+        // Use efficient rendering with DocumentFragment
+        PerformanceUtils.batchDOMOperations(() => {
+            this.renderTodoList(todos);
+        });
     }
 
     /**
-     * Render the todo list items
+     * Render the todo list items with performance optimizations
      * @param {Array} todos - Array of todo objects
      */
     renderTodoList(todos) {
-        this.todoList.innerHTML = todos.map(todo => {
+        const fragment = document.createDocumentFragment();
+        
+        todos.forEach(todo => {
             if (this.editingId === todo.id) {
-                return this.renderEditForm(todo);
+                fragment.appendChild(this.createEditFormElement(todo));
+            } else {
+                fragment.appendChild(this.createTodoItemElement(todo));
             }
-            return this.renderTodoItem(todo);
-        }).join('');
+        });
+        
+        // Batch DOM update
+        this.todoList.innerHTML = '';
+        this.todoList.appendChild(fragment);
     }
-
+    
     /**
-     * Render a single todo item
+     * Create a todo item element efficiently
      * @param {Object} todo - Todo object
-     * @returns {string} HTML string for the todo item
+     * @returns {Element} Todo item element
      */
-    renderTodoItem(todo) {
-        return `
-            <li class="todo-item" data-id="${todo.id}">
-                <input 
-                    type="checkbox" 
-                    class="todo-checkbox" 
-                    ${todo.completed ? 'checked' : ''}
-                    data-action="toggle"
-                    data-id="${todo.id}"
-                >
-                <span class="todo-text ${todo.completed ? 'completed' : ''}">${this.escapeHtml(todo.text)}</span>
-                <div class="todo-actions">
-                    <button class="edit-btn" data-action="edit" data-id="${todo.id}">Edit</button>
-                    <button class="delete-btn" data-action="delete" data-id="${todo.id}">Delete</button>
-                </div>
-            </li>
+    createTodoItemElement(todo) {
+        const li = document.createElement('li');
+        li.className = 'todo-item';
+        li.setAttribute('data-id', todo.id);
+        
+        li.innerHTML = `
+            <input 
+                type="checkbox" 
+                class="todo-checkbox" 
+                ${todo.completed ? 'checked' : ''}
+                data-action="toggle"
+                data-id="${todo.id}"
+            >
+            <span class="todo-text ${todo.completed ? 'completed' : ''}">${this.escapeHtml(todo.text)}</span>
+            <div class="todo-actions">
+                <button class="edit-btn" data-action="edit" data-id="${todo.id}">Edit</button>
+                <button class="delete-btn" data-action="delete" data-id="${todo.id}">Delete</button>
+            </div>
         `;
+        
+        return li;
     }
-
+    
     /**
-     * Render the edit form for a todo
+     * Create an edit form element
      * @param {Object} todo - Todo object being edited
-     * @returns {string} HTML string for the edit form
+     * @returns {Element} Edit form element
      */
-    renderEditForm(todo) {
-        return `
-            <li class="todo-item" data-id="${todo.id}">
-                <input type="checkbox" class="todo-checkbox" ${todo.completed ? 'checked' : ''} disabled>
-                <form class="edit-form" data-action="save-edit" data-id="${todo.id}">
-                    <input 
-                        type="text" 
-                        class="edit-input" 
-                        value="${this.escapeHtml(todo.text)}"
-                        data-original-text="${this.escapeHtml(todo.text)}"
-                        autofocus
-                        required
-                    >
-                    <button type="submit" class="save-btn">Save</button>
-                    <button type="button" class="cancel-btn" data-action="cancel-edit">Cancel</button>
-                </form>
-            </li>
+    createEditFormElement(todo) {
+        const li = document.createElement('li');
+        li.className = 'todo-item';
+        li.setAttribute('data-id', todo.id);
+        
+        li.innerHTML = `
+            <input type="checkbox" class="todo-checkbox" ${todo.completed ? 'checked' : ''} disabled>
+            <form class="edit-form" data-action="save-edit" data-id="${todo.id}">
+                <input 
+                    type="text" 
+                    class="edit-input" 
+                    value="${this.escapeHtml(todo.text)}"
+                    data-original-text="${this.escapeHtml(todo.text)}"
+                    autofocus
+                    required
+                >
+                <button type="submit" class="save-btn">Save</button>
+                <button type="button" class="cancel-btn" data-action="cancel-edit">Cancel</button>
+            </form>
         `;
+        
+        return li;
     }
 
     /**
@@ -192,6 +425,30 @@ class TodoView {
         return div.innerHTML;
     }
 
+    /**
+     * Clean up resources
+     */
+    destroy() {
+        if (this.virtualScrollManager) {
+            this.virtualScrollManager.destroy();
+            this.virtualScrollManager = null;
+        }
+        
+        this.elementPool.clear();
+    }
+    
+    /**
+     * Get performance statistics
+     * @returns {Object} Performance statistics
+     */
+    getPerformanceStats() {
+        return {
+            renderStats: this.renderMonitor.getStats(),
+            isUsingVirtualScrolling: !!this.virtualScrollManager,
+            poolSize: this.elementPool.size()
+        };
+    }
+    
     /**
      * Show confirmation dialog
      * @param {string} message - Confirmation message

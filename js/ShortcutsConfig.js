@@ -59,7 +59,11 @@ class ShortcutsConfig {
             showHelp,
             toggleTheme,
             selectAll,
-            clearCompleted
+            clearCompleted,
+            
+            // Enhanced functionality
+            undo,
+            showStats
         } = handlers;
 
         return [
@@ -71,7 +75,8 @@ class ShortcutsConfig {
                 action: focusNewTodo,
                 preventDefault: true,
                 description: 'Focus new todo input (Ctrl+N)',
-                category: SHORTCUT_CATEGORIES.NAVIGATION
+                category: SHORTCUT_CATEGORIES.NAVIGATION,
+                priority: 'high'
             },
             {
                 key: 'f',
@@ -80,7 +85,8 @@ class ShortcutsConfig {
                 action: focusSearch,
                 preventDefault: true,
                 description: 'Focus search input (Ctrl+F)',
-                category: SHORTCUT_CATEGORIES.NAVIGATION
+                category: SHORTCUT_CATEGORIES.NAVIGATION,
+                priority: 'high'
             },
             {
                 key: '/',
@@ -88,7 +94,8 @@ class ShortcutsConfig {
                 action: focusSearch,
                 preventDefault: false, // We'll handle preventDefault conditionally in the action
                 description: 'Focus search input and start typing (/)',
-                category: SHORTCUT_CATEGORIES.NAVIGATION
+                category: SHORTCUT_CATEGORIES.NAVIGATION,
+                priority: 'high'
             },
             
             // Todo management shortcuts
@@ -99,7 +106,8 @@ class ShortcutsConfig {
                 action: addTodo,
                 preventDefault: true,
                 description: 'Add new todo (Ctrl+Enter)',
-                category: SHORTCUT_CATEGORIES.TODO_MANAGEMENT
+                category: SHORTCUT_CATEGORIES.TODO_MANAGEMENT,
+                priority: 'high'
             },
             {
                 key: 't',
@@ -108,7 +116,8 @@ class ShortcutsConfig {
                 action: toggleFirstTodo,
                 preventDefault: true,
                 description: 'Toggle first todo (Ctrl+T)',
-                category: SHORTCUT_CATEGORIES.TODO_MANAGEMENT
+                category: SHORTCUT_CATEGORIES.TODO_MANAGEMENT,
+                priority: 'medium'
             },
             {
                 key: 'Delete',
@@ -117,7 +126,8 @@ class ShortcutsConfig {
                 action: deleteFirstTodo,
                 preventDefault: true,
                 description: 'Delete first todo (Ctrl+Delete)',
-                category: SHORTCUT_CATEGORIES.TODO_MANAGEMENT
+                category: SHORTCUT_CATEGORIES.TODO_MANAGEMENT,
+                priority: 'medium'
             },
             {
                 key: 'a',
@@ -126,7 +136,8 @@ class ShortcutsConfig {
                 action: selectAll,
                 preventDefault: true,
                 description: 'Select all todos (Ctrl+A)',
-                category: SHORTCUT_CATEGORIES.TODO_MANAGEMENT
+                category: SHORTCUT_CATEGORIES.TODO_MANAGEMENT,
+                priority: 'medium'
             },
             {
                 key: 'd',
@@ -136,7 +147,8 @@ class ShortcutsConfig {
                 action: clearCompleted,
                 preventDefault: true,
                 description: 'Clear completed todos (Ctrl+Shift+D)',
-                category: SHORTCUT_CATEGORIES.TODO_MANAGEMENT
+                category: SHORTCUT_CATEGORIES.TODO_MANAGEMENT,
+                priority: 'low'
             },
             
             // Editing mode shortcuts
@@ -145,7 +157,8 @@ class ShortcutsConfig {
                 context: 'editing',
                 action: cancelEdit,
                 description: 'Cancel editing (Escape)',
-                category: SHORTCUT_CATEGORIES.EDITING
+                category: SHORTCUT_CATEGORIES.EDITING,
+                priority: 'high'
             },
             {
                 key: 's',
@@ -154,7 +167,8 @@ class ShortcutsConfig {
                 action: saveEdit,
                 preventDefault: true,
                 description: 'Save changes (Ctrl+S)',
-                category: SHORTCUT_CATEGORIES.EDITING
+                category: SHORTCUT_CATEGORIES.EDITING,
+                priority: 'high'
             },
             {
                 key: 'Enter',
@@ -162,7 +176,8 @@ class ShortcutsConfig {
                 action: saveEdit,
                 preventDefault: true,
                 description: 'Save changes (Enter)',
-                category: SHORTCUT_CATEGORIES.EDITING
+                category: SHORTCUT_CATEGORIES.EDITING,
+                priority: 'high'
             },
             
             // General application shortcuts
@@ -173,7 +188,8 @@ class ShortcutsConfig {
                 action: showHelp,
                 preventDefault: true,
                 description: 'Show keyboard shortcuts help (Ctrl+H)',
-                category: SHORTCUT_CATEGORIES.GENERAL
+                category: SHORTCUT_CATEGORIES.GENERAL,
+                priority: 'medium'
             },
             {
                 key: '?',
@@ -181,7 +197,8 @@ class ShortcutsConfig {
                 action: showHelp,
                 preventDefault: true,
                 description: 'Show keyboard shortcuts help (?)',
-                category: SHORTCUT_CATEGORIES.GENERAL
+                category: SHORTCUT_CATEGORIES.GENERAL,
+                priority: 'medium'
             },
             {
                 key: 'F1',
@@ -189,7 +206,8 @@ class ShortcutsConfig {
                 action: showHelp,
                 preventDefault: true,
                 description: 'Show keyboard shortcuts help (F1)',
-                category: SHORTCUT_CATEGORIES.GENERAL
+                category: SHORTCUT_CATEGORIES.GENERAL,
+                priority: 'medium'
             },
             {
                 key: 'm',
@@ -198,7 +216,31 @@ class ShortcutsConfig {
                 action: toggleTheme,
                 preventDefault: true,
                 description: 'Toggle theme (Ctrl+M)',
-                category: SHORTCUT_CATEGORIES.GENERAL
+                category: SHORTCUT_CATEGORIES.GENERAL,
+                priority: 'medium'
+            },
+            
+            // Enhanced functionality shortcuts
+            {
+                key: 'z',
+                ctrlKey: true,
+                context: 'global',
+                action: undo,
+                preventDefault: true,
+                description: 'Undo last action (Ctrl+Z)',
+                category: SHORTCUT_CATEGORIES.GENERAL,
+                priority: 'high'
+            },
+            {
+                key: 'i',
+                ctrlKey: true,
+                shiftKey: true,
+                context: 'global',
+                action: showStats,
+                preventDefault: true,
+                description: 'Show shortcut statistics (Ctrl+Shift+I)',
+                category: SHORTCUT_CATEGORIES.GENERAL,
+                priority: 'low'
             }
         ];
     }
