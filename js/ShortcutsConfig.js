@@ -31,6 +31,10 @@ const VALIDATION_LIMITS = {
 };
 
 class ShortcutsConfig {
+    // Cache for validation results to improve performance
+    static _validationCache = new Map();
+    static _cacheMaxSize = 100;
+    
     /**
      * Get all keyboard shortcuts configuration for the AutoToDo application
      * @param {Object} handlers - Object containing handler functions
@@ -311,6 +315,56 @@ class ShortcutsConfig {
      * @returns {Object} Validation result with warnings and errors
      */
     static validateShortcut(shortcut) {
+        // Create cache key for this shortcut
+        const cacheKey = this._createValidationCacheKey(shortcut);
+        
+        // Check cache first
+        if (this._validationCache.has(cacheKey)) {
+            return this._validationCache.get(cacheKey);
+        }
+        
+        const result = this._performShortcutValidation(shortcut);
+        
+        // Cache the result (with size limit)
+        this._cacheValidationResult(cacheKey, result);
+        
+        return result;
+    }
+
+    /**
+     * Create a cache key for validation results
+     * @param {Object} shortcut - Shortcut configuration
+     * @returns {string} Cache key
+     * @private
+     */
+    static _createValidationCacheKey(shortcut) {
+        return `${shortcut.key || ''}:${shortcut.ctrlKey || false}:${shortcut.altKey || false}:${shortcut.shiftKey || false}:${shortcut.context || 'global'}`;
+    }
+
+    /**
+     * Cache validation result with size management
+     * @param {string} cacheKey - Cache key
+     * @param {Object} result - Validation result
+     * @private
+     */
+    static _cacheValidationResult(cacheKey, result) {
+        // Manage cache size
+        if (this._validationCache.size >= this._cacheMaxSize) {
+            // Remove oldest entry (first in Map)
+            const firstKey = this._validationCache.keys().next().value;
+            this._validationCache.delete(firstKey);
+        }
+        
+        this._validationCache.set(cacheKey, result);
+    }
+
+    /**
+     * Perform the actual shortcut validation
+     * @param {Object} shortcut - Shortcut configuration to validate
+     * @returns {Object} Validation result
+     * @private
+     */
+    static _performShortcutValidation(shortcut) {
         const rules = this.getValidationRules();
         const result = {
             valid: true,
@@ -319,7 +373,20 @@ class ShortcutsConfig {
             suggestions: []
         };
 
-        // Check for system shortcut conflicts
+        this._validateSystemConflicts(shortcut, rules, result);
+        this._validateReservedKeys(shortcut, rules, result);
+        this._validateModifierUsage(shortcut, result);
+        this._validateAccessibility(shortcut, rules, result);
+        this._validateRequiredFields(shortcut, result);
+
+        return result;
+    }
+
+    /**
+     * Validate system shortcut conflicts
+     * @private
+     */
+    static _validateSystemConflicts(shortcut, rules, result) {
         const systemConflict = rules.systemShortcuts.some(sysShortcut => 
             sysShortcut.key === shortcut.key && 
             (sysShortcut.ctrlKey === shortcut.ctrlKey) &&
@@ -330,18 +397,33 @@ class ShortcutsConfig {
         if (systemConflict) {
             result.warnings.push(`May conflict with system shortcut: ${this.formatKeyCombo(shortcut)}`);
         }
+    }
 
-        // Check reserved keys
+    /**
+     * Validate reserved keys
+     * @private
+     */
+    static _validateReservedKeys(shortcut, rules, result) {
         if (rules.reservedGlobalKeys.includes(shortcut.key)) {
             result.warnings.push(`Key "${shortcut.key}" is reserved and may not work as expected`);
         }
+    }
 
-        // Check modifier usage
+    /**
+     * Validate modifier usage
+     * @private
+     */
+    static _validateModifierUsage(shortcut, result) {
         if (shortcut.ctrlKey && shortcut.altKey && shortcut.shiftKey) {
             result.warnings.push('Using all three modifiers may be difficult for users to execute');
         }
+    }
 
-        // Check accessibility
+    /**
+     * Validate accessibility
+     * @private
+     */
+    static _validateAccessibility(shortcut, rules, result) {
         const isAccessible = rules.accessibleShortcuts.some(accShortcut => 
             accShortcut.key === shortcut.key
         );
@@ -349,8 +431,13 @@ class ShortcutsConfig {
         if (!isAccessible && !shortcut.ctrlKey && !shortcut.altKey && !shortcut.shiftKey) {
             result.suggestions.push('Consider using modifier keys for better accessibility');
         }
+    }
 
-        // Validate required fields
+    /**
+     * Validate required fields
+     * @private
+     */
+    static _validateRequiredFields(shortcut, result) {
         if (!shortcut.key) {
             result.errors.push('Shortcut must have a key');
             result.valid = false;
@@ -364,8 +451,6 @@ class ShortcutsConfig {
         if (!shortcut.description) {
             result.warnings.push('Shortcut should have a description for better usability');
         }
-
-        return result;
     }
 
     /**
