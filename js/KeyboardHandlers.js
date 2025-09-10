@@ -46,11 +46,23 @@ class KeyboardHandlers {
      * Focus the new todo input field
      */
     focusNewTodoInput() {
-        const todoInput = document.getElementById('todoInput');
-        if (todoInput) {
-            todoInput.focus();
-            todoInput.select(); // Select any existing text
-        }
+        // Add small delay to ensure DOM is ready and avoid race conditions
+        setTimeout(() => {
+            const todoInput = document.getElementById('todoInput');
+            if (todoInput && typeof todoInput.focus === 'function') {
+                try {
+                    todoInput.focus();
+                    // Only select text if focus was successful and element is focusable
+                    if (document.activeElement === todoInput && typeof todoInput.select === 'function') {
+                        todoInput.select();
+                    }
+                } catch (error) {
+                    console.warn('KeyboardHandlers: Failed to focus todo input:', error.message);
+                }
+            } else {
+                console.warn('KeyboardHandlers: Todo input element not found or not focusable');
+            }
+        }, 0);
     }
 
     /**

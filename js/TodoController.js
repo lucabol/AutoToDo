@@ -99,17 +99,86 @@ class TodoController {
             console.warn('Shortcut validation found errors:', validation);
         }
         
-        // Register all shortcuts
+        // Register all shortcuts with error handling
+        let registeredCount = 0;
         shortcuts.forEach(shortcut => {
             try {
                 this.keyboardManager.registerShortcut(shortcut);
+                registeredCount++;
             } catch (error) {
                 console.error('Failed to register shortcut:', shortcut, error);
             }
         });
         
+        // Verify critical shortcuts are registered
+        this.verifyCriticalShortcuts();
+        
         if (this.keyboardManager.options.debug) {
-            console.log('Keyboard shortcuts setup completed:', this.keyboardManager.getDebugInfo());
+            console.log(`Keyboard shortcuts setup completed: ${registeredCount}/${shortcuts.length} shortcuts registered`);
+            console.log('Debug info:', this.keyboardManager.getDebugInfo());
+        }
+    }
+
+    /**
+     * Verify that critical shortcuts like Ctrl+F are properly registered
+     * @private
+     */
+    verifyCriticalShortcuts() {
+        const criticalShortcuts = [
+            { key: 'f', ctrlKey: true, context: 'global', name: 'Ctrl+F (Focus Search)' },
+            { key: '/', ctrlKey: false, context: 'global', name: '/ (Focus Search)' },
+            { key: 'n', ctrlKey: true, context: 'global', name: 'Ctrl+N (Focus New Todo)' }
+        ];
+        
+        for (const critical of criticalShortcuts) {
+            const shortcutKey = this.keyboardManager.generateShortcutKey(
+                critical.key, critical.ctrlKey, false, false, critical.context
+            );
+            
+            const registered = this.keyboardManager.shortcuts.has(shortcutKey);
+            if (!registered) {
+                console.error(`Critical shortcut not registered: ${critical.name}`);
+                // Try to re-register this specific shortcut
+                this.registerFallbackShortcuts();
+                break;
+            }
+        }
+    }
+
+    /**
+     * Register fallback shortcuts for critical functionality
+     * @private
+     */
+    registerFallbackShortcuts() {
+        console.log('Registering fallback shortcuts...');
+        
+        // Ensure search focus shortcuts are available
+        const searchFocus = () => this.keyboardHandlers.focusSearchInput();
+        const todoFocus = () => this.keyboardHandlers.focusNewTodoInput();
+        
+        try {
+            this.keyboardManager.registerShortcut({
+                key: 'f',
+                ctrlKey: true,
+                context: 'global',
+                action: searchFocus,
+                preventDefault: true,
+                description: 'Focus search input (Ctrl+F) - Fallback',
+                category: 'Navigation'
+            });
+            
+            this.keyboardManager.registerShortcut({
+                key: '/',
+                context: 'global',
+                action: searchFocus,
+                preventDefault: true,
+                description: 'Focus search input (/) - Fallback',
+                category: 'Navigation'
+            });
+            
+            console.log('Fallback shortcuts registered successfully');
+        } catch (error) {
+            console.error('Failed to register fallback shortcuts:', error);
         }
     }
 
