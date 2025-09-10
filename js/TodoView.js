@@ -76,6 +76,7 @@ class TodoView {
         } finally {
             this.renderMonitor.end();
         }
+    }
     
     /**
      * Render using virtual scrolling for performance

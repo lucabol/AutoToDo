@@ -738,6 +738,8 @@ class TodoController {
             }
         }
     }
+
+    /**
      * Handle toggling todo completion
      * @param {string} id - Todo ID
      */
