@@ -424,6 +424,25 @@ class KeyboardShortcutManager {
         this._logNoMatchFound(event);
         return null;
     }
+    
+    /**
+     * Find a shortcut in a specific context
+     * @param {KeyboardEvent} event - The keyboard event
+     * @param {string} context - Context to search in
+     * @returns {Object|null} The matching shortcut configuration, or null if no shortcut matches
+     * @private
+     */
+    _findShortcutInContext(event, context) {
+        const shortcutKey = this.generateShortcutKey(
+            event.key,
+            event.ctrlKey,
+            event.altKey,
+            event.shiftKey,
+            context
+        );
+        
+        return this.shortcuts.get(shortcutKey) || null;
+    }
 
     /**
      * Log keyboard event details for debugging
@@ -441,9 +460,6 @@ class KeyboardShortcutManager {
                 activeContexts
             });
         }
-    }
-
-        return this._findShortcutInContexts(event, contextOrder);
     }
 
     /**
