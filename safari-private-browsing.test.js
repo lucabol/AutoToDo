@@ -37,24 +37,27 @@ class SafariPrivateMockStorage {
 
     getItem(key) {
         if (this.scenario === 'disabled') {
-            throw new SecurityError('localStorage is not available');
+            const error = new Error('localStorage is not available');
+            error.name = 'SecurityError';
+            throw error;
         }
         return this.storage.get(key) || null;
     }
 
     setItem(key, value) {
         if (this.scenario === 'disabled') {
-            throw new SecurityError('localStorage is not available');
+            const error = new Error('localStorage is not available');
+            error.name = 'SecurityError';
+            throw error;
         }
         
-        // Simulate Safari private browsing quota
+        // Simulate Safari private browsing quota  
         if (this.scenario === 'safari-private') {
-            const currentSize = Array.from(this.storage.values()).join('').length;
-            if (currentSize + value.length > this.quotaSize) {
-                const error = new Error('localStorage quota exceeded');
-                error.name = 'QuotaExceededError';
-                throw error;
-            }
+            // Safari private browsing has very limited quota and fails easily
+            // Fail even the basic storage test to trigger memory fallback
+            const error = new Error('localStorage quota exceeded');
+            error.name = 'QuotaExceededError';
+            throw error;
         }
         
         this.storage.set(key, value);
@@ -62,21 +65,27 @@ class SafariPrivateMockStorage {
 
     removeItem(key) {
         if (this.scenario === 'disabled') {
-            throw new SecurityError('localStorage is not available');
+            const error = new Error('localStorage is not available');
+            error.name = 'SecurityError';
+            throw error;
         }
         this.storage.delete(key);
     }
 
     clear() {
         if (this.scenario === 'disabled') {
-            throw new SecurityError('localStorage is not available');
+            const error = new Error('localStorage is not available');
+            error.name = 'SecurityError';
+            throw error;
         }
         this.storage.clear();
     }
 
     get length() {
         if (this.scenario === 'disabled') {
-            throw new SecurityError('localStorage is not available');
+            const error = new Error('localStorage is not available');
+            error.name = 'SecurityError';
+            throw error;
         }
         return this.storage.size;
     }
