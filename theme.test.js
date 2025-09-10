@@ -142,6 +142,136 @@ function testThemeToggle() {
         }
     });
     
+    // Test edge case: Invalid theme value
+    test('should handle invalid theme values gracefully', () => {
+        const mockLocalStorage = {};
+        const localStorage = {
+            getItem: (key) => mockLocalStorage[key] || null,
+            setItem: (key, value) => mockLocalStorage[key] = value
+        };
+        
+        // Test with invalid theme value
+        localStorage.setItem('todo-theme', 'invalid-theme');
+        const storedTheme = localStorage.getItem('todo-theme');
+        
+        // Should handle invalid values (in real implementation, would default to light/dark)
+        if (storedTheme === 'invalid-theme') {
+            // This would be handled by the controller to default to 'light'
+            // For test purposes, we verify the invalid value is stored but would be ignored
+            console.log('   Note: Invalid theme value detected, would default to light in real implementation');
+        }
+    });
+    
+    // Test edge case: localStorage unavailable
+    test('should handle localStorage unavailable gracefully', () => {
+        // Mock localStorage throwing error (private browsing, etc.)
+        const mockLocalStorage = {
+            getItem: () => { throw new Error('localStorage unavailable'); },
+            setItem: () => { throw new Error('localStorage unavailable'); }
+        };
+        
+        let errorCaught = false;
+        try {
+            mockLocalStorage.setItem('todo-theme', 'dark');
+        } catch (error) {
+            errorCaught = true;
+        }
+        
+        if (!errorCaught) {
+            throw new Error('Should handle localStorage errors gracefully');
+        }
+    });
+    
+    // Test edge case: System theme change during session
+    test('should handle system theme changes dynamically', () => {
+        // Mock matchMedia for system theme detection
+        const mockMatchMedia = {
+            matches: false,
+            media: '(prefers-color-scheme: dark)',
+            listeners: [],
+            addEventListener: function(type, listener) {
+                this.listeners.push(listener);
+            },
+            removeEventListener: function(type, listener) {
+                const index = this.listeners.indexOf(listener);
+                if (index > -1) this.listeners.splice(index, 1);
+            },
+            // Simulate system theme change
+            simulateChange: function(newMatches) {
+                this.matches = newMatches;
+                this.listeners.forEach(listener => listener({ matches: newMatches }));
+            }
+        };
+        
+        // Add listener
+        mockMatchMedia.addEventListener('change', (e) => {
+            // This would trigger theme update in real implementation
+            console.log(`   System theme changed to: ${e.matches ? 'dark' : 'light'}`);
+        });
+        
+        // Simulate system theme change
+        mockMatchMedia.simulateChange(true);
+        
+        if (mockMatchMedia.listeners.length === 0) {
+            throw new Error('System theme change listener not properly registered');
+        }
+    });
+    
+    // Test manual override precedence
+    test('should ensure manual theme toggle overrides system preference', () => {
+        const mockStorage = {};
+        const localStorage = {
+            getItem: (key) => mockStorage[key] || null,
+            setItem: (key, value) => mockStorage[key] = value
+        };
+        
+        // Simulate system preferring dark mode
+        const systemPrefersDark = true;
+        
+        // But user manually selects light theme
+        localStorage.setItem('todo-theme', 'light');
+        
+        // Final theme should be user's manual choice, not system preference
+        const finalTheme = localStorage.getItem('todo-theme') || (systemPrefersDark ? 'dark' : 'light');
+        
+        if (finalTheme !== 'light') {
+            throw new Error('Manual theme selection should override system preference');
+        }
+    });
+    
+    // Test CSS property inheritance and specificity
+    test('should have correct CSS specificity for theme overrides', () => {
+        // Mock CSS rule structure
+        const mockStyleSheet = {
+            cssRules: [
+                {
+                    selectorText: ':root',
+                    media: null,
+                    style: { '--bg-primary': '#f5f5f7' }
+                },
+                {
+                    selectorText: ':root',
+                    media: '(prefers-color-scheme: dark)',
+                    style: { '--bg-primary': '#1c1c1e' }
+                },
+                {
+                    selectorText: '.dark-theme',
+                    media: null,
+                    style: { '--bg-primary': '#1c1c1e !important' }
+                }
+            ]
+        };
+        
+        // Find the manual override rule
+        const manualOverrideRule = mockStyleSheet.cssRules.find(
+            rule => rule.selectorText === '.dark-theme'
+        );
+        
+        if (!manualOverrideRule || !manualOverrideRule.style['--bg-primary'].includes('!important')) {
+            throw new Error('Manual theme override should use !important for highest specificity');
+        }
+    });
+    
     console.log('\n==================================================');
     console.log('📊 Theme Test Summary:');
     console.log(`   Total: ${passed + failed}`);

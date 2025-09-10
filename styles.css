@@ -15,31 +15,40 @@
     backface-visibility: hidden;
 }
 
-/* Safari-specific optimizations */
+/* Safari-specific performance and dark mode optimizations */
 @supports (-webkit-appearance: none) {
+    /* Enhanced hardware acceleration for Safari webkit engine */
     .todo-list {
         -webkit-transform: translateZ(0);
         -webkit-backface-visibility: hidden;
         -webkit-perspective: 1000px;
     }
     
-    /* Safari 14.3+ Dark Mode Enhancements */
+    /* Safari 14.3+ Dark Mode Native Support
+     * Enables automatic dark mode detection and native browser integration
+     * These properties tell Safari to respect system dark mode preferences
+     */
     :root {
-        /* Enhanced color-scheme support for Safari */
-        -webkit-color-scheme: light dark;
+        /* Standard color-scheme property for modern browsers */
         color-scheme: light dark;
+        /* Safari-specific webkit prefix for enhanced compatibility */
+        -webkit-color-scheme: light dark;
     }
     
-    /* Safari-specific dark mode form elements */
+    /* Safari-specific form elements and scrollbar optimizations for dark mode
+     * Only applies when user has system dark mode enabled
+     * Ensures form elements render properly in Safari's dark mode
+     */
     @media (prefers-color-scheme: dark) {
+        /* Override Safari's default form styling in dark mode */
         input, button, select, textarea {
-            -webkit-appearance: none;
+            -webkit-appearance: none; /* Remove Safari's default styling */
             background-color: var(--bg-quaternary);
             color: var(--text-primary);
             border-color: var(--border-primary);
         }
         
-        /* Safari dark mode scrollbar styling */
+        /* Custom Safari scrollbar styling for dark mode consistency */
         ::-webkit-scrollbar {
             width: 8px;
             background-color: var(--bg-tertiary);
@@ -107,30 +116,44 @@
     will-change: contents;
 }
 
+/* CSS Custom Properties (Variables) for Theme Management
+ * Base layer: Light theme colors with Safari 14.3+ dark mode support
+ * The color-scheme property enables native browser dark mode detection
+ */
 :root {
-    /* Safari 14.3+ Dark Mode Support */
+    /* Safari 14.3+ Native Dark Mode Support
+     * Tells the browser this app supports both light and dark themes
+     * Enables automatic detection of system theme preference
+     */
     color-scheme: light dark;
     
-    /* Light theme colors */
-    --bg-primary: #f5f5f7;
-    --bg-secondary: white;
-    --bg-tertiary: #fafafa;
-    --bg-quaternary: #f8f8f8;
-    --bg-hover: #f0f0f2;
-    --text-primary: #1d1d1f;
-    --text-secondary: #86868b;
-    --border-primary: #e5e5e7;
-    --border-hover: #d1d1d6;
-    --accent-primary: #007aff;
-    --accent-hover: #0056cc;
-    --success: #34c759;
-    --warning: #ff9500;
-    --warning-hover: #e6850e;
-    --danger: #ff3b30;
-    --danger-hover: #d70015;
-    --shadow: rgba(0, 0, 0, 0.1);
+    /* Light Theme Color Palette
+     * These variables define the default (light) appearance
+     * Will be automatically overridden by @media query for dark mode
+     */
+    --bg-primary: #f5f5f7;        /* Main background color */
+    --bg-secondary: white;         /* Container background */
+    --bg-tertiary: #fafafa;       /* Card/item background */
+    --bg-quaternary: #f8f8f8;     /* Input background */
+    --bg-hover: #f0f0f2;          /* Hover state background */
+    --text-primary: #1d1d1f;      /* Primary text color */
+    --text-secondary: #86868b;    /* Secondary/muted text */
+    --border-primary: #e5e5e7;    /* Default border color */
+    --border-hover: #d1d1d6;      /* Hover state border */
+    --accent-primary: #007aff;    /* Primary action color */
+    --accent-hover: #0056cc;      /* Primary action hover */
+    --success: #34c759;           /* Success/completion color */
+    --warning: #ff9500;           /* Warning/edit color */
+    --warning-hover: #e6850e;     /* Warning hover state */
+    --danger: #ff3b30;            /* Danger/delete color */
+    --danger-hover: #d70015;      /* Danger hover state */
+    --shadow: rgba(0, 0, 0, 0.1); /* Box shadow color */
 }
 
+/* Manual Dark Theme Override (Legacy Compatibility)
+ * This class provides backward compatibility for manual theme switching
+ * Note: These colors are duplicated below in the explicit override section
+ */
 .dark-theme {
     /* Dark theme colors */
     --bg-primary: #1c1c1e;
@@ -152,33 +175,45 @@
     --shadow: rgba(0, 0, 0, 0.3);
 }
 
-/* Safari 14.3+ Automatic Dark Mode Detection */
+/* Automatic Dark Mode Detection for Modern Browsers
+ * Safari 14.3+ and other modern browsers: Automatically applies dark theme
+ * when user has system dark mode enabled, without requiring manual toggle
+ * This provides seamless integration with system preferences
+ */
 @media (prefers-color-scheme: dark) {
     :root {
-        /* Dark theme colors for automatic system detection */
-        --bg-primary: #1c1c1e;
-        --bg-secondary: #2c2c2e;
-        --bg-tertiary: #3a3a3c;
-        --bg-quaternary: #48484a;
-        --bg-hover: #4a4a4c;
-        --text-primary: #ffffff;
-        --text-secondary: #98989d;
-        --border-primary: #48484a;
-        --border-hover: #6d6d70;
-        --accent-primary: #0a84ff;
-        --accent-hover: #409cff;
-        --success: #32d74b;
-        --warning: #ff9f0a;
-        --warning-hover: #ffb340;
-        --danger: #ff453a;
-        --danger-hover: #ff6961;
-        --shadow: rgba(0, 0, 0, 0.3);
+        /* Dark Theme Color Palette - Applied automatically by system preference
+         * These colors override the light theme defaults when dark mode is detected
+         */
+        --bg-primary: #1c1c1e;        /* Dark main background */
+        --bg-secondary: #2c2c2e;      /* Dark container background */
+        --bg-tertiary: #3a3a3c;       /* Dark card/item background */
+        --bg-quaternary: #48484a;     /* Dark input background */
+        --bg-hover: #4a4a4c;          /* Dark hover state background */
+        --text-primary: #ffffff;      /* White text for dark backgrounds */
+        --text-secondary: #98989d;    /* Muted text for dark theme */
+        --border-primary: #48484a;    /* Dark border color */
+        --border-hover: #6d6d70;      /* Dark hover border */
+        --accent-primary: #0a84ff;    /* Bright blue for dark theme */
+        --accent-hover: #409cff;      /* Lighter blue hover */
+        --success: #32d74b;           /* Bright green for dark theme */
+        --warning: #ff9f0a;           /* Bright orange for dark theme */
+        --warning-hover: #ffb340;     /* Lighter orange hover */
+        --danger: #ff453a;            /* Bright red for dark theme */
+        --danger-hover: #ff6961;      /* Lighter red hover */
+        --shadow: rgba(0, 0, 0, 0.3); /* Stronger shadow for dark theme */
     }
 }
 
-/* Explicit dark theme class override for manual control */
+/* Manual Dark Theme Override with High Specificity
+ * This class ensures manual theme selection always takes precedence over
+ * automatic system detection. Uses !important to override media queries.
+ * Applied when user manually toggles the theme via the theme toggle button.
+ */
 .dark-theme {
-    /* Ensure manual dark theme always takes precedence */
+    /* High-priority dark theme variables that override system preferences
+     * The !important declarations ensure manual selection beats automatic detection
+     */
     --bg-primary: #1c1c1e !important;
     --bg-secondary: #2c2c2e !important;
     --bg-tertiary: #3a3a3c !important;
