@@ -3,33 +3,50 @@
  */
 class TodoModel {
     constructor() {
+        // Use the global storageManager instance
+        this.storage = window.storageManager || storageManager;
         this.todos = this.loadTodos();
     }
 
     /**
-     * Load todos from localStorage
+     * Load todos from storage
      * @returns {Array} Array of todo objects
      */
     loadTodos() {
-        // Handle Node.js environment
-        if (typeof localStorage === 'undefined') {
+        try {
+            // Handle Node.js environment
+            if (typeof this.storage === 'undefined' || typeof localStorage === 'undefined') {
+                return [];
+            }
+            
+            const saved = this.storage.getItem('todos');
+            return saved ? JSON.parse(saved) : [];
+        } catch (error) {
+            console.warn('Failed to load todos from storage:', error.message);
             return [];
         }
-        
-        const saved = localStorage.getItem('todos');
-        return saved ? JSON.parse(saved) : [];
     }
 
     /**
-     * Save todos to localStorage
+     * Save todos to storage
+     * @returns {boolean} True if successfully saved
      */
     saveTodos() {
-        // Handle Node.js environment
-        if (typeof localStorage === 'undefined') {
-            return;
+        try {
+            // Handle Node.js environment
+            if (typeof this.storage === 'undefined' || typeof localStorage === 'undefined') {
+                return false;
+            }
+            
+            const success = this.storage.setItem('todos', JSON.stringify(this.todos));
+            if (!success) {
+                console.warn('Failed to save todos to storage');
+            }
+            return success;
+        } catch (error) {
+            console.error('Error saving todos:', error.message);
+            return false;
         }
-        
-        localStorage.setItem('todos', JSON.stringify(this.todos));
     }
 
     /**
