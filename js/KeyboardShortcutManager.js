@@ -11,25 +11,44 @@ class KeyboardShortcutManager {
         this.contextHandlers = new Map();
         this.eventStats = new Map();
         
+        // Performance optimization: Pre-built lookup tables
+        this.globalShortcuts = new Map();
+        this.contextShortcuts = new Map();
+        this.shortcutsByPriority = new Map(); // High, medium, low priority shortcuts
+        
         // Configuration options
         this.options = {
             debug: options.debug || false,
             enableLogging: options.enableLogging || false,
             validateConflicts: options.validateConflicts !== false, // true by default
-            maxShortcutsPerContext: options.maxShortcutsPerContext || 50
+            maxShortcutsPerContext: options.maxShortcutsPerContext || 50,
+            enablePriority: options.enablePriority !== false, // Enable priority system by default
+            cacheContexts: options.cacheContexts !== false // Enable context caching for performance
         };
         
         // Backward compatibility for debugMode
         this.debugMode = this.options.debug;
         
+        // Performance tracking
+        this.performanceMetrics = {
+            lookupTime: [],
+            averageLookupTime: 0,
+            totalLookups: 0
+        };
+        
+        // Context caching for performance
+        this.cachedActiveContexts = null;
+        this.lastContextCheck = 0;
+        this.contextCacheTimeout = 50; // ms
+        
         this.setupDefaultShortcuts();
         
         if (this.options.debug) {
-            console.log('KeyboardShortcutManager initialized with debug mode enabled');
-        }
-        
-        if (this.options.debug) {
-            console.log('KeyboardShortcutManager initialized with debug mode enabled');
+            console.log('KeyboardShortcutManager initialized with enhanced features', {
+                priorityEnabled: this.options.enablePriority,
+                contextCaching: this.options.cacheContexts,
+                maxShortcuts: this.options.maxShortcutsPerContext
+            });
         }
     }
 
@@ -45,6 +64,8 @@ class KeyboardShortcutManager {
      * @param {boolean} [config.preventDefault] - Whether to prevent default browser behavior
      * @param {string} [config.description] - Human-readable description of the shortcut
      * @param {string} [config.category] - Category for organization (optional)
+     * @param {string} [config.priority] - Priority level: 'high', 'medium', 'low' (default: 'medium')
+     * @param {boolean} [config.enabled] - Whether shortcut is enabled (default: true)
      */
     registerShortcut(config) {
         const {
@@ -56,7 +77,9 @@ class KeyboardShortcutManager {
             action,
             preventDefault = false,
             description = '',
-            category = 'Other'
+            category = 'Other',
+            priority = 'medium',
+            enabled = true
         } = config;
 
         // Enhanced validation
@@ -82,10 +105,15 @@ class KeyboardShortcutManager {
             preventDefault,
             description,
             category,
+            priority,
+            enabled,
             registeredAt: new Date().toISOString()
         };
         
         this.shortcuts.set(shortcutKey, shortcutConfig);
+        
+        // Performance optimization: Update lookup tables
+        this._updateLookupTables(shortcutKey, shortcutConfig);
         
         // Initialize event stats for this shortcut
         this.eventStats.set(shortcutKey, {
@@ -97,6 +125,41 @@ class KeyboardShortcutManager {
         if (this.options.debug) {
             console.log(`Registered shortcut: ${shortcutKey}`, shortcutConfig);
         }
+    }
+
+    /**
+     * Update lookup tables for performance optimization
+     * @private
+     */
+    _updateLookupTables(shortcutKey, shortcutConfig) {
+        if (shortcutConfig.context === 'global') {
+            this.globalShortcuts.set(shortcutKey, shortcutConfig);
+        } else {
+            if (!this.contextShortcuts.has(shortcutConfig.context)) {
+                this.contextShortcuts.set(shortcutConfig.context, new Map());
+            }
+            this.contextShortcuts.get(shortcutConfig.context).set(shortcutKey, shortcutConfig);
+        }
+        
+        // Update priority table if enabled
+        if (this.options.enablePriority) {
+            if (!this.shortcutsByPriority.has(shortcutConfig.priority)) {
+                this.shortcutsByPriority.set(shortcutConfig.priority, new Map());
+            }
+            this.shortcutsByPriority.get(shortcutConfig.priority).set(shortcutKey, shortcutConfig);
+        }
+        
+        // Clear context cache when shortcuts change
+        this._clearContextCache();
+    }
+
+    /**
+     * Clear context cache to force re-evaluation
+     * @private
+     */
+    _clearContextCache() {
+        this.cachedActiveContexts = null;
+        this.lastContextCheck = 0;
     }
 
     /**
@@ -149,7 +212,7 @@ class KeyboardShortcutManager {
     }
 
     /**
-     * Handle keyboard events with enhanced error handling and debugging
+     * Handle keyboard events with enhanced error handling, debugging, and performance tracking
      * @param {KeyboardEvent} event - The keyboard event
      */
     handleKeyboard(event) {
@@ -161,7 +224,7 @@ class KeyboardShortcutManager {
             return false;
         }
         
-        const startTime = this.options.debug ? performance.now() : 0;
+        const startTime = performance.now();
         
         // Add defensive check for event properties
         const key = event.key || '';
@@ -185,27 +248,34 @@ class KeyboardShortcutManager {
         if (matchingShortcut) {
             const result = this.executeShortcut(matchingShortcut, event);
             
+            // Performance tracking
+            const endTime = performance.now();
+            const lookupTime = endTime - startTime;
+            this._updatePerformanceMetrics(lookupTime);
+            
             if (this.options.debug) {
-                const endTime = performance.now();
                 const shortcutKey = this.generateShortcutKey(
                     key, ctrlKey, altKey, shiftKey, matchingShortcut.context
                 );
-                console.log(`Shortcut ${shortcutKey} executed in ${endTime - startTime}ms`);
+                console.log(`Shortcut ${shortcutKey} executed in ${lookupTime.toFixed(2)}ms`);
             }
             
             return result;
         }
         
+        // Performance tracking even for non-matches
+        const endTime = performance.now();
+        this._updatePerformanceMetrics(endTime - startTime);
+        
         if (this.options.debug) {
-            const endTime = performance.now();
-            console.log(`Keyboard handling completed in ${endTime - startTime}ms (no match)`);
+            console.log(`Keyboard handling completed in ${(endTime - startTime).toFixed(2)}ms (no match)`);
         }
         
         return false; // No shortcut was handled
     }
 
     /**
-     * Find the first matching shortcut for the given keyboard event
+     * Find the first matching shortcut for the given keyboard event using optimized lookup
      * @param {KeyboardEvent} event - The keyboard event
      * @returns {Object|null} The matching shortcut configuration, or null if no shortcut matches
      * @private
@@ -213,9 +283,48 @@ class KeyboardShortcutManager {
     findMatchingShortcut(event) {
         const activeContexts = this.getActiveContexts();
         
-        // Check shortcuts in order of context specificity (most specific first)
+        // Performance optimization: Use priority-based lookup if enabled
+        if (this.options.enablePriority) {
+            return this._findMatchingShortcutWithPriority(event, activeContexts);
+        }
+        
+        // Fallback to original context-based lookup
+        return this._findMatchingShortcutByContext(event, activeContexts);
+    }
+
+    /**
+     * Find matching shortcut using priority-based lookup
+     * @private
+     */
+    _findMatchingShortcutWithPriority(event, activeContexts) {
+        const priorityOrder = ['high', 'medium', 'low'];
         const contextOrder = [...activeContexts, 'global'];
         
+        for (const priority of priorityOrder) {
+            const priorityShortcuts = this.shortcutsByPriority.get(priority);
+            if (!priorityShortcuts) continue;
+
+            for (const context of contextOrder) {
+                const shortcutKey = this.generateShortcutKey(
+                    event.key, event.ctrlKey, event.altKey, event.shiftKey, context
+                );
+
+                const shortcut = priorityShortcuts.get(shortcutKey);
+                if (shortcut && shortcut.enabled !== false) {
+                    this._updateShortcutStats(shortcutKey);
+                    return shortcut;
+                }
+            }
+        }
+        
+        return null;
+    }
+
+    /**
+     * Find matching shortcut using context-based lookup (optimized)
+     * @private
+     */
+    _findMatchingShortcutByContext(event, activeContexts) {
         if (this.options.debug) {
             console.log('Keyboard event:', {
                 key: event.key,
@@ -226,36 +335,51 @@ class KeyboardShortcutManager {
             });
         }
 
-        for (const context of contextOrder) {
-            const shortcutKey = this.generateShortcutKey(
-                event.key,
-                event.ctrlKey,
-                event.altKey,
-                event.shiftKey,
-                context
-            );
-
-            const shortcut = this.shortcuts.get(shortcutKey);
-            if (shortcut) {
-                // Update statistics
-                const stats = this.eventStats.get(shortcutKey);
-                if (stats) {
-                    stats.triggerCount++;
-                    stats.lastTriggered = new Date().toISOString();
-                }
+        // Check context-specific shortcuts first
+        for (const context of activeContexts) {
+            const contextMap = this.contextShortcuts.get(context);
+            if (contextMap) {
+                const shortcutKey = this.generateShortcutKey(
+                    event.key, event.ctrlKey, event.altKey, event.shiftKey, context
+                );
                 
-                return shortcut;
+                const shortcut = contextMap.get(shortcutKey);
+                if (shortcut && shortcut.enabled !== false) {
+                    this._updateShortcutStats(shortcutKey);
+                    return shortcut;
+                }
             }
         }
+
+        // Check global shortcuts
+        const globalShortcutKey = this.generateShortcutKey(
+            event.key, event.ctrlKey, event.altKey, event.shiftKey, 'global'
+        );
         
-        // No matching shortcut found - this is expected behavior when
-        // user presses keys that aren't configured as shortcuts
-        // Log for debugging purposes when needed
+        const globalShortcut = this.globalShortcuts.get(globalShortcutKey);
+        if (globalShortcut && globalShortcut.enabled !== false) {
+            this._updateShortcutStats(globalShortcutKey);
+            return globalShortcut;
+        }
+        
+        // Debug logging for no match
         if (this.debugMode || this.options.debug) {
             console.debug(`KeyboardShortcutManager: No shortcut matches key combination: ${event.key} (Ctrl: ${event.ctrlKey}, Alt: ${event.altKey}, Shift: ${event.shiftKey})`);
         }
         
         return null;
+    }
+
+    /**
+     * Update shortcut statistics
+     * @private
+     */
+    _updateShortcutStats(shortcutKey) {
+        const stats = this.eventStats.get(shortcutKey);
+        if (stats) {
+            stats.triggerCount++;
+            stats.lastTriggered = new Date().toISOString();
+        }
     }
 
     /**
@@ -333,10 +457,19 @@ class KeyboardShortcutManager {
     }
 
     /**
-     * Get currently active contexts
+     * Get currently active contexts with optional caching for performance
      * @private
      */
     getActiveContexts() {
+        const now = performance.now();
+        
+        // Use cached contexts if caching is enabled and cache is still valid
+        if (this.options.cacheContexts && 
+            this.cachedActiveContexts !== null && 
+            (now - this.lastContextCheck) < this.contextCacheTimeout) {
+            return this.cachedActiveContexts;
+        }
+        
         const active = [];
         for (const [contextName, checker] of this.contexts.entries()) {
             try {
@@ -348,6 +481,13 @@ class KeyboardShortcutManager {
                 console.error(`KeyboardShortcutManager: Error checking context '${contextName}':`, error.message || error);
             }
         }
+        
+        // Cache the result if caching is enabled
+        if (this.options.cacheContexts) {
+            this.cachedActiveContexts = active;
+            this.lastContextCheck = now;
+        }
+        
         return active;
     }
 
@@ -380,7 +520,7 @@ class KeyboardShortcutManager {
     }
 
     /**
-     * Remove a shortcut
+     * Remove a shortcut and update lookup tables
      * @param {string} key - Key of the shortcut
      * @param {string} [context] - Context of the shortcut (default: 'global')
      * @param {boolean} [ctrlKey] - Whether Ctrl key is required
@@ -389,14 +529,66 @@ class KeyboardShortcutManager {
      */
     removeShortcut(key, context = 'global', ctrlKey = false, altKey = false, shiftKey = false) {
         const shortcutKey = this.generateShortcutKey(key, ctrlKey, altKey, shiftKey, context);
-        return this.shortcuts.delete(shortcutKey);
+        const shortcut = this.shortcuts.get(shortcutKey);
+        
+        if (shortcut) {
+            // Remove from main map
+            const result = this.shortcuts.delete(shortcutKey);
+            
+            // Remove from lookup tables
+            if (context === 'global') {
+                this.globalShortcuts.delete(shortcutKey);
+            } else {
+                const contextMap = this.contextShortcuts.get(context);
+                if (contextMap) {
+                    contextMap.delete(shortcutKey);
+                    if (contextMap.size === 0) {
+                        this.contextShortcuts.delete(context);
+                    }
+                }
+            }
+            
+            // Remove from priority table
+            if (this.options.enablePriority && shortcut.priority) {
+                const priorityMap = this.shortcutsByPriority.get(shortcut.priority);
+                if (priorityMap) {
+                    priorityMap.delete(shortcutKey);
+                    if (priorityMap.size === 0) {
+                        this.shortcutsByPriority.delete(shortcut.priority);
+                    }
+                }
+            }
+            
+            // Remove statistics
+            this.eventStats.delete(shortcutKey);
+            
+            // Clear context cache
+            this._clearContextCache();
+            
+            if (this.options.debug) {
+                console.log(`Removed shortcut: ${shortcutKey}`);
+            }
+            
+            return result;
+        }
+        
+        return false;
     }
 
     /**
-     * Clear all shortcuts
+     * Clear all shortcuts and reset lookup tables
      */
     clearShortcuts() {
         this.shortcuts.clear();
+        this.globalShortcuts.clear();
+        this.contextShortcuts.clear();
+        this.shortcutsByPriority.clear();
+        this.eventStats.clear();
+        this._clearContextCache();
+        
+        if (this.options.debug) {
+            console.log('All shortcuts cleared');
+        }
     }
 
     /**
@@ -478,6 +670,102 @@ class KeyboardShortcutManager {
     }
 
     // =================
+    // Performance and Utility Methods
+    // =================
+
+    /**
+     * Update performance metrics
+     * @private
+     */
+    _updatePerformanceMetrics(lookupTime) {
+        this.performanceMetrics.lookupTime.push(lookupTime);
+        this.performanceMetrics.totalLookups++;
+        
+        // Keep only last 100 measurements for rolling average
+        if (this.performanceMetrics.lookupTime.length > 100) {
+            this.performanceMetrics.lookupTime.shift();
+        }
+        
+        // Calculate rolling average
+        const sum = this.performanceMetrics.lookupTime.reduce((a, b) => a + b, 0);
+        this.performanceMetrics.averageLookupTime = sum / this.performanceMetrics.lookupTime.length;
+    }
+
+    /**
+     * Enable or disable a specific shortcut
+     * @param {string} key - Key of the shortcut
+     * @param {string} [context] - Context of the shortcut (default: 'global')
+     * @param {boolean} [ctrlKey] - Whether Ctrl key is required
+     * @param {boolean} [altKey] - Whether Alt key is required
+     * @param {boolean} [shiftKey] - Whether Shift key is required
+     * @param {boolean} enabled - Whether to enable or disable the shortcut
+     */
+    enableShortcut(key, context = 'global', ctrlKey = false, altKey = false, shiftKey = false, enabled = true) {
+        const shortcutKey = this.generateShortcutKey(key, ctrlKey, altKey, shiftKey, context);
+        const shortcut = this.shortcuts.get(shortcutKey);
+        
+        if (shortcut) {
+            shortcut.enabled = enabled;
+            
+            if (this.options.debug) {
+                console.log(`Shortcut ${shortcutKey} ${enabled ? 'enabled' : 'disabled'}`);
+            }
+        }
+    }
+
+    /**
+     * Get performance metrics
+     * @returns {Object} Performance metrics object
+     */
+    getPerformanceMetrics() {
+        return {
+            ...this.performanceMetrics,
+            shortcutsRegistered: this.shortcuts.size,
+            contextsRegistered: this.contexts.size
+        };
+    }
+
+    /**
+     * Get shortcuts by priority level
+     * @param {string} priority - Priority level ('high', 'medium', 'low')
+     * @returns {Array} Array of shortcuts with the specified priority
+     */
+    getShortcutsByPriority(priority) {
+        const priorityShortcuts = this.shortcutsByPriority.get(priority);
+        return priorityShortcuts ? Array.from(priorityShortcuts.values()) : [];
+    }
+
+    /**
+     * Register multiple shortcuts at once
+     * @param {Array} shortcuts - Array of shortcut configurations
+     * @returns {Object} Registration summary
+     */
+    registerShortcuts(shortcuts) {
+        const summary = {
+            total: shortcuts.length,
+            registered: 0,
+            failed: 0,
+            errors: []
+        };
+
+        shortcuts.forEach((shortcut, index) => {
+            try {
+                this.registerShortcut(shortcut);
+                summary.registered++;
+            } catch (error) {
+                summary.failed++;
+                summary.errors.push({ index, shortcut, error: error.message });
+            }
+        });
+
+        if (this.options.debug) {
+            console.log('Bulk shortcut registration completed:', summary);
+        }
+
+        return summary;
+    }
+
+    // =================
     // Validation Methods
     // =================
 
@@ -538,7 +826,7 @@ class KeyboardShortcutManager {
     // =================
 
     /**
-     * Get usage statistics for all shortcuts
+     * Get enhanced usage statistics for all shortcuts
      * @returns {Array} Array of shortcuts with usage statistics
      */
     getUsageStatistics() {
@@ -555,10 +843,13 @@ class KeyboardShortcutManager {
                 shortcutKey,
                 description: shortcut.description,
                 context: shortcut.context,
+                priority: shortcut.priority,
+                enabled: shortcut.enabled !== false,
                 triggerCount: eventStats.triggerCount,
                 lastTriggered: eventStats.lastTriggered,
                 errorCount: eventStats.errors.length,
-                registeredAt: shortcut.registeredAt
+                registeredAt: shortcut.registeredAt,
+                category: shortcut.category
             });
         }
 
@@ -566,7 +857,7 @@ class KeyboardShortcutManager {
     }
 
     /**
-     * Get detailed debug information
+     * Get enhanced debug information including performance metrics
      * @returns {Object} Debug information object
      */
     getDebugInfo() {
@@ -576,7 +867,14 @@ class KeyboardShortcutManager {
             usageStatistics: this.getUsageStatistics(),
             contexts: Array.from(this.contexts.keys()),
             options: this.options,
-            shortcutsByContext: this._getShortcutsByContextDebug()
+            performanceMetrics: this.getPerformanceMetrics(),
+            shortcutsByContext: this._getShortcutsByContextDebug(),
+            shortcutsByPriority: this._getShortcutsByPriorityDebug(),
+            lookupTableSizes: {
+                global: this.globalShortcuts.size,
+                contexts: this.contextShortcuts.size,
+                priorities: this.shortcutsByPriority.size
+            }
         };
     }
 
@@ -604,6 +902,34 @@ class KeyboardShortcutManager {
         }
         
         return byContext;
+    }
+
+    /**
+     * Get shortcuts grouped by priority for debugging
+     * @private
+     */
+    _getShortcutsByPriorityDebug() {
+        const byPriority = {};
+        
+        for (const shortcut of this.shortcuts.values()) {
+            const priority = shortcut.priority || 'medium';
+            if (!byPriority[priority]) {
+                byPriority[priority] = [];
+            }
+            byPriority[priority].push({
+                key: shortcut.key,
+                context: shortcut.context,
+                description: shortcut.description,
+                enabled: shortcut.enabled !== false,
+                modifiers: {
+                    ctrl: shortcut.ctrlKey,
+                    alt: shortcut.altKey,
+                    shift: shortcut.shiftKey
+                }
+            });
+        }
+        
+        return byPriority;
     }
 
     /**
