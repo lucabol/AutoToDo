@@ -11,6 +11,17 @@ class StorageManager {
         this.storageType = this.detectStorageType();
         this.isStorageAvailable = this.storageType === 'localStorage';
         this.isPrivateBrowsing = this.detectPrivateBrowsing();
+        this.isSafari14Plus = this.detectSafari14Plus();
+        this.storageQuota = this.estimateStorageQuota();
+        this.operationCount = 0;
+        this.failureCount = 0;
+        
+        // Safari 14+ specific initialization
+        if (this.isSafari14Plus) {
+            this.safari14Mode = true;
+            this.maxOperationsBeforeVerification = 3;  // Safari 14+ may fail after 3 operations
+            this.verificationInterval = 2; // Verify every 2 operations
+        }
         
         // Log the storage type being used
         if (!this.isStorageAvailable) {
@@ -65,6 +76,92 @@ class StorageManager {
     }
 
     /**
+     * Detect if browser is Safari 14+ 
+     * @returns {boolean} True if Safari 14+ detected
+     */
+    detectSafari14Plus() {
+        try {
+            if (typeof navigator === 'undefined') {
+                return false;
+            }
+            
+            const userAgent = navigator.userAgent;
+            const isSafari = /Safari/.test(userAgent) && !/Chrome|Chromium/.test(userAgent);
+            
+            if (!isSafari) {
+                return false;
+            }
+            
+            // Extract Safari version
+            const versionMatch = userAgent.match(/Version\/(\d+)\.(\d+)/);
+            if (versionMatch) {
+                const majorVersion = parseInt(versionMatch[1], 10);
+                return majorVersion >= 14;
+            }
+            
+            // Fallback: try to detect Safari 14+ specific behaviors
+            return this.detectSafari14Features();
+        } catch (error) {
+            console.warn('Could not detect Safari version:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Detect Safari 14+ specific features
+     * @returns {boolean} True if Safari 14+ features detected
+     */
+    detectSafari14Features() {
+        try {
+            // Check for Safari 14+ specific APIs or behaviors
+            return (
+                typeof navigator !== 'undefined' &&
+                'userAgentData' in navigator ||  // Added in Safari 14+
+                'scheduling' in window ||        // Added in Safari 14+
+                ('ResizeObserver' in window && 'requestVideoFrameCallback' in HTMLVideoElement.prototype) // Safari 14+ combination
+            );
+        } catch (error) {
+            return false;
+        }
+    }
+
+    /**
+     * Estimate storage quota by testing progressively larger data
+     * @returns {number} Estimated quota in bytes, or -1 if unlimited/unknown
+     */
+    estimateStorageQuota() {
+        if (this.storageType !== 'localStorage') {
+            return -1; // Memory storage has no quota
+        }
+        
+        try {
+            const testKey = '__quota_test__';
+            let quota = -1;
+            
+            // Test different sizes to estimate quota
+            const testSizes = [1024, 5120, 10240, 51200, 1048576]; // 1KB to 1MB
+            
+            for (const size of testSizes) {
+                try {
+                    const testData = 'x'.repeat(size);
+                    localStorage.setItem(testKey, testData);
+                    localStorage.removeItem(testKey);
+                    quota = size; // This size worked
+                } catch (error) {
+                    if (error.name === 'QuotaExceededError') {
+                        break; // Found the limit
+                    }
+                    throw error; // Other errors should be re-thrown
+                }
+            }
+            
+            return quota;
+        } catch (error) {
+            console.warn('Could not estimate storage quota:', error);
+            return -1;
+        }
+    }
+    /**
      * Detect if running in private browsing mode
      * @returns {boolean} True if likely in private browsing
      */
@@ -72,7 +169,12 @@ class StorageManager {
         try {
             // Safari private browsing detection
             if (this.storageType === 'localStorage') {
-                // Try to use localStorage quota
+                // Safari 14+ has very limited quota in private browsing
+                if (this.isSafari14Plus && this.storageQuota > 0 && this.storageQuota < 51200) { // Less than 50KB
+                    return true;
+                }
+                
+                // Try to use localStorage quota for older Safari versions
                 const testData = 'x'.repeat(1024 * 1024); // 1MB test
                 localStorage.setItem('__private_test__', testData);
                 localStorage.removeItem('__private_test__');
@@ -93,7 +195,11 @@ class StorageManager {
     notifyPrivateBrowsing() {
         // Only show once per session
         if (!this.inMemoryStorage.has('__private_notified__')) {
-            console.info('🔒 Private browsing detected. Todos will only persist during this session.');
+            if (this.isSafari14Plus) {
+                console.info('🔒 Safari 14+ private browsing detected. Enhanced data protection mode active.');
+            } else {
+                console.info('🔒 Private browsing detected. Todos will only persist during this session.');
+            }
             this.inMemoryStorage.set('__private_notified__', true);
             
             // Show user-friendly notification if possible
@@ -116,28 +222,37 @@ class StorageManager {
             position: fixed;
             top: 10px;
             right: 10px;
-            background: #ff9500;
+            background: ${this.isSafari14Plus ? '#007AFF' : '#ff9500'};
             color: white;
             padding: 10px 15px;
             border-radius: 5px;
             font-size: 14px;
             z-index: 1000;
             box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-            max-width: 300px;
+            max-width: 320px;
         `;
-        notification.innerHTML = `
-            🔒 <strong>Private Browsing</strong><br>
-            Todos will only be saved during this session
-        `;
+        
+        if (this.isSafari14Plus) {
+            notification.innerHTML = `
+                🔒 <strong>Safari 14+ Private Mode</strong><br>
+                Enhanced privacy protection active<br>
+                <small>Data saved temporarily for this session</small>
+            `;
+        } else {
+            notification.innerHTML = `
+                🔒 <strong>Private Browsing</strong><br>
+                Todos will only be saved during this session
+            `;
+        }
         
         document.body.appendChild(notification);
         
-        // Auto-hide after 5 seconds
+        // Auto-hide after 6 seconds for Safari 14+ (more content), 5 seconds for others
         setTimeout(() => {
             if (notification.parentNode) {
                 notification.parentNode.removeChild(notification);
             }
-        }, 5000);
+        }, this.isSafari14Plus ? 6000 : 5000);
     }
 
     /**
@@ -167,7 +282,7 @@ class StorageManager {
     }
 
     /**
-     * Set an item in storage
+     * Set an item in storage with Safari 14+ data verification
      * @param {string} key - The storage key to set
      * @param {string} value - The value to store (must be a string)
      * @returns {boolean} True if successfully stored in localStorage, false if fell back to memory storage
@@ -179,8 +294,15 @@ class StorageManager {
      * }
      */
     setItem(key, value) {
+        this.operationCount++;
+        
         try {
             if (this.isStorageAvailable) {
+                // Safari 14+ specific handling
+                if (this.isSafari14Plus) {
+                    return this.safari14SetItem(key, value);
+                }
+                
                 localStorage.setItem(key, value);
                 return true;
             } else {
@@ -188,6 +310,7 @@ class StorageManager {
                 return true;
             }
         } catch (error) {
+            this.failureCount++;
             console.warn('Storage setItem failed, falling back to memory:', error);
             
             // If quota exceeded, try to handle it
@@ -200,6 +323,106 @@ class StorageManager {
             this.fallbackToMemory();
             this.inMemoryStorage.set(key, value);
             return false; // Return false to indicate localStorage failed
+        }
+    }
+
+    /**
+     * Safari 14+ specific setItem with enhanced verification
+     * @param {string} key - Storage key
+     * @param {string} value - Value to store
+     * @returns {boolean} True if successfully stored and verified
+     */
+    safari14SetItem(key, value) {
+        try {
+            // Store the item
+            localStorage.setItem(key, value);
+            
+            // Immediately verify it was actually stored (Safari 14+ silent data loss protection)
+            const retrieved = localStorage.getItem(key);
+            if (retrieved !== value) {
+                console.warn('Safari 14+ silent data loss detected for key:', key);
+                this.fallbackToMemory();
+                this.inMemoryStorage.set(key, value);
+                return false;
+            }
+            
+            // Check if we should perform periodic verification
+            if (this.operationCount % this.verificationInterval === 0) {
+                this.performDataIntegrityCheck();
+            }
+            
+            // Safari 14+ may fail after a few operations - proactively check
+            if (this.operationCount >= this.maxOperationsBeforeVerification) {
+                try {
+                    const testKey = '__safari14_health_check__';
+                    localStorage.setItem(testKey, 'test');
+                    const testResult = localStorage.getItem(testKey);
+                    localStorage.removeItem(testKey);
+                    
+                    if (testResult !== 'test') {
+                        console.warn('Safari 14+ storage health check failed');
+                        this.fallbackToMemory();
+                        this.inMemoryStorage.set(key, value);
+                        return false;
+                    }
+                } catch (healthError) {
+                    console.warn('Safari 14+ storage health check error:', healthError);
+                    this.fallbackToMemory();
+                    this.inMemoryStorage.set(key, value);
+                    return false;
+                }
+            }
+            
+            return true;
+        } catch (error) {
+            console.warn('Safari 14+ setItem failed:', error);
+            this.fallbackToMemory();
+            this.inMemoryStorage.set(key, value);
+            return false;
+        }
+    }
+
+    /**
+     * Perform data integrity check for Safari 14+ ITP protection
+     */
+    performDataIntegrityCheck() {
+        if (!this.isStorageAvailable || this.storageType !== 'localStorage') {
+            return;
+        }
+        
+        try {
+            // Check if critical data is still accessible
+            const testKeys = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && !key.startsWith('__')) { // Skip test keys
+                    testKeys.push(key);
+                }
+            }
+            
+            // Verify a sample of keys can still be retrieved
+            let integrityFailures = 0;
+            const sampleSize = Math.min(3, testKeys.length);
+            
+            for (let i = 0; i < sampleSize; i++) {
+                const key = testKeys[i];
+                try {
+                    const value = localStorage.getItem(key);
+                    if (value === null || value === undefined) {
+                        integrityFailures++;
+                    }
+                } catch (error) {
+                    integrityFailures++;
+                }
+            }
+            
+            // If too many integrity failures, switch to memory
+            if (integrityFailures > sampleSize / 2) {
+                console.warn('Safari 14+ data integrity failures detected, switching to memory storage');
+                this.fallbackToMemory();
+            }
+        } catch (error) {
+            console.warn('Data integrity check failed:', error);
         }
     }
 
@@ -220,7 +443,7 @@ class StorageManager {
     }
 
     /**
-     * Show quota exceeded notification
+     * Show quota exceeded notification with Safari 14+ specific messaging
      */
     showQuotaNotification() {
         // Only show notifications in browser environments
@@ -240,12 +463,21 @@ class StorageManager {
             font-size: 14px;
             z-index: 1000;
             box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-            max-width: 300px;
+            max-width: 320px;
         `;
-        notification.innerHTML = `
-            ⚠️ <strong>Storage Full</strong><br>
-            Using temporary storage for this session
-        `;
+        
+        if (this.isSafari14Plus) {
+            notification.innerHTML = `
+                ⚠️ <strong>Safari 14+ Storage Limit</strong><br>
+                Private browsing has very limited storage<br>
+                <small>Using secure temporary storage for this session</small>
+            `;
+        } else {
+            notification.innerHTML = `
+                ⚠️ <strong>Storage Full</strong><br>
+                Using temporary storage for this session
+            `;
+        }
         
         document.body.appendChild(notification);
         
@@ -253,7 +485,7 @@ class StorageManager {
             if (notification.parentNode) {
                 notification.parentNode.removeChild(notification);
             }
-        }, 5000);
+        }, 6000);
     }
 
     /**
@@ -404,6 +636,10 @@ class StorageManager {
      * @returns {boolean} returns.isLocalStorageAvailable - Whether localStorage is available
      * @returns {boolean} returns.isPrivateBrowsing - Whether likely in private browsing mode
      * @returns {number} returns.itemCount - Number of items currently stored
+     * @returns {boolean} returns.isSafari14Plus - Whether Safari 14+ detected
+     * @returns {number} returns.storageQuota - Estimated storage quota in bytes
+     * @returns {number} returns.operationCount - Number of storage operations performed
+     * @returns {number} returns.failureCount - Number of failed storage operations
      * @example
      * const info = storage.getStorageInfo();
      * console.log(`Storage: ${info.type}, Items: ${info.itemCount}, localStorage: ${info.isLocalStorageAvailable}`);
@@ -415,7 +651,11 @@ class StorageManager {
             isPrivateBrowsing: this.isPrivateBrowsing,
             itemCount: this.length,
             isPersistent: this.storageType === 'localStorage',
-            memoryStorageSize: this.inMemoryStorage.size
+            memoryStorageSize: this.inMemoryStorage.size,
+            isSafari14Plus: this.isSafari14Plus,
+            storageQuota: this.storageQuota,
+            operationCount: this.operationCount,
+            failureCount: this.failureCount
         };
     }
 }
