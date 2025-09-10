@@ -105,6 +105,11 @@ class StorageManager {
      * Show user notification about private browsing
      */
     showUserNotification() {
+        // Only show notifications in browser environments
+        if (typeof document === 'undefined') {
+            return;
+        }
+        
         // Create a subtle notification
         const notification = document.createElement('div');
         notification.style.cssText = `
@@ -218,6 +223,11 @@ class StorageManager {
      * Show quota exceeded notification
      */
     showQuotaNotification() {
+        // Only show notifications in browser environments
+        if (typeof document === 'undefined') {
+            return;
+        }
+        
         const notification = document.createElement('div');
         notification.style.cssText = `
             position: fixed;
