@@ -870,6 +870,74 @@ h1 {
     }
 }
 
+/* Safari 14.0 Flexbox Gap Fallbacks - CSS Grid and margin-based spacing */
+@supports not (gap: 1px) {
+    /* Theme toggle fallback */
+    .theme-toggle {
+        gap: 0;
+    }
+    
+    .theme-toggle .theme-icon {
+        margin-right: 6px;
+    }
+    
+    /* Search container fallback */
+    .search-container {
+        gap: 0;
+    }
+    
+    .search-container > *:not(:last-child) {
+        margin-right: 12px;
+    }
+    
+    /* Add todo form fallback */
+    .add-todo-form {
+        gap: 0;
+    }
+    
+    .add-todo-form > *:not(:last-child) {
+        margin-right: 12px;
+    }
+    
+    /* Todo item fallback */
+    .todo-item {
+        gap: 0;
+    }
+    
+    .todo-item > *:not(:last-child) {
+        margin-right: 12px;
+    }
+    
+    /* Todo actions fallback */
+    .todo-actions {
+        gap: 0;
+    }
+    
+    .todo-actions > *:not(:last-child) {
+        margin-right: 8px;
+    }
+    
+    /* Edit form fallback */
+    .edit-form {
+        gap: 0;
+    }
+    
+    .edit-form > *:not(:last-child) {
+        margin-right: 8px;
+    }
+    
+    /* Grid fallback for shortcuts list - use flexbox with margins */
+    .shortcuts-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+    }
+    
+    .shortcuts-list > *:not(:last-child) {
+        margin-bottom: 12px;
+    }
+}
+
 /* Responsive design for help modal */
 @media (max-width: 768px) {
     .help-modal-content {
@@ -899,5 +967,16 @@ h1 {
     
     .shortcut-keys {
         min-width: auto;
+    }
+    
+    /* Safari 14.0 mobile fallback for shortcut items */
+    @supports not (gap: 1px) {
+        .shortcut-item {
+            gap: 0;
+        }
+        
+        .shortcut-item .shortcut-description {
+            margin-top: 8px;
+        }
     }
 }

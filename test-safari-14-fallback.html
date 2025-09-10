@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Safari 14.0 Flexbox Gap Fallback Test</title>
+    <style>
+        /* Simulate Safari 14.0 by forcing @supports to treat gap as unsupported */
+        .theme-toggle {
+            gap: 0 !important;
+        }
+        
+        .theme-toggle .theme-icon {
+            margin-right: 6px !important;
+        }
+        
+        .search-container {
+            gap: 0 !important;
+        }
+        
+        .search-container > *:not(:last-child) {
+            margin-right: 12px !important;
+        }
+        
+        .add-todo-form {
+            gap: 0 !important;
+        }
+        
+        .add-todo-form > *:not(:last-child) {
+            margin-right: 12px !important;
+        }
+        
+        .todo-item {
+            gap: 0 !important;
+        }
+        
+        .todo-item > *:not(:last-child) {
+            margin-right: 12px !important;
+        }
+        
+        .todo-actions {
+            gap: 0 !important;
+        }
+        
+        .todo-actions > *:not(:last-child) {
+            margin-right: 8px !important;
+        }
+        
+        .edit-form {
+            gap: 0 !important;
+        }
+        
+        .edit-form > *:not(:last-child) {
+            margin-right: 8px !important;
+        }
+        
+        .shortcuts-list {
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 0 !important;
+        }
+        
+        .shortcuts-list > *:not(:last-child) {
+            margin-bottom: 12px !important;
+        }
+        
+        .shortcut-item {
+            gap: 0 !important;
+        }
+        
+        .shortcut-item .shortcut-description {
+            margin-top: 8px !important;
+        }
+    </style>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>AutoToDo - Safari 14.0 Test</h1>
+            <button class="theme-toggle">
+                <span class="theme-icon">🌙</span>
+                <span class="theme-text">Dark</span>
+            </button>
+        </div>
+        
+        <div class="search-container">
+            <input type="search" class="search-input" placeholder="Search todos...">
+            <button class="clear-search-btn">Clear</button>
+        </div>
+        
+        <form class="add-todo-form">
+            <input type="text" class="todo-input" placeholder="What needs to be done?">
+            <button type="submit" class="add-btn">Add Todo</button>
+        </form>
+
+        <ul class="todo-list">
+            <li class="todo-item">
+                <input type="checkbox" class="todo-checkbox">
+                <span class="todo-text">Test Safari 14.0 fallback support</span>
+                <div class="todo-actions">
+                    <button class="edit-btn">Edit</button>
+                    <button class="delete-btn">Delete</button>
+                </div>
+            </li>
+            <li class="todo-item">
+                <input type="checkbox" class="todo-checkbox">
+                <div class="edit-form">
+                    <input type="text" class="edit-input" value="Editing mode test">
+                    <button class="save-btn">Save</button>
+                    <button class="cancel-btn">Cancel</button>
+                </div>
+            </li>
+        </ul>
+
+        <!-- Test help modal shortcuts -->
+        <div class="help-modal" style="display: flex;">
+            <div class="help-modal-content">
+                <div class="help-header">
+                    <h2>Keyboard Shortcuts</h2>
+                    <button class="help-close-btn">×</button>
+                </div>
+                <div class="help-body">
+                    <div class="help-category">
+                        <h3>General</h3>
+                        <div class="shortcuts-list">
+                            <div class="shortcut-item">
+                                <span class="shortcut-keys">Ctrl+F</span>
+                                <span class="shortcut-description">Focus search</span>
+                            </div>
+                            <div class="shortcut-item">
+                                <span class="shortcut-keys">Esc</span>
+                                <span class="shortcut-description">Cancel edit</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        console.log('Safari 14.0 fallback test page loaded');
+        console.log('CSS gap support:', CSS.supports('gap', '1px'));
+    </script>
+</body>
+</html>
