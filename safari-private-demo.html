@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Safari Private Browsing Fix Demo - AutoToDo</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+            background: #f8f9fa;
+        }
+        .hero {
+            background: linear-gradient(135deg, #007AFF, #5856D6);
+            color: white;
+            padding: 40px;
+            border-radius: 16px;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .status-card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            margin: 20px 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .demo-section {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            margin: 20px 0;
+            border: 1px solid #e1e5e9;
+        }
+        .status-indicator {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .status-normal { background: #d4edda; color: #155724; }
+        .status-private { background: #fff3cd; color: #856404; }
+        .status-memory { background: #f8d7da; color: #721c24; }
+        button {
+            background: #007AFF;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            margin: 8px 8px 8px 0;
+            transition: all 0.2s;
+        }
+        button:hover {
+            background: #0056b3;
+            transform: translateY(-1px);
+        }
+        button.secondary {
+            background: #6c757d;
+        }
+        button.secondary:hover {
+            background: #545b62;
+        }
+        button.danger {
+            background: #dc3545;
+        }
+        button.danger:hover {
+            background: #c82333;
+        }
+        button.success {
+            background: #28a745;
+        }
+        button.success:hover {
+            background: #218838;
+        }
+        .test-result {
+            padding: 16px;
+            margin: 12px 0;
+            border-radius: 8px;
+            font-weight: 500;
+        }
+        .result-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .result-warning { background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+        .result-error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin: 20px 0;
+        }
+        .info-item {
+            background: #f8f9fa;
+            padding: 16px;
+            border-radius: 8px;
+            border-left: 4px solid #007AFF;
+        }
+        .todo-demo {
+            border: 2px dashed #007AFF;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+            background: rgba(0, 122, 255, 0.05);
+        }
+        .log-output {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 16px;
+            border-radius: 8px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            margin: 16px 0;
+        }
+        .instructions {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .mini-todo-app {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 12px;
+            padding: 24px;
+            margin: 20px 0;
+        }
+        .todo-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 14px;
+            margin-bottom: 12px;
+        }
+        .todo-item {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            border: 1px solid #e1e5e9;
+            border-radius: 8px;
+            margin: 8px 0;
+            background: #f8f9fa;
+        }
+        .todo-item.completed {
+            opacity: 0.6;
+            text-decoration: line-through;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="hero">
+        <h1>🔒 Safari Private Browsing Fix Demo</h1>
+        <p>Comprehensive solution for data persistence in Safari 14+ private browsing mode</p>
+    </div>
+
+    <div class="instructions">
+        <h3>🧪 How to Test This Fix</h3>
+        <ol>
+            <li><strong>Normal Mode:</strong> Open this page in regular browsing mode to see normal localStorage behavior</li>
+            <li><strong>Private Mode:</strong> Open this page in Safari private browsing mode to see the fallback behavior</li>
+            <li><strong>Compare:</strong> Notice how the app gracefully handles both scenarios with appropriate user notifications</li>
+        </ol>
+    </div>
+
+    <div class="status-card">
+        <h3>🔍 Current Browser Environment</h3>
+        <div id="environmentInfo" class="info-grid">
+            <div class="info-item">
+                <strong>Loading...</strong>
+            </div>
+        </div>
+    </div>
+
+    <div class="demo-section">
+        <h3>📊 Storage Manager Status</h3>
+        <div id="storageStatus"></div>
+        <button onclick="refreshStatus()">Refresh Status</button>
+        <button onclick="showDetailedInfo()" class="secondary">Detailed Info</button>
+    </div>
+
+    <div class="demo-section">
+        <h3>🧪 Interactive Tests</h3>
+        <p>These tests demonstrate how the StorageManager handles various scenarios:</p>
+        
+        <button onclick="testBasicStorage()">Test Basic Storage</button>
+        <button onclick="testLargeData()">Test Large Data</button>
+        <button onclick="simulateQuotaError()" class="danger">Simulate Quota Error</button>
+        <button onclick="testDataPersistence()">Test Data Persistence</button>
+        <button onclick="clearAllTests()" class="secondary">Clear Test Data</button>
+        
+        <div id="testResults"></div>
+    </div>
+
+    <div class="demo-section">
+        <h3>💾 Data Management Features</h3>
+        <p>New features specifically designed for private browsing mode:</p>
+        
+        <button onclick="exportAllData()" class="success">Export Data</button>
+        <button onclick="showImportDialog()" class="success">Import Data</button>
+        <button onclick="showDataManagementModal()">Data Management Modal</button>
+        
+        <div id="dataManagementResults"></div>
+    </div>
+
+    <div class="todo-demo">
+        <h3>📝 Mini Todo App Demo</h3>
+        <p>Try adding todos to see the storage behavior in action:</p>
+        
+        <div class="mini-todo-app">
+            <input type="text" id="todoInput" class="todo-input" placeholder="Enter a new todo..." onkeypress="handleTodoKeyPress(event)">
+            <button onclick="addTodo()">Add Todo</button>
+            <button onclick="clearAllTodos()" class="danger">Clear All</button>
+            
+            <div id="todoList"></div>
+            
+            <div style="margin-top: 20px; font-size: 14px; color: #666;">
+                <strong>Storage Status:</strong> <span id="todoStorageStatus">Loading...</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="demo-section">
+        <h3>📝 Activity Log</h3>
+        <button onclick="clearLog()" class="secondary">Clear Log</button>
+        <div id="logOutput" class="log-output">Initializing demo...</div>
+    </div>
+
+    <!-- Hidden file input for import -->
+    <input type="file" id="importFileInput" accept=".json" style="display: none;" onchange="handleFileImport(event)">
+
+    <!-- Include the necessary JavaScript files -->
+    <script src="js/StorageManager.js"></script>
+    <script src="js/TodoModel.js"></script>
+    
+    <script>
+        let storageManager;
+        let todoModel;
+        let demoTodos = [];
+        
+        // Initialize the demo
+        function init() {
+            log('🚀 Initializing Safari Private Browsing Fix Demo...');
+            
+            try {
+                storageManager = new StorageManager();
+                todoModel = new TodoModel(storageManager);
+                
+                log('✅ StorageManager and TodoModel initialized successfully');
+                
+                updateEnvironmentInfo();
+                refreshStatus();
+                loadDemoTodos();
+                
+                log('🎉 Demo initialization complete!');
+            } catch (error) {
+                log(`❌ Failed to initialize demo: ${error.message}`, 'error');
+            }
+        }
+        
+        function log(message, type = 'info') {
+            const logOutput = document.getElementById('logOutput');
+            const timestamp = new Date().toLocaleTimeString();
+            const prefix = type === 'error' ? '❌' : type === 'warning' ? '⚠️' : 'ℹ️';
+            logOutput.textContent += `[${timestamp}] ${prefix} ${message}\n`;
+            logOutput.scrollTop = logOutput.scrollHeight;
+            console.log(message);
+        }
+        
+        function clearLog() {
+            document.getElementById('logOutput').textContent = '';
+        }
+        
+        function updateEnvironmentInfo() {
+            const info = storageManager.getStorageInfo();
+            const userAgent = navigator.userAgent;
+            const isSafari = /Safari/.test(userAgent) && !/Chrome/.test(userAgent);
+            
+            const environmentInfo = document.getElementById('environmentInfo');
+            environmentInfo.innerHTML = `
+                <div class="info-item">
+                    <strong>Browser:</strong><br>
+                    ${isSafari ? 'Safari' : 'Other Browser'}
+                </div>
+                <div class="info-item">
+                    <strong>Storage Type:</strong><br>
+                    ${info.type}
+                </div>
+                <div class="info-item">
+                    <strong>Private Browsing:</strong><br>
+                    ${info.isPrivateBrowsing ? 'Detected' : 'Not Detected'}
+                </div>
+                <div class="info-item">
+                    <strong>Data Persistence:</strong><br>
+                    ${info.isPersistent ? 'Persistent' : 'Session Only'}
+                </div>
+            `;
+        }
+        
+        function refreshStatus() {
+            const info = storageManager.getStorageInfo();
+            const statusDiv = document.getElementById('storageStatus');
+            
+            let statusClass = 'status-normal';
+            let statusText = 'Normal Storage';
+            
+            if (info.isPrivateBrowsing) {
+                statusClass = 'status-private';
+                statusText = 'Private Browsing Mode';
+            } else if (info.type === 'memory') {
+                statusClass = 'status-memory';
+                statusText = 'Memory Storage (Fallback)';
+            }
+            
+            statusDiv.innerHTML = `
+                <div style="margin-bottom: 16px;">
+                    <span class="status-indicator ${statusClass}">${statusText}</span>
+                </div>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <strong>Storage Type:</strong> ${info.type}
+                    </div>
+                    <div class="info-item">
+                        <strong>Items Stored:</strong> ${info.itemCount}
+                    </div>
+                    <div class="info-item">
+                        <strong>localStorage Available:</strong> ${info.isLocalStorageAvailable ? 'Yes' : 'No'}
+                    </div>
+                    <div class="info-item">
+                        <strong>Data Persists:</strong> ${info.isPersistent ? 'Yes' : 'No'}
+                    </div>
+                </div>
+            `;
+            
+            log(`Storage status refreshed: ${statusText}`);
+        }
+        
+        function showDetailedInfo() {
+            const info = storageManager.getStorageInfo();
+            alert(`Detailed Storage Information:\n\n${JSON.stringify(info, null, 2)}`);
+        }
+        
+        function testBasicStorage() {
+            try {
+                const key = 'demo-test-' + Date.now();
+                const value = 'Test data for basic storage test';
+                
+                const success = storageManager.setItem(key, value);
+                const retrieved = storageManager.getItem(key);
+                
+                if (retrieved === value) {
+                    showTestResult('✅ Basic Storage Test: PASSED', 'success');
+                    log(`Basic storage test passed with key: ${key}`);
+                } else {
+                    showTestResult('❌ Basic Storage Test: FAILED (value mismatch)', 'error');
+                    log(`Basic storage test failed: expected "${value}", got "${retrieved}"`, 'error');
+                }
+                
+                // Clean up
+                storageManager.removeItem(key);
+                
+            } catch (error) {
+                showTestResult(`❌ Basic Storage Test: ERROR (${error.message})`, 'error');
+                log(`Basic storage test error: ${error.message}`, 'error');
+            }
+        }
+        
+        function testLargeData() {
+            try {
+                const key = 'demo-large-test';
+                const largeData = 'x'.repeat(100000); // 100KB test
+                
+                const success = storageManager.setItem(key, largeData);
+                const retrieved = storageManager.getItem(key);
+                
+                if (retrieved === largeData) {
+                    showTestResult('✅ Large Data Test: PASSED (100KB data stored)', 'success');
+                    log('Large data test passed: 100KB data stored and retrieved successfully');
+                } else {
+                    showTestResult('⚠️ Large Data Test: PARTIAL (data truncated or modified)', 'warning');
+                    log(`Large data test partial: expected ${largeData.length} chars, got ${retrieved ? retrieved.length : 0}`, 'warning');
+                }
+                
+                // Clean up
+                storageManager.removeItem(key);
+                
+            } catch (error) {
+                showTestResult(`❌ Large Data Test: ERROR (${error.message})`, 'error');
+                log(`Large data test error: ${error.message}`, 'error');
+            }
+        }
+        
+        function simulateQuotaError() {
+            try {
+                const key = 'demo-quota-test';
+                const hugeData = 'x'.repeat(10 * 1024 * 1024); // 10MB to trigger quota error
+                
+                const success = storageManager.setItem(key, hugeData);
+                
+                if (success) {
+                    showTestResult('⚠️ Quota Error Simulation: No quota error triggered (large storage available)', 'warning');
+                    log('Quota error simulation: 10MB data was accepted, no quota error occurred', 'warning');
+                } else {
+                    showTestResult('✅ Quota Error Simulation: PASSED (gracefully handled quota limitations)', 'success');
+                    log('Quota error simulation passed: storage limitations detected and handled gracefully');
+                }
+                
+                // Clean up
+                storageManager.removeItem(key);
+                
+            } catch (error) {
+                showTestResult(`✅ Quota Error Simulation: PASSED (error caught and handled: ${error.message})`, 'success');
+                log(`Quota error simulation passed: error properly caught - ${error.message}`);
+            }
+        }
+        
+        function testDataPersistence() {
+            const key = 'demo-persistence-test';
+            const value = 'Persistence test - ' + new Date().toISOString();
+            
+            storageManager.setItem(key, value);
+            
+            const info = storageManager.getStorageInfo();
+            if (info.isPersistent) {
+                showTestResult('✅ Data Persistence: Data will persist between sessions', 'success');
+                log('Data persistence test: Data will persist (localStorage available)');
+            } else {
+                showTestResult('⚠️ Data Persistence: Data is session-only (will not persist)', 'warning');
+                log('Data persistence test: Data is session-only (memory storage or private browsing)');
+            }
+        }
+        
+        function clearAllTests() {
+            const testKeys = ['demo-test', 'demo-large-test', 'demo-quota-test', 'demo-persistence-test'];
+            
+            testKeys.forEach(keyPrefix => {
+                for (let i = 0; i < storageManager.length; i++) {
+                    const key = storageManager.key(i);
+                    if (key && key.startsWith(keyPrefix)) {
+                        storageManager.removeItem(key);
+                    }
+                }
+            });
+            
+            showTestResult('🧹 All test data cleared', 'success');
+            log('All test data cleared');
+            refreshStatus();
+        }
+        
+        function exportAllData() {
+            try {
+                const success = storageManager.exportData('safari-private-demo-backup.json');
+                if (success) {
+                    showDataResult('✅ Data exported successfully! Check your downloads folder.', 'success');
+                    log('Data export successful');
+                } else {
+                    showDataResult('❌ Data export failed', 'error');
+                    log('Data export failed', 'error');
+                }
+            } catch (error) {
+                showDataResult(`❌ Data export error: ${error.message}`, 'error');
+                log(`Data export error: ${error.message}`, 'error');
+            }
+        }
+        
+        function showImportDialog() {
+            document.getElementById('importFileInput').click();
+        }
+        
+        async function handleFileImport(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            try {
+                const success = await storageManager.importData(file);
+                if (success) {
+                    showDataResult(`✅ Data imported successfully from ${file.name}`, 'success');
+                    log(`Data import successful from ${file.name}`);
+                    refreshStatus();
+                    loadDemoTodos(); // Reload todos after import
+                } else {
+                    showDataResult(`❌ Data import failed from ${file.name}`, 'error');
+                    log(`Data import failed from ${file.name}`, 'error');
+                }
+            } catch (error) {
+                showDataResult(`❌ Data import error: ${error.message}`, 'error');
+                log(`Data import error: ${error.message}`, 'error');
+            }
+            
+            // Reset file input
+            event.target.value = '';
+        }
+        
+        function showDataManagementModal() {
+            storageManager.showDataManagementOptions();
+            log('Data management modal opened');
+        }
+        
+        function showTestResult(message, type) {
+            const resultsDiv = document.getElementById('testResults');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `test-result result-${type}`;
+            resultDiv.textContent = message;
+            resultsDiv.appendChild(resultDiv);
+            
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                if (resultDiv.parentElement) {
+                    resultDiv.remove();
+                }
+            }, 5000);
+        }
+        
+        function showDataResult(message, type) {
+            const resultsDiv = document.getElementById('dataManagementResults');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `test-result result-${type}`;
+            resultDiv.textContent = message;
+            resultsDiv.appendChild(resultDiv);
+            
+            // Auto-remove after 8 seconds (longer for data operations)
+            setTimeout(() => {
+                if (resultDiv.parentElement) {
+                    resultDiv.remove();
+                }
+            }, 8000);
+        }
+        
+        // Mini Todo App Functions
+        function loadDemoTodos() {
+            demoTodos = todoModel.getAllTodos();
+            renderTodoList();
+            updateTodoStorageStatus();
+        }
+        
+        function renderTodoList() {
+            const todoList = document.getElementById('todoList');
+            
+            if (demoTodos.length === 0) {
+                todoList.innerHTML = '<div style="text-align: center; color: #666; padding: 20px;">No todos yet. Add one above!</div>';
+                return;
+            }
+            
+            todoList.innerHTML = demoTodos.map(todo => `
+                <div class="todo-item ${todo.completed ? 'completed' : ''}">
+                    <input type="checkbox" ${todo.completed ? 'checked' : ''} onchange="toggleTodo('${todo.id}')">
+                    <span style="flex: 1; margin-left: 12px;">${todo.text}</span>
+                    <button onclick="deleteTodo('${todo.id}')" class="danger" style="padding: 6px 12px; font-size: 12px;">Delete</button>
+                </div>
+            `).join('');
+        }
+        
+        function addTodo() {
+            const input = document.getElementById('todoInput');
+            const text = input.value.trim();
+            
+            if (!text) return;
+            
+            const todo = todoModel.addTodo(text);
+            demoTodos = todoModel.getAllTodos();
+            input.value = '';
+            renderTodoList();
+            updateTodoStorageStatus();
+            
+            log(`Todo added: "${text}"`);
+        }
+        
+        function toggleTodo(id) {
+            todoModel.toggleTodo(id);
+            demoTodos = todoModel.getAllTodos();
+            renderTodoList();
+            updateTodoStorageStatus();
+            
+            log(`Todo toggled: ${id}`);
+        }
+        
+        function deleteTodo(id) {
+            todoModel.deleteTodo(id);
+            demoTodos = todoModel.getAllTodos();
+            renderTodoList();
+            updateTodoStorageStatus();
+            
+            log(`Todo deleted: ${id}`);
+        }
+        
+        function clearAllTodos() {
+            if (confirm('Are you sure you want to delete all todos?')) {
+                todoModel.deleteAllTodos();
+                demoTodos = [];
+                renderTodoList();
+                updateTodoStorageStatus();
+                
+                log('All todos cleared');
+            }
+        }
+        
+        function handleTodoKeyPress(event) {
+            if (event.key === 'Enter') {
+                addTodo();
+            }
+        }
+        
+        function updateTodoStorageStatus() {
+            const info = todoModel.getStorageInfo();
+            const statusSpan = document.getElementById('todoStorageStatus');
+            
+            if (info.isPrivateBrowsing) {
+                statusSpan.innerHTML = '<span style="color: #856404;">⚠️ Session Only (Private Browsing)</span>';
+            } else if (info.isPersistent) {
+                statusSpan.innerHTML = '<span style="color: #155724;">✅ Persistent Storage</span>';
+            } else {
+                statusSpan.innerHTML = '<span style="color: #721c24;">❌ Memory Only</span>';
+            }
+        }
+        
+        // Initialize when page loads
+        window.addEventListener('load', init);
+        
+        // Handle page unload to show data export reminder in private browsing
+        window.addEventListener('beforeunload', (event) => {
+            const info = storageManager ? storageManager.getStorageInfo() : null;
+            if (info && info.isPrivateBrowsing && demoTodos.length > 0) {
+                event.preventDefault();
+                event.returnValue = 'You have todos that will be lost. Consider exporting your data first.';
+                return event.returnValue;
+            }
+        });
+    </script>
+</body>
+</html>

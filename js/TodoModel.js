@@ -250,7 +250,7 @@ class TodoModel {
             total, 
             completed, 
             pending,
-            storage: this.storageManager.getStorageInfo()
+            storage: this.storage.getStorageInfo()
         };
     }
 
@@ -259,7 +259,63 @@ class TodoModel {
      * @returns {Object} Storage status and type information
      */
     getStorageInfo() {
-        return this.storageManager.getStorageInfo();
+        return this.storage.getStorageInfo();
+    }
+
+    /**
+     * Export all todos and settings as a downloadable file
+     * Useful for private browsing mode data preservation
+     * @param {string} filename - Optional custom filename
+     * @returns {boolean} True if export was successful
+     */
+    exportData(filename = null) {
+        if (this.storage && typeof this.storage.exportData === 'function') {
+            return this.storage.exportData(filename);
+        } else {
+            console.warn('Export functionality not available with current storage');
+            return false;
+        }
+    }
+
+    /**
+     * Import todos and settings from a file or data object
+     * @param {File|Object|string} source - Import source (file, object, or JSON string)
+     * @param {boolean} merge - Whether to merge with existing data (default: false)
+     * @returns {Promise<boolean>} True if import was successful
+     */
+    async importData(source, merge = false) {
+        if (this.storage && typeof this.storage.importData === 'function') {
+            const success = await this.storage.importData(source, merge);
+            if (success) {
+                // Reload todos from storage after import
+                this.todos = this.loadTodos();
+            }
+            return success;
+        } else {
+            console.warn('Import functionality not available with current storage');
+            return false;
+        }
+    }
+
+    /**
+     * Show data management options modal (import/export)
+     * Particularly useful in private browsing mode
+     */
+    showDataManagementOptions() {
+        if (this.storage && typeof this.storage.showDataManagementOptions === 'function') {
+            this.storage.showDataManagementOptions();
+        } else {
+            console.warn('Data management UI not available with current storage');
+        }
+    }
+
+    /**
+     * Check if the current environment has data persistence limitations
+     * @returns {boolean} True if data may not persist between sessions
+     */
+    hasDataPersistenceLimitations() {
+        const info = this.getStorageInfo();
+        return info.isPrivateBrowsing || !info.isPersistent;
     }
 }
 
