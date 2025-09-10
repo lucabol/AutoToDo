@@ -313,189 +313,44 @@ AutoToDo is designed to be fully accessible for all users:
 
 ### Developer Customization
 
-AutoToDo's keyboard shortcut system is built with extensibility in mind. Developers can customize or add new shortcuts by modifying the `ShortcutsConfig.js` file.
-
-#### Architecture Overview
-
-The shortcut system consists of three main components:
-
-- **`ShortcutsConfig.js`** - Centralized configuration for all keyboard shortcuts
-- **`KeyboardShortcutManager.js`** - Event handling and context management
-- **Built-in validation** - Prevents conflicts with system shortcuts
-
 #### Adding Custom Shortcuts
 
-To add new shortcuts, modify the `getShortcuts()` method in `ShortcutsConfig.js`. Here's a comprehensive guide with detailed examples:
-
-##### Example 1: Simple Global Shortcut
-Add a shortcut to show application statistics:
+To add new shortcuts, modify `ShortcutsConfig.js`:
 
 ```javascript
-// 1. First, define your handler function in the appropriate class
-class TodoController {
-    showStats() {
-        const completed = this.model.todos.filter(todo => todo.completed).length;
-        const total = this.model.todos.length;
-        alert(`Statistics: ${completed}/${total} todos completed`);
-    }
-}
-
-// 2. Add the shortcut configuration in ShortcutsConfig.js
+// 1. Add shortcut configuration
 {
-    key: 'i',                    // Press 'i' key
-    ctrlKey: true,               // With Ctrl modifier
-    context: 'global',           // Available everywhere
-    action: showStats,           // Reference to your handler function
-    preventDefault: true,        // Prevent browser default behavior
-    description: 'Show todo statistics (Ctrl+I)',
-    category: 'General'          // Group in help dialog
-}
-
-// 3. Register the handler in KeyboardShortcutManager.js
-const handlers = {
-    // ... existing handlers
-    showStats: () => this.todoController.showStats()
-};
-```
-
-##### Example 2: Context-Aware Shortcut
-Add a shortcut that only works when searching:
-
-```javascript
-// 1. Create a custom context and handler
-{
-    key: 'Enter',
-    shiftKey: true,              // Shift+Enter combination
-    context: 'searching',        // Custom context
-    action: advancedSearch,      // Your custom search function
-    preventDefault: true,
-    description: 'Advanced search mode (Shift+Enter)',
-    category: 'Search & Filtering'
-}
-
-// 2. Update context management in KeyboardShortcutManager.js
-updateContext() {
-    if (document.activeElement === this.searchInput && this.searchInput.value.length > 0) {
-        this.currentContext = 'searching';
-    } else if (this.isEditing) {
-        this.currentContext = 'editing';
-    } else {
-        this.currentContext = 'global';
-    }
-}
-```
-
-##### Example 3: Multi-Key Combination
-Add a complex shortcut with multiple modifiers:
-
-```javascript
-{
-    key: 'e',
+    key: 'i',
     ctrlKey: true,
-    shiftKey: true,
-    altKey: true,                // Ctrl+Shift+Alt+E
     context: 'global',
-    action: exportTodos,
-    preventDefault: true,
-    description: 'Export all todos (Ctrl+Shift+Alt+E)',
-    category: 'Data Management'
+    action: showStats,
+    description: 'Show todo statistics (Ctrl+I)',
+    category: 'General'
+}
+
+// 2. Add handler to TodoController
+showStats() {
+    const completed = this.model.todos.filter(todo => todo.completed).length;
+    const total = this.model.todos.length;
+    alert(`Statistics: ${completed}/${total} todos completed`);
 }
 ```
 
-##### Example 4: Function Key Shortcut
-Add a function key for quick actions:
+#### Configuration Properties
+- **`key`** - Keyboard key
+- **`ctrlKey/shiftKey/altKey`** - Modifier keys (boolean)
+- **`context`** - `'global'`, `'editing'`, or custom
+- **`action`** - Function to execute
+- **`description`** - Help text
+- **`category`** - Group for help dialog
 
+#### Testing Custom Shortcuts
 ```javascript
-{
-    key: 'F3',                   // Function key
-    context: 'global',
-    action: focusNextTodo,
-    preventDefault: true,
-    description: 'Focus next todo (F3)',
-    category: 'Navigation'
-}
+// Test in browser console
+document.dispatchEvent(new KeyboardEvent('keydown', {
+    key: 'i', ctrlKey: true, bubbles: true
+}));
 ```
-
-##### Step-by-Step Integration Process
-
-1. **Plan Your Shortcut**: Define what action it should perform and when it should be available
-2. **Check for Conflicts**: Use the validation rules to ensure no conflicts with existing shortcuts
-3. **Implement the Handler**: Add the function to the appropriate controller class
-4. **Add Configuration**: Insert the shortcut object in the `getShortcuts()` array
-5. **Register Handler**: Add the handler to the handlers object in KeyboardShortcutManager.js
-6. **Test Functionality**: Verify the shortcut works in all expected contexts
-7. **Update Help Dialog**: Ensure your shortcut appears in the built-in help (automatic with proper category)
-8. **Document Usage**: Add examples to user documentation if needed
-
-#### Shortcut Configuration Properties
-
-- **`key`** - The keyboard key (case-sensitive)
-- **`ctrlKey`** - Whether Ctrl modifier is required (boolean)
-- **`shiftKey`** - Whether Shift modifier is required (boolean)
-- **`altKey`** - Whether Alt modifier is required (boolean)
-- **`context`** - When the shortcut is active: `'global'`, `'editing'`, or custom
-- **`action`** - Function to execute when shortcut is triggered
-- **`preventDefault`** - Whether to prevent default browser behavior (boolean)
-- **`description`** - Human-readable description for help dialog
-- **`category`** - Group for organizing shortcuts in help dialog
-
-#### Context Management
-
-Shortcuts can be context-aware:
-
-- **`global`** - Available anywhere in the application
-- **`editing`** - Only available when editing a todo item
-- **Custom contexts** - Define your own contexts for specific UI states
-
-#### Validation and Conflict Prevention
-
-The system includes built-in validation to prevent conflicts:
-
-- **Reserved system keys** - Avoids overriding browser shortcuts like F5 (refresh)
-- **Common modifier combinations** - Warns about potential conflicts with standard shortcuts
-- **Maximum shortcuts per context** - Prevents excessive shortcut definitions
-
-##### Validation Example
-```javascript
-// Before adding a new shortcut, check against reserved keys
-const validationRules = ShortcutsConfig.getValidationRules();
-
-// Check if your shortcut conflicts with system shortcuts
-const newShortcut = { key: 's', ctrlKey: true };
-const hasConflict = validationRules.systemShortcuts.some(reserved => 
-    reserved.key === newShortcut.key && reserved.ctrlKey === newShortcut.ctrlKey
-);
-
-if (hasConflict) {
-    console.warn('Shortcut conflicts with system shortcut');
-    // Choose a different key combination
-}
-```
-
-##### Testing Your Custom Shortcuts
-```javascript
-// 1. Unit test for shortcut configuration
-function testShortcutConfig() {
-    const shortcuts = ShortcutsConfig.getShortcuts(mockHandlers);
-    const myShortcut = shortcuts.find(s => s.key === 'i' && s.ctrlKey);
-    assert(myShortcut, 'Custom shortcut should be registered');
-    assert(myShortcut.action === mockHandlers.showStats, 'Handler should match');
-}
-
-// 2. Integration test for keyboard events
-function testShortcutExecution() {
-    const event = new KeyboardEvent('keydown', {
-        key: 'i',
-        ctrlKey: true,
-        bubbles: true
-    });
-    
-    document.dispatchEvent(event);
-    // Verify your action was executed
-}
-```
-
-For detailed implementation examples, refer to the existing shortcuts in `ShortcutsConfig.js`.
 
 ### Community Contributions
 
@@ -522,281 +377,75 @@ When proposing a new shortcut, include:
 ```markdown
 **Shortcut**: Ctrl+R
 **Action**: Archive completed todos
-**Context**: Global (available everywhere)
-**Justification**: Provides quick cleanup without permanent deletion
-**Conflicts**: None (checked against system shortcuts)
-**Testing**: Verified on Chrome 90+, Firefox 88+, Safari 14+
-```
+### Community Contributions
 
-##### 3. Code Contribution Process
+#### Contributing New Shortcuts
 
-**Step 1: Fork and Setup**
-```bash
-git clone https://github.com/[your-username]/AutoToDo.git
-cd AutoToDo
-# Test that the app works in your environment
-```
+**Process:**
+1. **Open an issue** to discuss your proposed shortcut
+2. **Fork the repository** and implement your changes
+3. **Add tests** for the new functionality
+4. **Update documentation** in README.md
+5. **Submit a pull request**
 
-**Step 2: Implement Your Shortcut**
+#### Example Contribution
 ```javascript
-// Add to ShortcutsConfig.js
+// 1. Add to ShortcutsConfig.js
 {
     key: 'r',
     ctrlKey: true,
     context: 'global',
     action: archiveCompleted,
-    preventDefault: true,
     description: 'Archive completed todos (Ctrl+R)',
     category: 'Todo Management'
 }
-```
 
-**Step 3: Add Handler Function**
-```javascript
-// Add to appropriate controller class
+// 2. Implement handler function
 archiveCompleted() {
     const completed = this.model.todos.filter(todo => todo.completed);
-    if (completed.length === 0) {
-        this.view.showMessage('No completed todos to archive');
-        return;
-    }
-    
-    // Your implementation here
     this.model.archiveTodos(completed);
-    this.view.render();
     this.view.showMessage(`Archived ${completed.length} todos`);
 }
 ```
 
-**Step 4: Write Tests**
-```javascript
-// Add to appropriate test file
-describe('Archive shortcut', () => {
-    it('should archive completed todos when Ctrl+R is pressed', () => {
-        // Test implementation
-    });
-    
-    it('should show message when no completed todos exist', () => {
-        // Test edge case
-    });
-});
-```
-
-**Step 5: Update Documentation**
-- Add your shortcut to the README.md shortcuts section
-- Include it in the appropriate category
-- Provide usage examples and context
-
-##### 4. Review Criteria
-
-Pull requests for new shortcuts will be evaluated on:
-
-**Functionality**
-- [ ] Shortcut works as described across major browsers
-- [ ] No conflicts with existing shortcuts or browser functions  
-- [ ] Appropriate context and scope
-- [ ] Handles edge cases gracefully
-
-**Code Quality**
-- [ ] Follows existing code patterns and conventions
-- [ ] Includes appropriate error handling
-- [ ] Has comprehensive test coverage
-- [ ] Is well-documented with clear descriptions
-
-**User Experience**
-- [ ] Provides meaningful functionality that enhances productivity
-- [ ] Uses intuitive key combinations
-- [ ] Gives appropriate user feedback
-- [ ] Follows accessibility best practices
-
-**Documentation**
-- [ ] Clear description of functionality and usage
-- [ ] Included in help dialog with proper categorization
-- [ ] Updated README with examples and context
-- [ ] Follows documentation formatting standards
-
-#### Community Discussion
-
-**Before implementing large changes:**
-1. **Open an issue** to discuss your proposed shortcut
-2. **Get feedback** from maintainers and community members  
-3. **Iterate on the design** based on community input
-4. **Consider alternatives** suggested by reviewers
-
-**Collaboration channels:**
-- GitHub Issues for feature proposals and bug reports
-- Pull Request discussions for code review and refinement
-- README examples serve as implementation guides
-
-#### Maintenance and Updates
-
-**Long-term considerations:**
-- **Browser compatibility** - New shortcuts should work across supported browsers
-- **Future-proofing** - Consider how shortcuts might need to evolve
-- **Performance impact** - Avoid shortcuts that significantly impact app performance
-- **User customization** - Design with potential user customization in mind
-
-By following these guidelines, you help ensure that new shortcuts enhance AutoToDo's usability while maintaining code quality and consistency.
+#### Review Criteria
+- ✅ Works across major browsers
+- ✅ No conflicts with existing shortcuts
+- ✅ Includes comprehensive tests
+- ✅ Follows code conventions
+- ✅ Enhances user productivity
 
 ### Code Implementation Reference
 
-This section provides concrete code examples and references to the actual implementation files to ensure documentation accuracy and help developers understand the real codebase structure.
+#### Core Files
+- **`js/ShortcutsConfig.js`** - Defines all shortcuts
+- **`js/KeyboardShortcutManager.js`** - Handles events and context
+- **`js/TodoController.js`** - Connects shortcuts to actions
 
-#### Implementation Architecture
-
-The keyboard shortcut system consists of three main implementation files:
-
-**Core Implementation Files:**
-- **`js/ShortcutsConfig.js`** - Centralized configuration defining all 15+ keyboard shortcuts
-- **`js/KeyboardShortcutManager.js`** - Event handling, context management, and shortcut registration
-- **`js/TodoController.js`** - Application logic that connects shortcuts to todo operations
-
-#### Real Code Examples from Implementation
-
-##### Shortcut Configuration Structure (from `ShortcutsConfig.js`)
-
-Here's how shortcuts are actually defined in the codebase:
-
+#### Example Implementation
 ```javascript
-// Example: Focus new todo input (Ctrl+N)
+// Shortcut definition (ShortcutsConfig.js)
 {
     key: 'n',
     ctrlKey: true,
     context: 'global',
     action: focusNewTodo,
-    preventDefault: true,
     description: 'Focus new todo input (Ctrl+N)',
     category: 'Navigation'
 }
 
-// Example: Context-aware editing shortcut (Escape)
-{
-    key: 'Escape',
-    context: 'editing',
-    action: cancelEdit,
-    description: 'Cancel editing (Escape)',
-    category: 'Editing'
-}
-
-// Example: Multi-modifier shortcut (Ctrl+Shift+D)
-{
-    key: 'd',
-    ctrlKey: true,
-    shiftKey: true,
-    context: 'global',
-    action: clearCompleted,
-    preventDefault: true,
-    description: 'Clear completed todos (Ctrl+Shift+D)',
-    category: 'Todo Management'
-}
-```
-
-##### Context Management Implementation
-
-The system uses dynamic context detection for context-aware shortcuts:
-
-```javascript
-// From KeyboardShortcutManager.js - Context registration
-registerContext('editing', () => {
-    return document.querySelector('.editing') !== null;
-});
-
-// Context priority handling - most specific context wins
-getActiveContexts() {
-    const active = [];
-    for (const [contextName, checker] of this.contexts.entries()) {
-        if (checker()) {
-            active.push(contextName);
-        }
-    }
-    return active;
-}
-```
-
-##### Handler Registration Pattern
-
-How shortcuts connect to application functionality:
-
-```javascript
-// From TodoController.js - Handler setup pattern
+// Handler registration (TodoController.js)
 const handlers = {
     focusNewTodo: () => this.focusNewTodo(),
-    focusSearch: () => this.focusSearch(),
     addTodo: () => this.addTodo(),
-    toggleFirstTodo: () => this.toggleFirstTodo(),
-    deleteFirstTodo: () => this.deleteFirstTodo(),
-    cancelEdit: () => this.cancelEdit(),
-    saveEdit: () => this.saveEdit(),
-    showHelp: () => this.showHelp(),
-    toggleTheme: () => this.toggleTheme(),
-    selectAll: () => this.selectAll(),
-    clearCompleted: () => this.clearCompleted()
+    // ... other handlers
 };
-
-// Register all shortcuts with the manager
-const shortcuts = ShortcutsConfig.getShortcuts(handlers);
-shortcuts.forEach(shortcut => this.shortcutManager.registerShortcut(shortcut));
 ```
 
-#### Implementation Cross-Reference Table
-
-| Documented Shortcut | Implementation File | Configuration Object | Handler Method |
-|---------------------|-------------------|---------------------|----------------|
-| **Ctrl+N** (Focus new todo) | `ShortcutsConfig.js:39-46` | `key: 'n', ctrlKey: true` | `focusNewTodo()` |
-| **Ctrl+F** (Focus search) | `ShortcutsConfig.js:48-55` | `key: 'f', ctrlKey: true` | `focusSearch()` |
-| **/** (Focus search) | `ShortcutsConfig.js:57-63` | `key: '/'` | `focusSearch()` |
-| **Ctrl+Enter** (Add todo) | `ShortcutsConfig.js:66-74` | `key: 'Enter', ctrlKey: true` | `addTodo()` |
-| **Ctrl+T** (Toggle todo) | `ShortcutsConfig.js:75-83` | `key: 't', ctrlKey: true` | `toggleFirstTodo()` |
-| **Ctrl+Delete** (Delete todo) | `ShortcutsConfig.js:84-92` | `key: 'Delete', ctrlKey: true` | `deleteFirstTodo()` |
-| **Ctrl+A** (Select all) | `ShortcutsConfig.js:94-101` | `key: 'a', ctrlKey: true` | `selectAll()` |
-| **Ctrl+Shift+D** (Clear completed) | `ShortcutsConfig.js:103-111` | `key: 'd', ctrlKey: true, shiftKey: true` | `clearCompleted()` |
-| **Escape** (Cancel editing) | `ShortcutsConfig.js:114-120` | `key: 'Escape', context: 'editing'` | `cancelEdit()` |
-| **Ctrl+S** (Save editing) | `ShortcutsConfig.js:121-129` | `key: 's', ctrlKey: true, context: 'editing'` | `saveEdit()` |
-| **Enter** (Save editing) | `ShortcutsConfig.js:130-137` | `key: 'Enter', context: 'editing'` | `saveEdit()` |
-| **Ctrl+H** (Show help) | `ShortcutsConfig.js:140-148` | `key: 'h', ctrlKey: true` | `showHelp()` |
-| **?** (Show help) | `ShortcutsConfig.js:149-156` | `key: '?'` | `showHelp()` |
-| **F1** (Show help) | `ShortcutsConfig.js:157-164` | `key: 'F1'` | `showHelp()` |
-| **Ctrl+M** (Toggle theme) | `ShortcutsConfig.js:165-173` | `key: 'm', ctrlKey: true` | `toggleTheme()` |
-
-#### Validation and Conflict Prevention Code
-
-The implementation includes built-in validation:
-
+#### Debug Commands
 ```javascript
-// From ShortcutsConfig.js - System shortcut detection
-static getValidationRules() {
-    return {
-        reservedGlobalKeys: ['F5', 'F12', 'Tab'],
-        systemShortcuts: [
-            { key: 's', ctrlKey: true }, // Save (browser)
-            { key: 'r', ctrlKey: true }, // Refresh
-            { key: 'l', ctrlKey: true }, // Location bar
-        ],
-        maxShortcutsPerContext: 20
-    };
-}
-```
-
-#### Accessing Implementation Details
-
-**View Complete Implementation:**
-```bash
-# View shortcut configurations
-cat js/ShortcutsConfig.js
-
-# View keyboard shortcut manager
-cat js/KeyboardShortcutManager.js
-
-# View integration in main controller
-grep -A 20 "shortcut" js/TodoController.js
-```
-
-**Debug Shortcut Registration:**
-```javascript
-// Browser console commands to inspect runtime state
+// Browser console - inspect current shortcuts
 console.log(shortcutManager.getAllShortcuts());
-console.log(ShortcutsConfig.groupByCategory(shortcuts));
-console.log(shortcutManager.getShortcutDescriptions());
 ```
 
 This code reference ensures complete accuracy between documentation and implementation, allowing developers to verify that all documented shortcuts exist and function as described in the actual codebase.
@@ -805,177 +454,26 @@ This code reference ensures complete accuracy between documentation and implemen
 
 AutoToDo employs comprehensive testing methodologies to ensure keyboard shortcuts work reliably across different scenarios and maintain consistency during development.
 
-#### Testing Architecture Overview
+### Testing and Validation
 
-The testing system validates both individual shortcut functionality and the overall keyboard management system:
+#### Test Files
+- **`keyboard-shortcuts.test.js`** - End-to-end behavior testing (13 tests)
+- **`keyboard-shortcut-manager.test.js`** - Unit tests (33 tests)
+- **`shortcuts-config.test.js`** - Configuration validation
 
-**Test Files:**
-- **`keyboard-shortcuts.test.js`** - End-to-end shortcut behavior testing (13 test cases)
-- **`keyboard-shortcut-manager.test.js`** - Unit tests for KeyboardShortcutManager class (33 test cases)
-- **`shortcuts-config.test.js`** - Configuration validation tests
-
-#### Testing Methodologies Used
-
-##### 1. Unit Testing Approach
-
-**Individual Shortcut Testing:**
-Each shortcut is tested in isolation to verify correct behavior:
-
-```javascript
-// Example: Testing Escape key cancellation
-function testEscapeKeysCancelEditing() {
-    const handler = createTestHandler();
-    handler.setEditing(true, 'test-id');
-    
-    const escapeEvent = {
-        key: 'Escape',
-        preventDefault: () => {}
-    };
-    
-    handler.handleKeyboardShortcuts(escapeEvent);
-    
-    assert(handler.cancelEditCalled, 'Escape key should trigger cancel edit');
-    assert(!handler.isEditing, 'Escape key should set editing to false');
-}
-```
-
-**Context Boundary Testing:**
-Verifies shortcuts only work in appropriate contexts:
-
-```javascript
-// Test: Ctrl+S only works when editing
-function testCtrlSWhenNotEditing() {
-    const handler = createTestHandler();
-    handler.setEditing(false);
-    
-    const ctrlSEvent = {
-        key: 's',
-        ctrlKey: true,
-        preventDefault: () => { preventDefaultCalled = true; }
-    };
-    
-    handler.handleKeyboardShortcuts(ctrlSEvent);
-    
-    assert(!preventDefaultCalled, 'Ctrl+S should not prevent default when not editing');
-    assert(!handler.saveEditCalled, 'Ctrl+S should not trigger save when not editing');
-}
-```
-
-##### 2. Integration Testing
-
-**KeyboardShortcutManager System Testing:**
-Tests the complete shortcut management system including registration, context detection, and execution:
-
-```javascript
-// Test context-specific shortcut priority
-function testContextSpecificShortcuts() {
-    const manager = new KeyboardShortcutManager();
-    let globalActionCalled = false;
-    let editingActionCalled = false;
-    let isEditing = false;
-    
-    manager.registerContext('editing', () => isEditing);
-    
-    manager.registerShortcut({
-        key: 'Escape',
-        context: 'global',
-        action: () => { globalActionCalled = true; }
-    });
-    
-    manager.registerShortcut({
-        key: 'Escape',
-        context: 'editing',
-        action: () => { editingActionCalled = true; }
-    });
-    
-    // Test priority: editing context should override global
-    isEditing = true;
-    manager.handleKeyboard(mockEvent);
-    assert(editingActionCalled === true, 'Should use editing context when editing');
-    assert(globalActionCalled === false, 'Should not use global when editing matches');
-}
-```
-
-##### 3. Mock-Based Testing
-
-**DOM Abstraction:**
-Uses mock DOM elements to test without browser dependencies:
-
-```javascript
-class MockElement {
-    constructor() {
-        this.style = { display: 'none' };
-        this.innerHTML = '';
-        this.value = '';
-        this.eventListeners = {};
-        this.classList = {
-            add: () => {},
-            remove: () => {},
-            contains: () => false
-        };
-    }
-    
-    addEventListener(event, callback) {
-        this.eventListeners[event] = callback;
-    }
-    
-    trigger(event, data) {
-        if (this.eventListeners[event]) {
-            this.eventListeners[event](data || { target: this });
-        }
-    }
-}
-```
-
-##### 4. Error Handling Testing
-
-**Invalid Configuration Detection:**
-Tests that the system properly handles invalid shortcut configurations:
-
-```javascript
-function testInvalidShortcutRegistration() {
-    const manager = new KeyboardShortcutManager();
-    let errorThrown = false;
-    
-    try {
-        manager.registerShortcut({
-            key: 'Escape'
-            // Missing required action function
-        });
-    } catch (error) {
-        errorThrown = true;
-    }
-    
-    assert(errorThrown === true, 'Should throw error for shortcut without action');
-}
-```
-
-##### 5. Cross-Browser Compatibility Testing
-
-**Event Object Validation:**
-Tests handle different browser event object formats:
-
-```javascript
-// Test with different event object structures
-const chromeEvent = { key: 'Escape', ctrlKey: false, preventDefault: () => {} };
-const firefoxEvent = { key: 'Escape', ctrlKey: false, preventDefault: () => {} };
-const safariEvent = { key: 'Escape', ctrlKey: false, preventDefault: () => {} };
-```
-
-#### Running the Test Suites
-
-##### Execute All Keyboard Tests
-
+#### Running Tests
 ```bash
-# Run main keyboard shortcut tests
-node keyboard-shortcuts.test.js
-
-# Run KeyboardShortcutManager unit tests  
-node keyboard-shortcut-manager.test.js
-
-# Run configuration validation tests
-node shortcuts-config.test.js
+node keyboard-shortcuts.test.js          # Main shortcut tests
+node keyboard-shortcut-manager.test.js   # Manager unit tests
+node shortcuts-config.test.js            # Config validation
 ```
+
+#### Test Coverage
+- ✅ Individual shortcut functionality
+- ✅ Context-aware behavior
+- ✅ Error handling
+- ✅ Browser compatibility
+- ✅ Performance validation
 
 ##### Test Output Interpretation
 
@@ -1049,785 +547,68 @@ const isReserved = validation.systemShortcuts.some(s =>
 function testNewCustomShortcut() {
     const manager = new KeyboardShortcutManager();
     let actionExecuted = false;
-    
-    manager.registerShortcut({
-        key: 'k',
-        ctrlKey: true,
-        action: () => { actionExecuted = true; },
-        description: 'Custom action'
-    });
-    
-    const testEvent = {
-        key: 'k',
-        ctrlKey: true,
-        preventDefault: () => {}
-    };
-    
-    manager.handleKeyboard(testEvent);
-    assert(actionExecuted, 'New shortcut should execute action');
-}
-```
 
-**2. Integration Testing:**
-```javascript
-// Test in actual application context
-const todoController = new TodoController();
-// Trigger shortcut and verify expected behavior
-// Check for side effects, context changes, DOM updates
-```
-
-**3. Cross-Browser Testing:**
-```javascript
-// Test across different browsers and verify:
-// - Event object compatibility
-// - Key code recognition  
-// - Modifier key detection
-// - preventDefault behavior
-```
-
-#### Performance Testing
-
-**Shortcut Response Time Measurement:**
-```javascript
-function testShortcutPerformance() {
-    const startTime = performance.now();
-    manager.handleKeyboard(testEvent);
-    const endTime = performance.now();
-    const responseTime = endTime - startTime;
-    
-    assert(responseTime < 10, 'Shortcut should respond within 10ms');
-}
-```
-
-**Memory Leak Detection:**
-```javascript
-// Test shortcut registration/removal cycles
-for (let i = 0; i < 1000; i++) {
-    manager.registerShortcut(testConfig);
-    manager.removeShortcut('testKey');
-}
-// Verify memory usage remains stable
-```
-
-#### Continuous Integration Testing
-
-**Automated Test Execution:**
-```bash
-#!/bin/bash
-# CI testing script
-echo "Running keyboard shortcut validation..."
-
-# Run all test suites
-node keyboard-shortcuts.test.js || exit 1
-node keyboard-shortcut-manager.test.js || exit 1 
-node shortcuts-config.test.js || exit 1
-
-echo "All keyboard shortcut tests passed ✅"
-```
-
-**Test Environment Requirements:**
-- Node.js runtime for test execution
-- Mock DOM environment (no browser required)
-- Simulated keyboard events
-- Assertion framework for validation
-
-This comprehensive testing methodology ensures all documented keyboard shortcuts work reliably and maintain consistency across development cycles and browser environments.
-
-### Practical Testing Examples and Workflows
-
-#### Manual Testing Procedures
-
-**Complete Keyboard Shortcut Validation Checklist:**
-
-1. **Navigation Shortcuts Testing:**
-   ```
-   ✓ Press Ctrl+N → Verify input field gets focus
-   ✓ Press Ctrl+F → Verify search field gets focus  
-   ✓ Press / → Verify search field gets focus (alternative)
-   ✓ Press ? → Verify help dialog opens
-   ✓ Press F1 → Verify help dialog opens (alternative)
-   ✓ Press Ctrl+H → Verify help dialog opens (alternative)
-   ```
-
-2. **Todo Management Testing:**
-   ```
-   ✓ Add todo, press Ctrl+T → Verify first todo toggles completion
-   ✓ Add multiple todos, press Ctrl+A → Verify all todos get selected
-   ✓ Complete some todos, press Ctrl+Shift+D → Verify completed todos cleared
-   ✓ Press Ctrl+Delete → Verify deletion confirmation appears
-   ✓ Focus input, press Ctrl+Enter → Verify todo gets added
-   ```
-
-3. **Editing Mode Testing:**
-   ```
-   ✓ Double-click todo to edit, press Ctrl+S → Verify changes saved
-   ✓ Double-click todo to edit, press Escape → Verify editing cancelled
-   ✓ Edit todo, make changes, press Escape → Verify changes discarded
-   ```
-
-4. **Theme and General Testing:**
-   ```
-   ✓ Press Ctrl+M → Verify theme toggles between light/dark
-   ✓ Press Escape when not editing → Verify no unintended effects
-   ✓ Press shortcuts with Caps Lock on → Verify still work correctly
-   ```
-
-#### Browser-Specific Testing Examples
-
-**Chrome Testing Workflow:**
-```javascript
-// Chrome DevTools Console Testing
-console.log('=== Chrome Keyboard Shortcut Testing ===');
-
-// Test shortcut registration
-document.addEventListener('keydown', (e) => {
-    console.log(`Key: ${e.key}, Ctrl: ${e.ctrlKey}, Alt: ${e.altKey}, Shift: ${e.shiftKey}`);
-});
-
-// Simulate Ctrl+N
-const event = new KeyboardEvent('keydown', {
-    key: 'n',
-    ctrlKey: true,
-    bubbles: true
-});
-document.dispatchEvent(event);
-```
-
-**Firefox Testing Considerations:**
-- Firefox may handle `event.key` differently for some special keys
-- Test F1 behavior (may conflict with Firefox help)
-- Verify `preventDefault()` works correctly for browser shortcuts
-
-**Safari Testing Considerations:**
-- Test Cmd key behavior on macOS (maps to Ctrl in shortcuts)
-- Verify mobile Safari compatibility if applicable
-- Test with VoiceOver screen reader enabled
-
-#### User Acceptance Testing Scenarios
-
-**Scenario 1: New User Workflow**
-```
-Given: User opens AutoToDo for the first time
-When: User presses ? key
-Then: Help dialog should appear showing all shortcuts
-And: User can navigate through categories
-And: Each shortcut description is clear and actionable
-
-When: User presses Escape
-Then: Help dialog should close
-And: User returns to main interface
-
-When: User presses Ctrl+N
-Then: Input field should get focus with visible cursor
-And: User can immediately start typing
-```
-
-**Scenario 2: Power User Workflow**
-```
-Given: User has experience with keyboard shortcuts
-When: User presses Ctrl+N, types "Buy milk", presses Ctrl+Enter
-Then: Todo should be added and input should remain focused
-
-When: User types "Call mom", presses Enter
-Then: Second todo should be added
-
-When: User presses Ctrl+T
-Then: First todo should be marked complete
-
-When: User presses Ctrl+Shift+D
-Then: Confirmation should appear for clearing completed todos
-```
-
-**Scenario 3: Accessibility Testing**
-```
-Given: User relies on keyboard navigation
-When: User presses Tab to navigate
-Then: Focus should move logically through interactive elements
-
-When: User activates screen reader
-Then: Shortcuts should still function correctly
-And: Screen reader should announce focus changes
-And: Help dialog content should be readable
-```
-
-#### Test-Driven Development Examples
-
-**Adding a New Shortcut (Ctrl+R for Refresh):**
-
-1. **Write the Test First:**
-```javascript
-// In keyboard-shortcuts.test.js
-function testCtrlRRefreshShortcut() {
-    const handler = createTestHandler();
-    let refreshCalled = false;
-    
-    handler.onRefresh = () => { refreshCalled = true; };
-    
-    const ctrlREvent = {
-        key: 'r',
-        ctrlKey: true,
-        preventDefault: () => {}
-    };
-    
-    handler.handleKeyboardShortcuts(ctrlREvent);
-    
-    assert(refreshCalled === true, 'Ctrl+R should trigger refresh');
-}
-```
-
-2. **Run Test (Should Fail):**
-```bash
-node keyboard-shortcuts.test.js
-# Expected: ❌ FAIL: Ctrl+R should trigger refresh
-```
-
-3. **Implement the Feature:**
-```javascript
-// In ShortcutsConfig.js
-{
-    key: 'r',
-    ctrlKey: true,
-    context: 'global',
-    action: () => todoController.refresh(),
-    description: 'Refresh todo list',
-    category: 'General',
-    preventDefault: true
-}
-```
-
-4. **Run Test Again (Should Pass):**
-```bash
-node keyboard-shortcuts.test.js
-# Expected: ✅ PASS: Ctrl+R should trigger refresh
-```
-
-#### Interactive Browser Testing Examples
-
-**Real-Time Shortcut Debugging:**
-
-1. **Open Browser Console:**
-```javascript
-// Monitor all keyboard events
-window.addEventListener('keydown', (e) => {
-    console.log({
-        key: e.key,
-        code: e.code,
-        ctrlKey: e.ctrlKey,
-        altKey: e.altKey,
-        shiftKey: e.shiftKey,
-        timestamp: Date.now()
-    });
-});
-```
-
-2. **Test Specific Shortcut:**
-```javascript
-// Test Ctrl+N focus behavior
-function testCtrlNFocus() {
-    const input = document.getElementById('todo-input');
-    const initialFocus = document.activeElement;
-    
-    console.log('Before Ctrl+N:', { 
-        activeElement: document.activeElement.id,
-        inputFocused: document.activeElement === input 
-    });
-    
-    // Simulate Ctrl+N
-    const event = new KeyboardEvent('keydown', {
-        key: 'n',
-        ctrlKey: true,
-        bubbles: true
-    });
-    document.dispatchEvent(event);
-    
-    setTimeout(() => {
-        console.log('After Ctrl+N:', { 
-            activeElement: document.activeElement.id,
-            inputFocused: document.activeElement === input,
-            focusChanged: initialFocus !== document.activeElement
-        });
-    }, 100);
-}
-
-testCtrlNFocus();
-```
-
-3. **Performance Testing:**
-```javascript
-// Measure shortcut response time
-function measureShortcutPerformance() {
-    const results = [];
-    
-    for (let i = 0; i < 10; i++) {
-        const start = performance.now();
-        
-        const event = new KeyboardEvent('keydown', {
-            key: 'n',
-            ctrlKey: true,
-            bubbles: true
-        });
-        document.dispatchEvent(event);
-        
-        const end = performance.now();
-        results.push(end - start);
-    }
-    
-    console.log('Shortcut Performance Results:', {
-        average: results.reduce((a, b) => a + b) / results.length,
-        min: Math.min(...results),
-        max: Math.max(...results),
-        results
-    });
-}
-
-measureShortcutPerformance();
-```
-
-#### Regression Testing Examples
-
-**Automated Regression Test Suite:**
-```bash
-#!/bin/bash
-# regression-test-shortcuts.sh
-
-echo "🔄 Running Keyboard Shortcut Regression Tests..."
-
-# Store current test results
-npm test > current_results.log 2>&1
-
-# Extract pass/fail counts
-CURRENT_PASSES=$(grep -o "✅ PASS:" current_results.log | wc -l)
-CURRENT_FAILS=$(grep -o "❌ FAIL:" current_results.log | wc -l)
-
-echo "📊 Current Results: $CURRENT_PASSES passed, $CURRENT_FAILS failed"
-
-# Compare with baseline (if exists)
-if [ -f "baseline_results.log" ]; then
-    BASELINE_PASSES=$(grep -o "✅ PASS:" baseline_results.log | wc -l)
-    BASELINE_FAILS=$(grep -o "❌ FAIL:" baseline_results.log | wc -l)
-    
-    echo "📋 Baseline Results: $BASELINE_PASSES passed, $BASELINE_FAILS failed"
-    
-    if [ $CURRENT_PASSES -lt $BASELINE_PASSES ]; then
-        echo "⚠️  WARNING: Fewer tests passing than baseline!"
-        echo "   Regression detected in keyboard shortcuts"
-        exit 1
-    fi
-    
-    if [ $CURRENT_FAILS -gt $BASELINE_FAILS ]; then
-        echo "⚠️  WARNING: More tests failing than baseline!"
-        echo "   New failures detected in keyboard shortcuts"
-        exit 1
-    fi
-fi
-
-echo "✅ Regression tests passed!"
-
-# Update baseline
-cp current_results.log baseline_results.log
-```
-
-#### Edge Case Testing Examples
-
-**Complex Scenarios Testing:**
-
-1. **Rapid Key Combination Testing:**
-```javascript
-// Test rapid key presses don't interfere
-function testRapidKeyPresses() {
-    let actions = [];
-    
-    // Simulate rapid Ctrl+N, Ctrl+F sequence
-    const events = [
-        { key: 'n', ctrlKey: true },
-        { key: 'f', ctrlKey: true }
-    ];
-    
-    events.forEach((eventData, index) => {
-        setTimeout(() => {
-            const event = new KeyboardEvent('keydown', {
-                ...eventData,
-                bubbles: true
-            });
-            document.dispatchEvent(event);
-            actions.push(`Event ${index}: ${eventData.key}`);
-        }, index * 50); // 50ms apart
-    });
-    
-    setTimeout(() => {
-        console.log('Rapid key test results:', actions);
-    }, 200);
-}
-```
-
-2. **Context Switching Testing:**
-```javascript
-// Test shortcuts work correctly when switching contexts
-function testContextSwitching() {
-    console.log('Testing context switching...');
-    
-    // Start editing
-    const todoItem = document.querySelector('.todo-item');
-    todoItem.dispatchEvent(new Event('dblclick'));
-    
-    console.log('Editing mode active');
-    
-    // Test Escape (should work in editing context)
-    document.dispatchEvent(new KeyboardEvent('keydown', {
-        key: 'Escape',
-        bubbles: true
-    }));
-    
-    console.log('Escape pressed - should cancel editing');
-    
-    // Test Ctrl+N (should work in global context)
-    setTimeout(() => {
-        document.dispatchEvent(new KeyboardEvent('keydown', {
-            key: 'n',
-            ctrlKey: true,
-            bubbles: true
-        }));
-        console.log('Ctrl+N pressed - should focus input');
-    }, 100);
-}
-```
-
-#### Developer Testing Workflow
-
-**Complete Development Testing Process:**
-
-1. **Pre-Implementation Testing:**
-```bash
-# Before making changes
-npm test > pre_changes.log
-echo "Baseline established"
-```
-
-2. **During Development:**
-```bash
-# Run tests frequently during development
-npm run test:shortcuts
-# Monitor for immediate feedback
-```
-
-3. **Manual Validation:**
-```
-- Open index.html in browser
-- Test each new shortcut manually
-- Verify existing shortcuts still work
-- Test in multiple browsers
-- Test with different keyboard layouts
-```
-
-4. **Performance Validation:**
-```javascript
-// Add to browser console
-console.time('shortcut-response');
-// Press shortcut
-console.timeEnd('shortcut-response');
-// Should be < 10ms for good UX
-```
-
-5. **Post-Implementation Testing:**
-```bash
-# Full test suite
-npm test
-
-# Compare results
-diff pre_changes.log current_results.log
-```
-
-6. **Documentation Testing:**
-```bash
-# Verify all documented shortcuts work
-grep -o "Ctrl+[A-Z]" README.md | while read shortcut; do
-    echo "Testing $shortcut"
-    # Manual verification required
-done
-```
 
 This comprehensive testing approach ensures keyboard shortcuts remain reliable, performant, and user-friendly across all development cycles and deployment environments.
 
-### Visual Guide and Demonstrations
+### Visual Guide
 
 #### Built-in Help System
-AutoToDo includes a comprehensive visual help dialog that displays all keyboard shortcuts organized by category. Access it using:
-- **Ctrl+H** - Standard help shortcut
-- **?** - Quick help access  
-- **F1** - Traditional help key
+Access comprehensive shortcut reference via:
+- **Ctrl+H**, **?**, or **F1** - Opens categorized shortcuts dialog
 
-The help dialog shows:
-- **Organized categories** - Navigation, Todo Management, Editing, and General shortcuts
-- **Key combinations** - Visual representation of required keys (e.g., "Ctrl+N")
-- **Clear descriptions** - What each shortcut does and when to use it
-- **Context information** - Which shortcuts work in different application states
+#### Quick Workflows
+- **Task Entry**: `Ctrl+N` → type → `Ctrl+Enter` → repeat
+- **Search**: `/` → type → filter results
+- **Management**: `Ctrl+T` (toggle), `Ctrl+Shift+D` (clear completed)
 
-#### Interactive Examples
-To see shortcuts in action, try these common workflows:
+#### Visual Feedback
+- Focus indicators show active elements
+- Selection highlighting for batch operations  
+- Status animations and confirmation dialogs
+- Smooth theme transitions
 
-**Quick Task Entry Workflow:**
-1. Press **Ctrl+N** → Notice the input field gets focus and cursor appears
-2. Type "Buy groceries" → Text appears in the input field
-3. Press **Ctrl+Enter** → Todo is added to the list immediately
-4. Type "Call dentist" → Focus remains in input for rapid entry
-5. Press **Enter** → Second todo is added
+### User Customization Options
 
-**Search and Filter Workflow:**
-1. Press **/** → Search field gets focus with visual indication
-2. Type "grocery" → List instantly filters to show matching todos
-3. Press **Escape** → Search clears and full list returns
-4. Press **Ctrl+F** → Alternative way to focus search
-
-**Task Management Workflow:**
-1. Press **Ctrl+T** → First todo item gets checked/unchecked with animation
-2. Press **Ctrl+Shift+D** → All completed todos disappear with confirmation
-3. Press **Ctrl+A** → All todos get visual selection highlight
-4. Press **Ctrl+Delete** → First todo shows deletion confirmation dialog
-
-#### Visual Feedback Features
-The application provides clear visual feedback for all keyboard actions:
-- **Focus indicators** - Blue outline shows which element is active
-- **Selection highlighting** - Selected todos get distinct background color
-- **Status animations** - Smooth transitions when marking todos complete
-- **Confirmation dialogs** - Visual prompts for destructive actions like deletion
-- **Theme transitions** - Smooth color changes when toggling dark/light mode
-- **Message notifications** - Success/error messages appear for user actions
-
-### User-Level Shortcut Customization
-
-#### Current Capabilities
-AutoToDo currently supports keyboard shortcuts through its built-in system, but **user-level customization requires browser-based solutions** since the application doesn't include a settings interface for modifying shortcuts.
-
-#### Visual Cues and Tooltips
-
-**Current Visual Feedback:**
-- **Focus indicators**: Clear visual outlines show which element has keyboard focus
-- **Button states**: Hover effects provide visual feedback for interactive elements
-- **Status messages**: Success/error notifications appear for user actions
-- **Help dialog**: Comprehensive shortcuts reference accessible via Ctrl+H
-
-**Future Enhancement Possibilities:**
-AutoToDo could benefit from enhanced visual cues such as:
-- **Hover tooltips**: Small popup hints showing available shortcuts when hovering over buttons or input fields
-- **Keyboard navigation hints**: Visual indicators showing which elements can be accessed via Tab key
-- **Shortcut badges**: Small key combination displays on relevant UI elements
-
-**Implementation Considerations for Tooltips:**
-While not currently implemented, tooltip functionality could be added through:
-- CSS-based tooltips using `::before` and `::after` pseudo-elements
-- JavaScript tooltip libraries for dynamic content
-- HTML `title` attributes for basic browser tooltips
-- ARIA labels for accessibility compliance
-
-**Recommended Tooltip Locations:**
-- **Add button**: Show "Ctrl+Enter to add" on hover
-- **Search field**: Display "Ctrl+F to focus" tooltip
-- **Todo items**: Show available actions (Ctrl+T to toggle, Ctrl+Delete to remove)
-- **Theme toggle**: Indicate "Ctrl+M" shortcut
-
-#### Browser-Based Customization Options
-
-**Option 1: Browser Extensions**
-- **Vimium** (Chrome/Firefox) - Adds Vim-style keyboard navigation
-- **Shortkeys** (Chrome) - Custom keyboard shortcuts for web pages
+#### Browser Extensions
+- **Vimium** (Chrome/Firefox) - Vim-style navigation
+- **Shortkeys** (Chrome) - Custom keyboard shortcuts
 - **Surfingkeys** (Chrome/Firefox) - Advanced keyboard control
 
-**Option 2: Browser Developer Tools**
-Advanced users can modify shortcuts temporarily:
-1. Open Developer Tools (F12)
-2. Go to Console tab
-3. Execute JavaScript to modify shortcut behavior:
+#### Developer Tools
 ```javascript
-// Example: Change Ctrl+N to Ctrl+T for new todo focus
+// Custom shortcut example (F12 Console)
 document.addEventListener('keydown', function(e) {
-    if (e.ctrlKey && e.key === 't') {
+    if (e.ctrlKey && e.key === 'r') {
         e.preventDefault();
-        document.querySelector('#new-todo-input').focus();
+        // Your custom action here
     }
 });
 ```
 
-**Option 3: User Script Managers**
-- **Tampermonkey** (Chrome/Firefox/Safari) - Run custom scripts
+#### User Script Managers
+- **Tampermonkey** - Run custom scripts across browsers
 - **Greasemonkey** (Firefox) - User script management
-- **Violentmonkey** (Chrome/Firefox) - Open source alternative
 
-#### Future Enhancement Possibilities
-The application architecture supports adding user customization features:
+### Pro Tips
+- **Built-in Help**: Press **Ctrl+H** for complete shortcuts reference
+- **Rapid Entry**: Use **Ctrl+N** → type → **Ctrl+Enter** for quick task additions
+- **Quick Search**: Press **/** to instantly jump to search
+- **Batch Operations**: **Ctrl+A** + **Ctrl+Shift+D** for quick cleanup
+- **Theme Toggle**: **Ctrl+M** switches light/dark modes
 
-**Potential UI Customization Panel:**
-- Settings dialog accessible via menu or shortcut
-- List of all current shortcuts with modification options
-- Conflict detection and resolution
-- Import/export of custom shortcut profiles
-- Reset to defaults functionality
+### Undo and Revert Actions
+- **Escape** - Cancel editing, discard changes
+- **Clear input** - Ctrl+A then Delete in input fields  
+- **Dialog dismissal** - Escape or click outside
 
-**Local Storage Customization:**
-- User preferences saved in browser localStorage
-- Custom shortcuts persist between sessions
-- Per-device customization support
+**Current Limitations**: No global undo for deletions or status changes. Use confirmation dialogs carefully.
 
-#### Accessibility and Compatibility
-When customizing shortcuts:
-- **Avoid system shortcuts** - Don't override Ctrl+C, Ctrl+V, etc.
-- **Consider accessibility** - Ensure shortcuts work with screen readers
-- **Test across browsers** - Custom solutions may vary by browser
-- **Document changes** - Keep track of modifications for troubleshooting
-
-### Pro Tips for Maximum Efficiency
-
-- **📚 Built-in Help**: Press **Ctrl+H** to access the complete shortcuts reference organized by category
-- **⚡ Rapid Entry**: After adding a todo, focus automatically returns to the input field for consecutive additions
-- **🔍 Quick Search**: Use **/** to instantly jump to search and filter large todo lists without clicking
-- **🎯 Batch Operations**: Combine **Ctrl+A** (select all) with **Ctrl+Shift+D** (clear completed) for quick cleanup
-- **🌙 Theme Switching**: Press **Ctrl+M** to quickly toggle between light and dark modes based on your environment
-- **🧠 Context Awareness**: The application intelligently handles shortcuts based on your current activity (editing vs. browsing)
-
-### Undoing and Reverting Actions
-
-AutoToDo provides several ways to revert changes and cancel operations using keyboard shortcuts:
-
-#### Available Undo/Revert Functionality
-
-**Edit Mode Cancellation:**
-- **Escape** - Cancel editing and discard any changes to a todo item
-  - *Use this when you start editing a todo but want to abandon your changes*
-  - *Returns the todo text to its original state before editing began*
-  - *Works immediately without confirmation - your original text is preserved*
-
-**Input Field Clearing:**
-- **Escape** (when focused on new todo input) - Clear the input field
-  - *Quickly remove typed text before adding a todo*
-  - *Useful for starting over with a new task description*
-
-**Dialog Dismissal:**
-- **Escape** - Close help dialogs and cancel operations
-  - *Exit the help dialog (Ctrl+H) without making changes*
-  - *Cancel confirmation dialogs for delete operations*
-
-#### Current Limitations
-
-**No Global Undo System:**
-AutoToDo currently does not implement a comprehensive undo/redo system for these actions:
-- ❌ **Todo deletion** - Once confirmed, deleted todos cannot be restored via keyboard
-- ❌ **Completion status changes** - Toggling todo completion (Ctrl+T) cannot be undone with a shortcut
-- ❌ **Bulk operations** - Clearing completed todos (Ctrl+Shift+D) cannot be reversed
-- ❌ **Theme changes** - Theme switching (Ctrl+M) has no undo functionality
-
-**Workarounds for Missing Undo:**
-- **Manual restoration**: Re-type deleted todos or use browser's localStorage inspector to recover data
-- **Confirmation dialogs**: Pay attention to delete confirmations before proceeding
-- **Progressive editing**: Make small changes rather than bulk operations when possible
-- **Browser backup**: Your todo data persists in localStorage - closing and reopening preserves your list
-
-#### Future Enhancement Considerations
-
-A comprehensive undo system could include:
-- **Ctrl+Z** - Undo last action (delete, toggle, bulk clear)
-- **Ctrl+Y** or **Ctrl+Shift+Z** - Redo previously undone action
-- **Action history** - View and selectively revert recent changes
-- **Snapshot restore** - Return to previous application state
-
-> **💡 Pro Tip**: While there's no global undo, the **Escape** key is your primary tool for canceling operations in progress. Use it liberally when editing todos or navigating dialogs.
-
-### International Keyboard Layout Considerations
-
-AutoToDo's keyboard shortcuts are designed to work across different international keyboard layouts, though some considerations apply:
-
-#### How Shortcuts Work Across Layouts
-
-**Character-Based Detection:**
-- AutoToDo uses `event.key` detection, which captures the actual character produced
-- **Ctrl+N** works regardless of where 'N' appears on your physical keyboard
-- **Ctrl+F** functions correctly whether you're using QWERTY, AZERTY, QWERTZ, or other layouts
-
-**Layout-Specific Considerations:**
-
-**QWERTY (US/UK English):**
-- ✅ All shortcuts work as documented
-- ✅ Special characters like **/** are in standard locations
-
-**AZERTY (French):**
-- ✅ **Ctrl+N**, **Ctrl+F**, **Ctrl+T** work normally (letters are detected correctly)
-- ⚠️ **/** character requires **Shift+:** - use **Ctrl+F** instead for search
-- ✅ **?** for help may require **Shift+,** depending on your specific AZERTY variant
-
-**QWERTZ (German/Central European):**
-- ✅ Letter-based shortcuts (**Ctrl+N**, **Ctrl+F**, **Ctrl+T**) work normally
-- ⚠️ **/** character location varies - **Ctrl+F** is more reliable for search
-- ✅ **?** typically requires **Shift+ß** but functions correctly
-
-**Alternative Layouts (Dvorak, Colemak, etc.):**
-- ✅ All **Ctrl+[letter]** combinations work based on the character produced
-- ✅ Function keys (**F1**, **Escape**, **Enter**) work universally
-- ✅ Modifier combinations (**Ctrl+Shift+D**) detect correctly
-
-#### Recommendations by Layout
-
-**For Non-QWERTY Users:**
-
-**Primary Shortcuts (Work Everywhere):**
-- **Ctrl+H** - Help dialog (shows all available shortcuts)
-- **Ctrl+N** - Focus new todo input
-- **Ctrl+F** - Focus search (more reliable than "/" on international layouts)
-- **F1** - Alternative help access
-- **Escape** - Cancel operations universally
-
-**Layout-Specific Tips:**
-
-**AZERTY Users:**
-- Use **Ctrl+F** instead of **/** for search (more consistent)
-- **?** help access: Try **Shift+,** or use **Ctrl+H** instead
-- All letter-based shortcuts work normally
-
-**QWERTZ Users:**
-- **/** may be on **Shift+7** - use **Ctrl+F** for search
-- **?** requires **Shift+ß** - **F1** or **Ctrl+H** are alternatives
-- Standard **Ctrl+Letter** shortcuts function correctly
-
-**Alternative Layout Users:**
-- Focus on **Ctrl+[character]** combinations rather than physical key positions
-- Use **F1** and **Ctrl+H** for help - these work universally
-- Test special character shortcuts (**/**,**?**) and use alternatives if needed
-
-#### Accessibility Features for International Users
-
-**Visual Indicators:**
-- The help dialog (**Ctrl+H**) displays shortcuts using your keyboard's actual character output
-- Shortcut descriptions show the character produced, not physical key positions
-- Focus indicators work regardless of input method or layout
-
-**Alternative Access Methods:**
-- **Multiple shortcuts for common actions**: Search accessible via both **Ctrl+F** and **/**
-- **Help system flexibility**: **Ctrl+H**, **?**, and **F1** all open help
-- **Universal keys prioritized**: **Escape**, **Enter**, **Tab** work identically across layouts
-
-**Testing Your Layout:**
-1. **Open help dialog**: Try **Ctrl+H**, **F1**, or **?** to see available shortcuts
-2. **Test primary shortcuts**: **Ctrl+N** (new todo), **Ctrl+F** (search), **Escape** (cancel)
-3. **Check special characters**: Test **/** for search, use **Ctrl+F** if problematic
-4. **Verify modifier combinations**: **Ctrl+Shift+D** should work regardless of layout
-
-#### Customization for International Layouts
-
-**Browser Extensions (Recommended):**
-- **Shortkeys** - Map shortcuts to your preferred key combinations
-- **Vimium** - Alternative navigation system that adapts to any layout
-- **Custom user scripts** - Remap problematic shortcuts to layout-friendly alternatives
-
-**Layout-Specific Shortcuts Example:**
-```javascript
-// Example: Add layout-friendly shortcuts via browser console
-document.addEventListener('keydown', function(e) {
-    // For AZERTY: Map Ctrl+Q to focus search (Q is where A is on QWERTY)
-    if (e.ctrlKey && e.key === 'q') {
-        e.preventDefault();
-        document.querySelector('#todo-search').focus();
-    }
-});
-```
-
-> **🌍 International User Tip**: Use **Ctrl+H** as your primary reference - it shows all shortcuts using the characters your keyboard actually produces, making it the most reliable guide for your specific layout.
+### International Keyboards
+- **Letter shortcuts** (Ctrl+N, Ctrl+F) work on all layouts
+- **Special characters** (/, ?) may vary by layout - use Ctrl+F for search instead
+- **Function keys** (F1, Escape) work universally
+- **Help dialog** (Ctrl+H) shows shortcuts using your keyboard's actual characters
 
 ### Troubleshooting Keyboard Shortcuts
 
