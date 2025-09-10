@@ -443,9 +443,6 @@ class KeyboardShortcutManager {
         }
     }
 
-        return this._findShortcutInContexts(event, contextOrder);
-    }
-
     /**
      * Get active contexts with caching for performance
      * @returns {Array} Array of active context names
