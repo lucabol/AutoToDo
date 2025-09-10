@@ -472,17 +472,28 @@ AutoToDo supports comprehensive keyboard shortcuts to help you navigate and inte
 - **Ctrl+A** - Select all todos (visual feedback)
 - **Ctrl+Shift+D** - Clear all completed todos
 
-### Editing Mode
-When editing a todo item:
-- **Escape** - Cancel editing and discard changes
-- **Ctrl+S** or **Enter** - Save changes and exit edit mode
+### Adding Todos
+- **Enter** in "What needs to be done?" field - Add the new todo and automatically focus back to input field for quick consecutive additions
+- **Tab** from input field - Move focus to "Add Todo" button, then **Enter** or **Space** to add
 
+### Search and Filtering
+- **Tab** to search field or click directly to focus
+- Type in search field for real-time filtering
+- **Enter** in search field - Apply search filter
+- **Backspace** or **Delete** - Clear search characters
 ### Basic Navigation
 - **Tab** - Navigate between todo checkboxes, Edit buttons, and Delete buttons
 - **Shift+Tab** - Navigate backwards through elements
 - **Enter** or **Space** on focused buttons - Activate Edit/Delete actions
 - **Space** on focused checkbox - Toggle todo completion status
 - **Arrow keys** - Navigate within text when editing
+
+### Editing Mode
+When editing a todo item:
+- **Enter** or click "Edit" button - Enter edit mode for a todo
+- **Enter** or **Ctrl+S** in edit field - Save changes and exit edit mode
+- **Escape** - Cancel editing and discard changes
+- **Tab** within edit mode - Move between edit input, Save, and Cancel buttons
 
 ### Text Operations
 - **Ctrl+A** - Select all text in any input field
