@@ -48,24 +48,51 @@ class TodoView {
      */
     applySafariOptimizations() {
         if (this.todoList) {
-            this.todoList.style.cssText += `
-                -webkit-transform: translateZ(0);
-                -webkit-backface-visibility: hidden;
-                -webkit-perspective: 1000;
-            `;
+            PerformanceUtils.applySafariOptimizations(this.todoList);
+            
+            // Create Safari-optimized scroll handling
+            this.safariScrollOptimization = PerformanceUtils.createSafariScrollOptimization(this.todoList);
+            this.safariScrollOptimization.enable();
         }
     }
 
-    render(todos, allTodos = [], searchTerm = '', dragDropSupported = true) {
+    /**
+     * Enhanced render method with pagination support
+     * @param {Array|Object} todosOrPaginatedData - Either array of todos or paginated data object
+     * @param {Array} allTodos - All todos for context
+     * @param {string} searchTerm - Current search term
+     * @param {boolean} dragDropSupported - Whether drag and drop is supported
+     */
+    render(todosOrPaginatedData, allTodos = [], searchTerm = '', dragDropSupported = true) {
         this.renderMonitor.start();
         
         try {
+            // Handle both paginated and non-paginated data
+            let todos, paginationInfo;
+            if (todosOrPaginatedData && typeof todosOrPaginatedData === 'object' && todosOrPaginatedData.todos) {
+                // Paginated data
+                todos = todosOrPaginatedData.todos;
+                paginationInfo = todosOrPaginatedData;
+            } else {
+                // Simple array
+                todos = Array.isArray(todosOrPaginatedData) ? todosOrPaginatedData : [];
+                paginationInfo = null;
+            }
+
             if (todos.length === 0) {
                 this.showEmptyState(allTodos.length === 0, searchTerm);
+                this.hidePaginationControls();
                 return;
             }
 
             this.hideEmptyState();
+            
+            // Show pagination controls if needed
+            if (paginationInfo && paginationInfo.totalPages > 1) {
+                this.showPaginationControls(paginationInfo);
+            } else {
+                this.hidePaginationControls();
+            }
             
             // Use virtual scrolling for large lists (but disable for drag & drop)
             if (this.useVirtualScrolling && todos.length >= this.virtualScrollThreshold && !dragDropSupported) {
@@ -472,5 +499,252 @@ class TodoView {
         const message = 'Your browser does not support drag and drop functionality. You can still add, edit, delete, and search todos normally.';
         this.showMessage(message, 'info');
         this.dragDropMessageShown = true;
+    }
+
+    /**
+     * Show pagination controls
+     * @param {Object} paginationInfo - Pagination information
+     */
+    showPaginationControls(paginationInfo) {
+        let paginationContainer = document.getElementById('paginationContainer');
+        
+        if (!paginationContainer) {
+            paginationContainer = document.createElement('div');
+            paginationContainer.id = 'paginationContainer';
+            paginationContainer.className = 'pagination-container';
+            
+            // Insert after the todo list
+            this.todoList.parentNode.insertBefore(paginationContainer, this.todoList.nextSibling);
+        }
+
+        const { currentPage, totalPages, totalCount, hasNextPage, hasPrevPage } = paginationInfo;
+        
+        paginationContainer.innerHTML = `
+            <div class="pagination-info">
+                <span>Page ${currentPage + 1} of ${totalPages} (${totalCount} total items)</span>
+            </div>
+            <div class="pagination-controls">
+                <button 
+                    class="pagination-btn" 
+                    id="prevPageBtn" 
+                    ${!hasPrevPage ? 'disabled' : ''}
+                    aria-label="Previous page"
+                >
+                    ← Previous
+                </button>
+                <span class="page-numbers" id="pageNumbers"></span>
+                <button 
+                    class="pagination-btn" 
+                    id="nextPageBtn" 
+                    ${!hasNextPage ? 'disabled' : ''}
+                    aria-label="Next page"
+                >
+                    Next →
+                </button>
+            </div>
+        `;
+
+        // Generate page numbers
+        this.generatePageNumbers(currentPage, totalPages);
+        
+        // Apply CSS for pagination
+        this.applyPaginationStyles(paginationContainer);
+    }
+
+    /**
+     * Generate page number buttons
+     * @param {number} currentPage - Current page (0-based)
+     * @param {number} totalPages - Total number of pages
+     */
+    generatePageNumbers(currentPage, totalPages) {
+        const pageNumbers = document.getElementById('pageNumbers');
+        if (!pageNumbers) return;
+
+        let html = '';
+        const maxVisiblePages = 5;
+        
+        let startPage = Math.max(0, currentPage - Math.floor(maxVisiblePages / 2));
+        let endPage = Math.min(totalPages - 1, startPage + maxVisiblePages - 1);
+        
+        // Adjust start page if we're near the end
+        if (endPage - startPage < maxVisiblePages - 1) {
+            startPage = Math.max(0, endPage - maxVisiblePages + 1);
+        }
+
+        // Add first page and ellipsis if needed
+        if (startPage > 0) {
+            html += `<button class="page-btn" data-page="0">1</button>`;
+            if (startPage > 1) {
+                html += `<span class="page-ellipsis">...</span>`;
+            }
+        }
+
+        // Add visible page numbers
+        for (let i = startPage; i <= endPage; i++) {
+            const isActive = i === currentPage;
+            html += `<button class="page-btn ${isActive ? 'active' : ''}" data-page="${i}">${i + 1}</button>`;
+        }
+
+        // Add last page and ellipsis if needed
+        if (endPage < totalPages - 1) {
+            if (endPage < totalPages - 2) {
+                html += `<span class="page-ellipsis">...</span>`;
+            }
+            html += `<button class="page-btn" data-page="${totalPages - 1}">${totalPages}</button>`;
+        }
+
+        pageNumbers.innerHTML = html;
+    }
+
+    /**
+     * Apply pagination styles
+     * @param {HTMLElement} container - Pagination container
+     */
+    applyPaginationStyles(container) {
+        const style = document.createElement('style');
+        style.textContent = `
+            .pagination-container {
+                margin: 20px 0;
+                text-align: center;
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            }
+            
+            .pagination-info {
+                margin-bottom: 10px;
+                font-size: 14px;
+                color: #666;
+            }
+            
+            .pagination-controls {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                gap: 10px;
+                flex-wrap: wrap;
+            }
+            
+            .pagination-btn, .page-btn {
+                padding: 8px 12px;
+                border: 1px solid #ddd;
+                background: white;
+                cursor: pointer;
+                border-radius: 4px;
+                font-size: 14px;
+                transition: all 0.2s ease;
+            }
+            
+            .pagination-btn:hover:not(:disabled), .page-btn:hover {
+                background: #f5f5f5;
+                border-color: #007aff;
+            }
+            
+            .pagination-btn:disabled {
+                opacity: 0.5;
+                cursor: not-allowed;
+            }
+            
+            .page-btn.active {
+                background: #007aff;
+                color: white;
+                border-color: #007aff;
+            }
+            
+            .page-ellipsis {
+                padding: 8px 4px;
+                color: #666;
+            }
+            
+            .page-numbers {
+                display: flex;
+                align-items: center;
+                gap: 4px;
+            }
+            
+            /* Dark mode support */
+            body.dark-theme .pagination-container {
+                color: #ffffff;
+            }
+            
+            body.dark-theme .pagination-info {
+                color: #cccccc;
+            }
+            
+            body.dark-theme .pagination-btn, 
+            body.dark-theme .page-btn {
+                background: #2c2c2e;
+                border-color: #48484a;
+                color: #ffffff;
+            }
+            
+            body.dark-theme .pagination-btn:hover:not(:disabled), 
+            body.dark-theme .page-btn:hover {
+                background: #48484a;
+            }
+            
+            body.dark-theme .page-btn.active {
+                background: #0a84ff;
+                border-color: #0a84ff;
+            }
+            
+            @media (max-width: 768px) {
+                .pagination-controls {
+                    flex-direction: column;
+                    gap: 15px;
+                }
+                
+                .page-numbers {
+                    order: -1;
+                }
+            }
+        `;
+        
+        if (!document.getElementById('paginationStyles')) {
+            style.id = 'paginationStyles';
+            document.head.appendChild(style);
+        }
+    }
+
+    /**
+     * Hide pagination controls
+     */
+    hidePaginationControls() {
+        const paginationContainer = document.getElementById('paginationContainer');
+        if (paginationContainer) {
+            paginationContainer.style.display = 'none';
+        }
+    }
+
+    /**
+     * Set up pagination event listeners
+     * @param {Function} onPageChange - Callback for page changes
+     */
+    setupPaginationEventListeners(onPageChange) {
+        const paginationContainer = document.getElementById('paginationContainer');
+        if (!paginationContainer) return;
+
+        // Remove existing listeners
+        const oldContainer = paginationContainer.cloneNode(true);
+        paginationContainer.parentNode.replaceChild(oldContainer, paginationContainer);
+
+        // Add new listeners
+        oldContainer.addEventListener('click', (e) => {
+            const target = e.target;
+            
+            if (target.id === 'prevPageBtn' && !target.disabled) {
+                const currentPage = parseInt(target.dataset.currentPage || '0');
+                onPageChange(Math.max(0, currentPage - 1));
+            } else if (target.id === 'nextPageBtn' && !target.disabled) {
+                const currentPage = parseInt(target.dataset.currentPage || '0');
+                onPageChange(currentPage + 1);
+            } else if (target.classList.contains('page-btn')) {
+                const page = parseInt(target.dataset.page);
+                if (!isNaN(page)) {
+                    onPageChange(page);
+                }
+            }
+        });
+
+        // Store pagination container reference for cleanup
+        this.paginationContainer = oldContainer;
     }
 }

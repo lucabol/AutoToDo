@@ -1,5 +1,6 @@
 /**
  * TodoController - Handles user interactions and coordinates between Model and View
+ * Enhanced with performance optimizations for large todo lists
  */
 class TodoController {
     constructor(model, view, storageManager = window.storageManager) {
@@ -7,6 +8,7 @@ class TodoController {
         this.view = view;
         this.storage = storageManager;
         this.searchTerm = '';
+        this.currentPage = 0;
         
         // Drag and drop functionality
         this.draggedId = null;
@@ -15,6 +17,7 @@ class TodoController {
         // Performance optimizations
         this.searchMonitor = PerformanceUtils.createMonitor('Search Performance');
         this.debouncedSearch = PerformanceUtils.debounce(this.performSearch.bind(this), 300);
+        this.usePagination = false;
         
         this.keyboardManager = new KeyboardShortcutManager({
             debug: false, // Set to true for debugging
@@ -50,7 +53,18 @@ class TodoController {
         this.handleDragDropCompatibility();
         this.initializeTheme();
         this.setupKeyboardShortcuts();
+        this.setupPagination();
         this.render();
+    }
+
+    /**
+     * Set up pagination controls
+     */
+    setupPagination() {
+        this.view.setupPaginationEventListeners((newPage) => {
+            this.currentPage = newPage;
+            this.render();
+        });
     }
 
     /**
@@ -121,7 +135,6 @@ class TodoController {
             } catch (e) {
                 console.warn('Failed to save theme preference:', e);
             }
-        }
         }
 
         this.currentTheme = theme;
@@ -754,6 +767,8 @@ class TodoController {
         try {
             // Only render if the search term hasn't changed
             if (this.searchTerm === searchTerm) {
+                // Reset to first page on new search
+                this.currentPage = 0;
                 this.render();
             }
         } finally {
@@ -996,31 +1011,52 @@ class TodoController {
     }
 
     /**
-     * Render the current state
+     * Render the current state with performance optimizations
      */
     render() {
         const allTodos = this.model.getAllTodos();
-        const filteredTodos = this.model.filterTodos(this.searchTerm);
-        this.view.render(filteredTodos, allTodos, this.searchTerm, this.dragDropSupported);
+        
+        // Use paginated rendering for large lists
+        if (this.model.memoryManager.shouldUsePagination(allTodos.length)) {
+            const paginatedData = this.model.getPaginatedTodos(this.searchTerm, this.currentPage);
+            this.usePagination = true;
+            this.view.render(paginatedData, allTodos, this.searchTerm, this.dragDropSupported);
+        } else {
+            // Traditional rendering for smaller lists
+            const filteredTodos = this.model.filterTodos(this.searchTerm);
+            this.usePagination = false;
+            this.currentPage = 0;
+            this.view.render(filteredTodos, allTodos, this.searchTerm, this.dragDropSupported);
+        }
     }
 
     /**
-     * Get application statistics including performance data
+     * Get comprehensive application statistics including performance data
      * @returns {Object} Stats object with todo counts and performance metrics
      */
     getStats() {
-        const modelStats = this.model.getStats();
+        const modelStats = this.model.getPerformanceStats();
         const viewStats = this.view.getPerformanceStats();
         const searchStats = this.searchMonitor.getStats();
+        const safariMetrics = PerformanceUtils.getSafariPerformanceMetrics();
         
         return {
-            ...modelStats,
+            todos: modelStats.todos,
             performance: {
+                model: {
+                    search: modelStats.search,
+                    memory: modelStats.memory,
+                    archive: modelStats.archive
+                },
                 view: viewStats,
                 search: searchStats,
+                safari: safariMetrics,
                 isMobile: PerformanceUtils.isMobile(),
-                isSafari: PerformanceUtils.isSafari()
-            }
+                isSafari: PerformanceUtils.isSafari(),
+                usePagination: this.usePagination,
+                currentPage: this.currentPage
+            },
+            recommendations: modelStats.recommendations
         };
     }
 

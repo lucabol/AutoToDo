@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AutoToDo - Performance Test for Large Lists</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .test-controls {
+            margin: 20px 0;
+            padding: 20px;
+            border: 2px solid #007aff;
+            border-radius: 8px;
+            background: #f8f9fa;
+        }
+        .test-btn {
+            margin: 5px;
+            padding: 10px 15px;
+            background: #007aff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .test-btn:hover {
+            background: #0056cc;
+        }
+        .stats-display {
+            margin: 20px 0;
+            padding: 15px;
+            background: #e3f2fd;
+            border-radius: 8px;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>AutoToDo - Performance Test</h1>
+            <button class="theme-toggle" id="themeToggle">
+                <span class="theme-icon">🌙</span>
+                <span class="theme-text">Dark</span>
+            </button>
+        </div>
+        
+        <div class="test-controls">
+            <h3>Performance Testing Controls</h3>
+            <button class="test-btn" onclick="generateLargeTodoList(100)">Generate 100 Todos</button>
+            <button class="test-btn" onclick="generateLargeTodoList(500)">Generate 500 Todos</button>
+            <button class="test-btn" onclick="generateLargeTodoList(1000)">Generate 1000 Todos</button>
+            <button class="test-btn" onclick="testSearchPerformance()">Test Search Performance</button>
+            <button class="test-btn" onclick="testArchivingSystem()">Test Archiving System</button>
+            <button class="test-btn" onclick="showPerformanceStats()">Show Performance Stats</button>
+            <button class="test-btn" onclick="clearAllTodos()">Clear All Todos</button>
+        </div>
+        
+        <div id="testResults" class="stats-display" style="display: none;"></div>
+        
+        <div class="search-container">
+            <input 
+                type="search" 
+                class="search-input" 
+                id="searchInput" 
+                placeholder="Search todos..."
+                aria-label="Search todos"
+            >
+            <button class="clear-search-btn" id="clearSearchBtn" type="button">Clear</button>
+        </div>
+        
+        <form class="add-todo-form" id="addTodoForm">
+            <input 
+                type="text" 
+                class="todo-input" 
+                id="todoInput" 
+                placeholder="What needs to be done?"
+                aria-label="Enter new todo"
+                required
+            >
+            <button type="submit" class="add-btn" aria-label="Add new todo">Add Todo</button>
+        </form>
+
+        <ul class="todo-list" id="todoList" role="list" aria-label="Todo items">
+            <!-- Todos will be dynamically inserted here -->
+        </ul>
+
+        <div class="empty-state" id="emptyState" style="display: none;">
+            No todos yet. Add one above to get started!
+        </div>
+    </div>
+
+    <!-- JavaScript Modules -->
+    <!-- Storage System Modules (loaded in dependency order) -->
+    <script src="js/StorageDetector.js"></script>
+    <script src="js/StorageFallbackHandler.js"></script>
+    <script src="js/StorageOperations.js"></script>
+    <script src="js/StorageManager.js"></script>
+    <script src="js/PerformanceUtils.js"></script>
+    <!-- Performance Optimization Modules -->
+    <script src="js/ArchiveManager.js"></script>
+    <script src="js/SearchIndexManager.js"></script>
+    <script src="js/MemoryManager.js"></script>
+    <script src="js/VirtualScrollManager.js"></script>
+    <script src="js/ShortcutModules.js"></script>
+    <script src="js/ShortcutsConfig.js"></script>
+    <!-- Keyboard Shortcut Manager Utilities -->
+    <script src="js/ShortcutValidator.js"></script>
+    <script src="js/ShortcutCache.js"></script>
+    <script src="js/ShortcutStatistics.js"></script>
+    <script src="js/DebugLogger.js"></script>
+    <!-- Main Keyboard Shortcut Manager -->
+    <script src="js/KeyboardShortcutManager.js"></script>
+    <script src="js/HelpModalBuilder.js"></script>
+    <script src="js/KeyboardHandlers.js"></script>
+    <script src="js/TodoModel.js"></script>
+    <script src="js/TodoView.js"></script>
+    <script src="js/TodoController.js"></script>
+    <script src="js/app.js"></script>
+
+    <script>
+        // Performance testing functions
+        function generateLargeTodoList(count) {
+            const startTime = performance.now();
+            console.log(`Generating ${count} todos...`);
+            
+            const todoCategories = [
+                'Work', 'Personal', 'Shopping', 'Health', 'Learning', 'Project', 'Meeting', 'Call', 'Email', 'Travel'
+            ];
+            
+            const todoActions = [
+                'Complete', 'Review', 'Plan', 'Update', 'Fix', 'Implement', 'Design', 'Test', 'Deploy', 'Discuss'
+            ];
+            
+            const todoItems = [
+                'documentation', 'presentation', 'report', 'website', 'application', 'database', 'system', 'feature', 'bug', 'performance'
+            ];
+            
+            for (let i = 0; i < count; i++) {
+                const category = todoCategories[Math.floor(Math.random() * todoCategories.length)];
+                const action = todoActions[Math.floor(Math.random() * todoActions.length)];
+                const item = todoItems[Math.floor(Math.random() * todoItems.length)];
+                const todoText = `${action} ${category.toLowerCase()} ${item} #${i + 1}`;
+                
+                window.todoApp.controller.addTodo(todoText);
+                
+                // Mark some as completed (about 30%)
+                if (Math.random() < 0.3) {
+                    const todos = window.todoApp.model.getAllTodos();
+                    if (todos.length > 0) {
+                        window.todoApp.controller.toggleTodo(todos[0].id);
+                    }
+                }
+            }
+            
+            const endTime = performance.now();
+            const duration = endTime - startTime;
+            
+            showTestResult(`Generated ${count} todos in ${duration.toFixed(2)}ms (${(duration/count).toFixed(2)}ms per todo)`);
+        }
+        
+        function testSearchPerformance() {
+            const searchTerms = ['work', 'meeting', 'project', 'email', 'performance', 'test'];
+            const results = [];
+            
+            searchTerms.forEach(term => {
+                const startTime = performance.now();
+                const searchResults = window.todoApp.model.filterTodos(term);
+                const endTime = performance.now();
+                const duration = endTime - startTime;
+                
+                results.push({
+                    term,
+                    duration: duration.toFixed(2),
+                    results: searchResults.length
+                });
+            });
+            
+            const report = results.map(r => 
+                `Search "${r.term}": ${r.duration}ms (${r.results} results)`
+            ).join('\n');
+            
+            showTestResult(`Search Performance Test:\n${report}`);
+        }
+        
+        function testArchivingSystem() {
+            const startTime = performance.now();
+            const initialCount = window.todoApp.model.getAllTodos().length;
+            
+            // Trigger archiving
+            window.todoApp.model.performAutoArchiving();
+            
+            const endTime = performance.now();
+            const finalCount = window.todoApp.model.getAllTodos().length;
+            const archived = initialCount - finalCount;
+            const duration = endTime - startTime;
+            
+            const archiveStats = window.todoApp.model.archiveManager.getArchiveStats();
+            
+            showTestResult(`Archiving System Test:
+Duration: ${duration.toFixed(2)}ms
+Todos before: ${initialCount}
+Todos after: ${finalCount}
+Archived: ${archived}
+Total in archive: ${archiveStats.count}`);
+        }
+        
+        function showPerformanceStats() {
+            const stats = window.todoApp.controller.getStats();
+            const report = JSON.stringify(stats, null, 2);
+            showTestResult(`Performance Statistics:\n${report}`);
+        }
+        
+        function clearAllTodos() {
+            const todos = window.todoApp.model.getAllTodos();
+            todos.forEach(todo => {
+                window.todoApp.controller.deleteTodo(todo.id);
+            });
+            showTestResult(`Cleared ${todos.length} todos`);
+        }
+        
+        function showTestResult(message) {
+            const resultDiv = document.getElementById('testResults');
+            resultDiv.textContent = message;
+            resultDiv.style.display = 'block';
+            console.log(message);
+        }
+        
+        // Initialize performance monitoring
+        window.addEventListener('load', () => {
+            console.log('Performance Test Page Loaded');
+            console.log('Safari Info:', PerformanceUtils.getSafariVersionInfo());
+            console.log('Safari Performance Metrics:', PerformanceUtils.getSafariPerformanceMetrics());
+        });
+    </script>
+</body>
+</html>
