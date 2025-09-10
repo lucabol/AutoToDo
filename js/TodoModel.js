@@ -270,32 +270,42 @@ class TodoModel {
 
     /**
      * Filter todos by search term with enhanced matching, optionally including archived todos
+     * 
+     * This method implements intelligent search functionality:
+     * - Normalizes search terms by trimming whitespace and collapsing multiple spaces
+     * - Supports multi-word search: all words must be present in the todo text
+     * - Case-insensitive matching for better user experience
+     * - Can optionally include archived todos in search results
+     * 
      * @param {string} searchTerm - Term to search for in todo text
      * @param {boolean} includeArchived - Whether to include archived todos in search results
-     * @returns {Array} Array of filtered todos
+     * @returns {Array} Array of filtered todos matching the search criteria
      */
     filterTodos(searchTerm, includeArchived = false) {
+        // Return appropriate todo set when no search term provided
         if (!searchTerm || !searchTerm.trim()) {
             return includeArchived ? this.getAllTodos() : this.getActiveTodos();
         }
         
-        // Normalize the search term: trim and collapse multiple spaces
+        // Normalize the search term: trim and collapse multiple spaces into single spaces
+        // This improves search reliability and handles user input variations
         const normalizedTerm = searchTerm.toLowerCase().trim().replace(/\s+/g, ' ');
         
-        // Get the appropriate todo set to search
+        // Determine which todos to search based on archive inclusion preference
         const todosToSearch = includeArchived ? this.todos : this.getActiveTodos();
         
         return todosToSearch.filter(todo => {
             const todoText = todo.text.toLowerCase();
             
-            // If the search term contains multiple words, check if all words are present
+            // Multi-word search: if the search term contains multiple words,
+            // ALL words must be present in the todo text (AND logic)
             const searchWords = normalizedTerm.split(' ');
             if (searchWords.length > 1) {
-                // All words must be present in the todo text
+                // Use Array.every() to ensure all words are found
                 return searchWords.every(word => todoText.includes(word));
             }
             
-            // Single word or phrase search - use original substring matching
+            // Single word or phrase search - use standard substring matching
             return todoText.includes(normalizedTerm);
         });
     }

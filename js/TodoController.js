@@ -993,53 +993,67 @@ class TodoController {
 
     /**
      * Handle archiving a single todo
+     * Moves a todo to archived state while preserving its data and completion status.
+     * Archived todos are excluded from the main view but remain searchable when enabled.
+     * 
      * @param {string} id - Todo ID to archive
      */
     handleArchiveTodo(id) {
         const todo = this.model.archiveTodo(id);
         if (todo) {
             this.view.showArchiveSuccess('archived');
-            this.render();
+            this.render(); // Re-render to update UI without the archived todo
         }
     }
 
     /**
      * Handle unarchiving a single todo
+     * Restores an archived todo back to active state, making it visible
+     * in the main todo list again while preserving all its properties.
+     * 
      * @param {string} id - Todo ID to unarchive
      */
     handleUnarchiveTodo(id) {
         const todo = this.model.unarchiveTodo(id);
         if (todo) {
             this.view.showArchiveSuccess('unarchived');
-            this.render();
+            this.render(); // Re-render to show the unarchived todo
         }
     }
 
     /**
-     * Handle archiving all completed todos
+     * Handle bulk archiving of all completed todos
+     * This is a performance-optimized operation that archives multiple todos
+     * in a single transaction, ideal for cleaning up completed tasks.
+     * Shows user feedback with the count of archived items.
      */
     handleArchiveCompleted() {
         const archivedCount = this.model.archiveCompleted();
         if (archivedCount > 0) {
             this.view.showArchiveSuccess('archive-completed', archivedCount);
-            this.render();
+            this.render(); // Re-render to remove archived todos from view
         }
     }
 
     /**
      * Handle toggling between active and archived view
+     * Switches the main view between showing active todos (default) and archived todos.
+     * This allows users to review and manage their archived todos when needed.
      */
     handleToggleArchivedView() {
         this.view.toggleArchivedView();
-        this.render();
+        this.render(); // Re-render with the new view mode
     }
 
     /**
      * Handle toggling search archived checkbox
+     * When toggled ON: search will include both active and archived todos
+     * When toggled OFF: search only includes active todos (default behavior)
+     * Automatically re-runs current search if one is active.
      */
     handleSearchArchivedToggle() {
         if (this.searchTerm) {
-            // Re-run search with new archive setting
+            // Re-run current search with new archive setting
             this.performSearch();
         }
     }

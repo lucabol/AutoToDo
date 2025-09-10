@@ -32,10 +32,14 @@ class TodoView {
 
     
     /**
-     * Initialize performance optimizations
+     * Initialize performance optimizations for the todo list
+     * Applies CSS containment and hardware acceleration optimizations
+     * Safari-specific optimizations are applied when running on Safari
      */
     initializePerformanceOptimizations() {
         // Apply CSS optimizations for better performance
+        // - contain: Limits layout/style/paint calculations to this element
+        // - transform: translateZ(0): Forces hardware acceleration via GPU
         if (this.todoList) {
             this.todoList.style.cssText += `
                 contain: layout style paint;
@@ -43,7 +47,7 @@ class TodoView {
             `;
         }
         
-        // Safari-specific optimizations
+        // Safari-specific optimizations for better performance with large lists
         if (PerformanceUtils.isSafari()) {
             this.applySafariOptimizations();
         }
@@ -51,6 +55,8 @@ class TodoView {
     
     /**
      * Apply Safari-specific performance optimizations
+     * Safari has specific performance characteristics that benefit from
+     * webkit-prefixed properties and explicit hardware acceleration
      */
     applySafariOptimizations() {
         if (this.todoList) {
@@ -62,10 +68,23 @@ class TodoView {
         }
     }
 
+    /**
+     * Main render method that intelligently chooses rendering strategy
+     * Uses virtual scrolling for large lists (50+ items) but falls back to 
+     * traditional rendering when drag & drop is active due to compatibility issues
+     * 
+     * @param {Array} todos - Array of todo objects to render
+     * @param {Array} allTodos - All todos (used for empty state detection)
+     * @param {string} searchTerm - Current search term (used for empty state message)
+     * @param {boolean} dragDropSupported - Whether drag & drop is supported/active
+     */
+
     render(todos, allTodos = [], searchTerm = '', dragDropSupported = true) {
+        // Start performance monitoring for this render cycle
         this.renderMonitor.start();
         
         try {
+            // Handle empty state - no todos to show
             if (todos.length === 0) {
                 this.showEmptyState(allTodos.length === 0, searchTerm);
                 return;
@@ -73,26 +92,34 @@ class TodoView {
 
             this.hideEmptyState();
             
-            // Use virtual scrolling for large lists (but disable for drag & drop)
+            // Choose rendering strategy based on list size and drag & drop requirements
+            // Virtual scrolling provides better performance for large lists (50+ items)
+            // but is incompatible with HTML5 drag & drop, so we fall back to traditional rendering
             if (this.useVirtualScrolling && todos.length >= this.virtualScrollThreshold && !dragDropSupported) {
                 this.renderWithVirtualScrolling(todos);
             } else {
                 this.renderTraditional(todos, dragDropSupported);
             }
         } finally {
+            // Always end performance monitoring, even if an error occurred
             this.renderMonitor.end();
         }
     }
     
     /**
-     * Render using virtual scrolling for performance
-     * @param {Array} todos - Array of todo objects
+     * Render using virtual scrolling for optimal performance with large lists
+     * Virtual scrolling only renders visible items in the viewport, dramatically
+     * improving performance when dealing with hundreds or thousands of todos
+     * 
+     * @param {Array} todos - Array of todo objects to render
      */
     renderWithVirtualScrolling(todos) {
+        // Initialize virtual scroll manager if not already created
         if (!this.virtualScrollManager) {
             this.initVirtualScrolling();
         }
         
+        // Update the virtual scroller with new todo data
         this.virtualScrollManager.setItems(todos);
     }
     
