@@ -312,4 +312,161 @@ class PerformanceUtils {
             }
         };
     }
+
+    /**
+     * Safari 14+ specific performance optimizations
+     * @param {HTMLElement} element - Target element for optimization
+     */
+    static applySafariOptimizations(element) {
+        if (!this.isSafari()) return;
+
+        const safariInfo = this.getSafariVersionInfo();
+        
+        // Apply CSS optimizations for Safari 14+
+        if (safariInfo.version >= 14) {
+            element.style.cssText += `
+                -webkit-transform: translateZ(0);
+                -webkit-backface-visibility: hidden;
+                -webkit-perspective: 1000;
+                will-change: transform;
+            `;
+        }
+
+        // Fix for CSS custom property issues in Safari 14.0-14.2
+        if (safariInfo.needsThemeWorkaround) {
+            this.applySafariThemeWorkaround(element);
+        }
+    }
+
+    /**
+     * Apply Safari theme switching workaround
+     * @param {HTMLElement} element - Target element
+     */
+    static applySafariThemeWorkaround(element) {
+        // Force CSS custom property refresh on theme changes
+        const originalTransition = element.style.transition;
+        element.style.transition = 'none';
+        
+        // Force layout recalculation
+        element.offsetHeight; // This forces a reflow
+        
+        // Restore transition
+        element.style.transition = originalTransition;
+    }
+
+    /**
+     * Optimize memory usage for Safari 14+
+     */
+    static optimizeSafariMemory() {
+        if (!this.isSafari()) return;
+
+        // Force garbage collection hints
+        if (window.gc && typeof window.gc === 'function') {
+            try {
+                window.gc();
+            } catch (e) {
+                // Ignore if not available
+            }
+        }
+
+        // Clear references that might prevent GC
+        if (window.performance && window.performance.measureUserAgentSpecificMemory) {
+            window.performance.measureUserAgentSpecificMemory().then(result => {
+                console.log('Safari memory usage:', result);
+            }).catch(() => {
+                // Feature not available, ignore
+            });
+        }
+    }
+
+    /**
+     * Create Safari-optimized scroll performance
+     * @param {HTMLElement} container - Scroll container
+     * @returns {Object} Safari-optimized scroll handlers
+     */
+    static createSafariScrollOptimization(container) {
+        if (!this.isSafari()) {
+            return {
+                enable: () => {},
+                disable: () => {}
+            };
+        }
+
+        let scrollTimeout;
+        let isScrolling = false;
+
+        const enableOptimization = () => {
+            container.style.cssText += `
+                -webkit-overflow-scrolling: touch;
+                transform: translateZ(0);
+                will-change: scroll-position;
+            `;
+        };
+
+        const handleScrollStart = () => {
+            if (!isScrolling) {
+                isScrolling = true;
+                container.style.willChange = 'scroll-position, transform';
+            }
+        };
+
+        const handleScrollEnd = () => {
+            clearTimeout(scrollTimeout);
+            scrollTimeout = setTimeout(() => {
+                isScrolling = false;
+                container.style.willChange = 'auto';
+            }, 150);
+        };
+
+        return {
+            enable() {
+                enableOptimization();
+                container.addEventListener('scroll', handleScrollStart, { passive: true });
+                container.addEventListener('scroll', handleScrollEnd, { passive: true });
+            },
+            disable() {
+                container.removeEventListener('scroll', handleScrollStart);
+                container.removeEventListener('scroll', handleScrollEnd);
+                container.style.willChange = 'auto';
+            }
+        };
+    }
+
+    /**
+     * Performance monitoring specific to Safari 14+
+     * @returns {Object} Safari performance metrics
+     */
+    static getSafariPerformanceMetrics() {
+        if (!this.isSafari()) {
+            return { supported: false };
+        }
+
+        const metrics = {
+            supported: true,
+            version: this.getSafariVersionInfo(),
+            memory: null,
+            timing: null
+        };
+
+        // Get memory information if available
+        if (performance.memory) {
+            metrics.memory = {
+                used: performance.memory.usedJSHeapSize,
+                total: performance.memory.totalJSHeapSize,
+                limit: performance.memory.jsHeapSizeLimit
+            };
+        }
+
+        // Get navigation timing
+        if (performance.timing) {
+            const timing = performance.timing;
+            metrics.timing = {
+                loadStart: timing.loadEventStart - timing.navigationStart,
+                domReady: timing.domContentLoadedEventEnd - timing.navigationStart,
+                loadComplete: timing.loadEventEnd - timing.navigationStart
+            };
+        }
+
+        return metrics;
+    }
 }
