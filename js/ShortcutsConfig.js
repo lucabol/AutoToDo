@@ -5,6 +5,31 @@
  * in the AutoToDo application, making it easy to manage and extend shortcuts.
  */
 
+// Constants for better maintainability
+const SHORTCUT_CATEGORIES = {
+    NAVIGATION: 'Navigation',
+    TODO_MANAGEMENT: 'Todo Management',
+    EDITING: 'Editing',
+    GENERAL: 'General',
+    OTHER: 'Other'
+};
+
+const KEYBOARD_MAPPINGS = {
+    ' ': 'Space',
+    'ArrowUp': '↑',
+    'ArrowDown': '↓',
+    'ArrowLeft': '←',
+    'ArrowRight': '→',
+    'Enter': '↵',
+    'Escape': 'Esc',
+    'Delete': 'Del',
+    'Backspace': '⌫'
+};
+
+const VALIDATION_LIMITS = {
+    MAX_SHORTCUTS_PER_CONTEXT: 20
+};
+
 class ShortcutsConfig {
     /**
      * Get all keyboard shortcuts configuration for the AutoToDo application
@@ -42,7 +67,7 @@ class ShortcutsConfig {
                 action: focusNewTodo,
                 preventDefault: true,
                 description: 'Focus new todo input (Ctrl+N)',
-                category: 'Navigation'
+                category: SHORTCUT_CATEGORIES.NAVIGATION
             },
             {
                 key: 'f',
@@ -51,7 +76,7 @@ class ShortcutsConfig {
                 action: focusSearch,
                 preventDefault: true,
                 description: 'Focus search input (Ctrl+F)',
-                category: 'Navigation'
+                category: SHORTCUT_CATEGORIES.NAVIGATION
             },
             {
                 key: '/',
@@ -59,7 +84,7 @@ class ShortcutsConfig {
                 action: focusSearch,
                 preventDefault: false, // We'll handle preventDefault conditionally in the action
                 description: 'Focus search input and start typing (/)',
-                category: 'Navigation'
+                category: SHORTCUT_CATEGORIES.NAVIGATION
             },
             
             // Todo management shortcuts
@@ -70,7 +95,7 @@ class ShortcutsConfig {
                 action: addTodo,
                 preventDefault: true,
                 description: 'Add new todo (Ctrl+Enter)',
-                category: 'Todo Management'
+                category: SHORTCUT_CATEGORIES.TODO_MANAGEMENT
             },
             {
                 key: 't',
@@ -79,7 +104,7 @@ class ShortcutsConfig {
                 action: toggleFirstTodo,
                 preventDefault: true,
                 description: 'Toggle first todo (Ctrl+T)',
-                category: 'Todo Management'
+                category: SHORTCUT_CATEGORIES.TODO_MANAGEMENT
             },
             {
                 key: 'Delete',
@@ -88,7 +113,7 @@ class ShortcutsConfig {
                 action: deleteFirstTodo,
                 preventDefault: true,
                 description: 'Delete first todo (Ctrl+Delete)',
-                category: 'Todo Management'
+                category: SHORTCUT_CATEGORIES.TODO_MANAGEMENT
             },
             {
                 key: 'a',
@@ -97,7 +122,7 @@ class ShortcutsConfig {
                 action: selectAll,
                 preventDefault: true,
                 description: 'Select all todos (Ctrl+A)',
-                category: 'Todo Management'
+                category: SHORTCUT_CATEGORIES.TODO_MANAGEMENT
             },
             {
                 key: 'd',
@@ -107,7 +132,7 @@ class ShortcutsConfig {
                 action: clearCompleted,
                 preventDefault: true,
                 description: 'Clear completed todos (Ctrl+Shift+D)',
-                category: 'Todo Management'
+                category: SHORTCUT_CATEGORIES.TODO_MANAGEMENT
             },
             
             // Editing mode shortcuts
@@ -116,7 +141,7 @@ class ShortcutsConfig {
                 context: 'editing',
                 action: cancelEdit,
                 description: 'Cancel editing (Escape)',
-                category: 'Editing'
+                category: SHORTCUT_CATEGORIES.EDITING
             },
             {
                 key: 's',
@@ -125,7 +150,7 @@ class ShortcutsConfig {
                 action: saveEdit,
                 preventDefault: true,
                 description: 'Save changes (Ctrl+S)',
-                category: 'Editing'
+                category: SHORTCUT_CATEGORIES.EDITING
             },
             {
                 key: 'Enter',
@@ -133,7 +158,7 @@ class ShortcutsConfig {
                 action: saveEdit,
                 preventDefault: true,
                 description: 'Save changes (Enter)',
-                category: 'Editing'
+                category: SHORTCUT_CATEGORIES.EDITING
             },
             
             // General application shortcuts
@@ -144,7 +169,7 @@ class ShortcutsConfig {
                 action: showHelp,
                 preventDefault: true,
                 description: 'Show keyboard shortcuts help (Ctrl+H)',
-                category: 'General'
+                category: SHORTCUT_CATEGORIES.GENERAL
             },
             {
                 key: '?',
@@ -152,7 +177,7 @@ class ShortcutsConfig {
                 action: showHelp,
                 preventDefault: true,
                 description: 'Show keyboard shortcuts help (?)',
-                category: 'General'
+                category: SHORTCUT_CATEGORIES.GENERAL
             },
             {
                 key: 'F1',
@@ -160,7 +185,7 @@ class ShortcutsConfig {
                 action: showHelp,
                 preventDefault: true,
                 description: 'Show keyboard shortcuts help (F1)',
-                category: 'General'
+                category: SHORTCUT_CATEGORIES.GENERAL
             },
             {
                 key: 'm',
@@ -169,7 +194,7 @@ class ShortcutsConfig {
                 action: toggleTheme,
                 preventDefault: true,
                 description: 'Toggle theme (Ctrl+M)',
-                category: 'General'
+                category: SHORTCUT_CATEGORIES.GENERAL
             }
         ];
     }
@@ -183,7 +208,7 @@ class ShortcutsConfig {
         const grouped = {};
         
         for (const shortcut of shortcuts) {
-            const category = shortcut.category || 'Other';
+            const category = shortcut.category || SHORTCUT_CATEGORIES.OTHER;
             if (!grouped[category]) {
                 grouped[category] = [];
             }
@@ -207,20 +232,8 @@ class ShortcutsConfig {
         let key = shortcut.key;
         
         // Format special keys for better display
-        const keyMappings = {
-            ' ': 'Space',
-            'ArrowUp': '↑',
-            'ArrowDown': '↓',
-            'ArrowLeft': '←',
-            'ArrowRight': '→',
-            'Enter': '↵',
-            'Escape': 'Esc',
-            'Delete': 'Del',
-            'Backspace': '⌫'
-        };
-        
-        if (keyMappings[key]) {
-            key = keyMappings[key];
+        if (KEYBOARD_MAPPINGS[key]) {
+            key = KEYBOARD_MAPPINGS[key];
         }
         
         return modifiers.length > 0 
@@ -280,7 +293,7 @@ class ShortcutsConfig {
             ],
             
             // Maximum number of shortcuts per context
-            maxShortcutsPerContext: 20,
+            maxShortcutsPerContext: VALIDATION_LIMITS.MAX_SHORTCUTS_PER_CONTEXT,
             
             // Recommended modifier combinations for custom shortcuts
             recommendedModifiers: [
@@ -453,7 +466,7 @@ class ShortcutsConfig {
                             ...suggestion,
                             keyCombo,
                             purpose,
-                            score: this._calculateShortcutScore(suggestion)
+                            score: this._calculateShortcutUsabilityScore(suggestion)
                         });
                     }
                 }
@@ -466,9 +479,11 @@ class ShortcutsConfig {
 
     /**
      * Calculate a usability score for a shortcut (lower is better)
+     * @param {Object} shortcut - Shortcut configuration
+     * @returns {number} Usability score
      * @private
      */
-    static _calculateShortcutScore(shortcut) {
+    static _calculateShortcutUsabilityScore(shortcut) {
         let score = 0;
         
         // Prefer simple modifier combinations
@@ -476,9 +491,9 @@ class ShortcutsConfig {
         if (shortcut.altKey) score += 2; // Alt is less common
         if (shortcut.shiftKey) score += 1;
         
-        // Prefer keys on the left side of keyboard
-        const leftKeys = ['q', 'w', 'e', 'a', 's', 'd', 'z', 'x', 'c'];
-        if (!leftKeys.includes(shortcut.key.toLowerCase())) {
+        // Prefer keys on the left side of keyboard for easier access
+        const leftSideKeys = ['q', 'w', 'e', 'a', 's', 'd', 'z', 'x', 'c'];
+        if (!leftSideKeys.includes(shortcut.key.toLowerCase())) {
             score += 2;
         }
         
