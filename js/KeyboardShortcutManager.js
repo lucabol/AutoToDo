@@ -228,7 +228,32 @@ class KeyboardShortcutManager {
      * @returns {boolean} True if a shortcut was handled, false otherwise
      */
     handleKeyboard(event) {
+        // Validate event object
+        if (!event || typeof event !== 'object') {
+            if (this.options.debug) {
+                console.warn('KeyboardShortcutManager: Invalid event object received');
+            }
+            return false;
+        }
+        
         const debugSession = this._startDebugSession();
+        
+        // Add defensive check for event properties
+        const key = event.key || '';
+        const ctrlKey = Boolean(event.ctrlKey);
+        const altKey = Boolean(event.altKey);
+        const shiftKey = Boolean(event.shiftKey);
+        
+        // Log key combination for debugging if enabled
+        if (this.options.debug) {
+            console.log('KeyboardShortcutManager: Processing key event', {
+                key,
+                ctrlKey,
+                altKey,
+                shiftKey,
+                target: event.target?.tagName || 'unknown'
+            });
+        }
         
         const matchingShortcut = this.findMatchingShortcut(event);
         
