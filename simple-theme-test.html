@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Theme Test</title>
+    <link rel="stylesheet" href="/home/runner/work/AutoToDo/AutoToDo/styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Theme Test</h1>
+            <button class="theme-toggle" id="themeToggle">
+                <span class="theme-icon">🌙</span>
+                <span class="theme-text">Dark</span>
+            </button>
+        </div>
+        
+        <div class="test-content">
+            <p>This is a test to verify smooth theme switching.</p>
+            <div class="todo-item">
+                <span class="todo-text">Sample todo item</span>
+                <button class="delete-btn">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Simple theme toggle without storage dependencies
+        document.getElementById('themeToggle').addEventListener('click', function() {
+            const body = document.body;
+            const themeIcon = document.querySelector('.theme-icon');
+            const themeText = document.querySelector('.theme-text');
+            
+            if (body.classList.contains('dark-theme')) {
+                body.classList.remove('dark-theme');
+                themeIcon.textContent = '🌙';
+                themeText.textContent = 'Dark';
+            } else {
+                body.classList.add('dark-theme');
+                themeIcon.textContent = '☀️';
+                themeText.textContent = 'Light';
+            }
+        });
+    </script>
+</body>
+</html>
