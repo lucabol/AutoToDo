@@ -6,6 +6,11 @@ class TodoController {
         this.model = model;
         this.view = view;
         this.searchTerm = '';
+        
+        // Performance optimizations
+        this.searchMonitor = PerformanceUtils.createMonitor('Search Performance');
+        this.debouncedSearch = PerformanceUtils.debounce(this.performSearch.bind(this), 300);
+        
         this.keyboardManager = new KeyboardShortcutManager({
             debug: false, // Set to true for debugging
             enableLogging: false,
@@ -344,12 +349,33 @@ class TodoController {
     }
 
     /**
-     * Handle search input changes
+     * Handle search input changes with debouncing for performance
      * @param {string} searchTerm - The search term
      */
     handleSearch(searchTerm) {
+        // Update search term immediately for UI responsiveness
         this.searchTerm = searchTerm;
-        this.render();
+        
+        // Debounce the actual search to avoid excessive filtering
+        this.debouncedSearch(searchTerm);
+    }
+    
+    /**
+     * Perform the actual search operation (debounced)
+     * @param {string} searchTerm - The search term
+     * @private
+     */
+    performSearch(searchTerm) {
+        this.searchMonitor.start();
+        
+        try {
+            // Only render if the search term hasn't changed
+            if (this.searchTerm === searchTerm) {
+                this.render();
+            }
+        } finally {
+            this.searchMonitor.end();
+        }
     }
 
     /**
@@ -503,10 +529,22 @@ class TodoController {
     }
 
     /**
-     * Get application statistics
-     * @returns {Object} Stats object with todo counts
+     * Get application statistics including performance data
+     * @returns {Object} Stats object with todo counts and performance metrics
      */
     getStats() {
-        return this.model.getStats();
+        const modelStats = this.model.getStats();
+        const viewStats = this.view.getPerformanceStats();
+        const searchStats = this.searchMonitor.getStats();
+        
+        return {
+            ...modelStats,
+            performance: {
+                view: viewStats,
+                search: searchStats,
+                isMobile: PerformanceUtils.isMobile(),
+                isSafari: PerformanceUtils.isSafari()
+            }
+        };
     }
 }

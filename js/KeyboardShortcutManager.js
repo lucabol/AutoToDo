@@ -319,6 +319,25 @@ class KeyboardShortcutManager {
         
         return null;
     }
+    
+    /**
+     * Find a shortcut in a specific context
+     * @param {KeyboardEvent} event - The keyboard event
+     * @param {string} context - Context to search in
+     * @returns {Object|null} The matching shortcut configuration, or null if no shortcut matches
+     * @private
+     */
+    _findShortcutInContext(event, context) {
+        const shortcutKey = this.generateShortcutKey(
+            event.key,
+            event.ctrlKey,
+            event.altKey,
+            event.shiftKey,
+            context
+        );
+        
+        return this.shortcuts.get(shortcutKey) || null;
+    }
 
     /**
      * Find matching shortcut using context-based lookup (optimized)
@@ -335,7 +354,7 @@ class KeyboardShortcutManager {
             });
         }
 
-        // Check context-specific shortcuts first
+        // Check context-specific shortcuts first using priority system
         for (const context of activeContexts) {
             const contextMap = this.contextShortcuts.get(context);
             if (contextMap) {
@@ -349,6 +368,12 @@ class KeyboardShortcutManager {
                     return shortcut;
                 }
             }
+        }
+
+        // Fallback to main branch optimized context lookup
+        const shortcut = this._findShortcutInContexts(event, activeContexts);
+        if (shortcut) {
+            return shortcut;
         }
 
         // Check global shortcuts
@@ -380,6 +405,51 @@ class KeyboardShortcutManager {
             stats.triggerCount++;
             stats.lastTriggered = new Date().toISOString();
         }
+    }
+
+    /**
+     * Get active contexts with caching for performance
+     * @returns {Array} Array of active context names
+     * @private
+     */
+    _getActiveContextsCached() {
+        // Cache contexts for a short time to avoid redundant checks
+        const now = Date.now();
+        if (this._contextCache && (now - this._contextCacheTime < 100)) {
+            return this._contextCache;
+        }
+
+        const activeContexts = this.getActiveContexts();
+        this._contextCache = activeContexts;
+        this._contextCacheTime = now;
+        
+        return activeContexts;
+    }
+
+    /**
+     * Find shortcut in the given contexts
+     * @param {KeyboardEvent} event - The keyboard event
+     * @param {Array} contextOrder - Array of contexts to check in order
+     * @returns {Object|null} The matching shortcut or null
+     * @private
+     */
+    _findShortcutInContexts(event, contextOrder) {
+        for (const context of contextOrder) {
+            const shortcutKey = this.generateShortcutKey(
+                event.key,
+                event.ctrlKey,
+                event.altKey,
+                event.shiftKey,
+                context
+            );
+
+            const shortcut = this.shortcuts.get(shortcutKey);
+            if (shortcut) {
+                this._updateShortcutStats(shortcutKey);
+                return shortcut;
+            }
+        }
+        return null;
     }
 
     /**
