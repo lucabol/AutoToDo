@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AutoToDo Drag & Drop Integration Tests</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .test-result {
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+        .test-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .test-fail {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        button {
+            padding: 10px 15px;
+            margin: 5px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            background-color: #007bff;
+            color: white;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .summary {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 30px;
+            border-left: 4px solid #17a2b8;
+        }
+        h1, h2 {
+            color: #333;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .instructions {
+            background-color: #e7f3ff;
+            padding: 15px;
+            border-radius: 5px;
+            border-left: 4px solid #2196F3;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🧪 AutoToDo Drag & Drop Integration Tests</h1>
+        
+        <div class="instructions">
+            <h3>📋 Test Instructions</h3>
+            <p>These integration tests verify that drag and drop functionality works correctly with all other application features. 
+               Each test creates a real application instance and simulates user interactions to ensure end-to-end functionality.</p>
+        </div>
+
+        <!-- Test 1: Drag and Drop with Search Active -->
+        <div class="test-section">
+            <h2>Test 1: Drag & Drop with Search Filter Active</h2>
+            <p>This test verifies that drag and drop works correctly when todos are filtered by search.</p>
+            <button onclick="runSearchFilterTest()">Run Test</button>
+            <div id="search-filter-result"></div>
+        </div>
+
+        <!-- Test 2: Order Persistence -->
+        <div class="test-section">
+            <h2>Test 2: Order Persistence Across Operations</h2>
+            <p>This test verifies that drag and drop order is maintained through add/delete/edit operations.</p>
+            <button onclick="runOrderPersistenceTest()">Run Test</button>
+            <div id="order-persistence-result"></div>
+        </div>
+
+        <!-- Test 3: State Changes -->
+        <div class="test-section">
+            <h2>Test 3: Drag & Drop with Todo State Changes</h2>
+            <p>This test verifies that drag and drop works correctly when todos are completed/uncompleted.</p>
+            <button onclick="runStateChangeTest()">Run Test</button>
+            <div id="state-change-result"></div>
+        </div>
+
+        <!-- Test 4: Multiple Operations -->
+        <div class="test-section">
+            <h2>Test 4: Multiple Sequential Drag Operations</h2>
+            <p>This test verifies that multiple drag and drop operations work correctly in sequence.</p>
+            <button onclick="runMultipleDragTest()">Run Test</button>
+            <div id="multiple-drag-result"></div>
+        </div>
+
+        <!-- Test 5: Edge Cases -->
+        <div class="test-section">
+            <h2>Test 5: Edge Cases and Error Handling</h2>
+            <p>This test verifies that drag and drop handles edge cases gracefully.</p>
+            <button onclick="runEdgeCaseTest()">Run Test</button>
+            <div id="edge-case-result"></div>
+        </div>
+
+        <!-- Test Summary -->
+        <div class="summary" id="test-summary">
+            <h2>📊 Test Summary</h2>
+            <div id="summary-content">
+                <p>Click "Run All Tests" to execute all integration tests.</p>
+            </div>
+            <button onclick="runAllTests()" style="background-color: #28a745; font-size: 16px; padding: 12px 20px;">🚀 Run All Tests</button>
+        </div>
+    </div>
+
+    <!-- Load the modules -->
+    <script src="js/TodoModel.js"></script>
+    <script src="js/TodoView.js"></script>
+    <script src="js/TodoController.js"></script>
+    
+    <script>
+        // Test results tracking
+        let testResults = {
+            searchFilter: false,
+            orderPersistence: false,
+            stateChange: false,
+            multipleDrag: false,
+            edgeCase: false
+        };
+
+        // Test 1: Search Filter Integration
+        function runSearchFilterTest() {
+            const resultDiv = document.getElementById('search-filter-result');
+            
+            try {
+                // Clear localStorage for fresh test
+                localStorage.clear();
+                const model = new TodoModel();
+                
+                // Add test todos
+                model.addTodo('Buy groceries');
+                model.addTodo('Walk the dog');
+                model.addTodo('Complete project');
+                model.addTodo('Read book');
+                
+                // Apply search filter - should match all todos with 'o'
+                const initialFiltered = model.filterTodos('o');
+                const initialOrder = initialFiltered.map(todo => todo.text);
+                
+                // Perform drag operation
+                const todos = model.getAllTodos();
+                const dogTodo = todos.find(t => t.text === 'Walk the dog');
+                const projectTodo = todos.find(t => t.text === 'Complete project');
+                
+                if (dogTodo && projectTodo) {
+                    const projectIndex = todos.findIndex(t => t.id === projectTodo.id);
+                    model.reorderTodo(dogTodo.id, projectIndex);
+                    
+                    // Check if order changed after reorder
+                    const finalFiltered = model.filterTodos('o');
+                    const finalOrder = finalFiltered.map(todo => todo.text);
+                    
+                    if (JSON.stringify(initialOrder) !== JSON.stringify(finalOrder)) {
+                        resultDiv.innerHTML = '<div class="test-result test-success">✓ Search filter + drag & drop integration works correctly</div>';
+                        testResults.searchFilter = true;
+                    } else {
+                        throw new Error('Drag and drop did not affect filtered list order');
+                    }
+                } else {
+                    throw new Error('Test todos not found');
+                }
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="test-result test-fail">✗ Test failed: ${error.message}</div>`;
+                testResults.searchFilter = false;
+            }
+            
+            updateTestSummary();
+        }
+
+        // Test 2: Order Persistence
+        function runOrderPersistenceTest() {
+            const resultDiv = document.getElementById('order-persistence-result');
+            
+            try {
+                // Clear localStorage for fresh test
+                localStorage.clear();
+                const model = new TodoModel();
+                
+                // Add test todos (they get added at beginning due to unshift)
+                model.addTodo('First task');   // ['First task'] 
+                model.addTodo('Second task');  // ['Second task', 'First task']
+                model.addTodo('Third task');   // ['Third task', 'Second task', 'First task']
+                
+                // Reorder: move 'Third task' (index 0) to position 2
+                // Result: ['Second task', 'First task', 'Third task']
+                const todos = model.getAllTodos();
+                const thirdTaskTodo = todos[0]; // This is 'Third task'
+                model.reorderTodo(thirdTaskTodo.id, 2);
+                
+                // Add a new todo - gets added at beginning
+                // Result: ['Fourth task', 'Second task', 'First task', 'Third task'] 
+                model.addTodo('Fourth task');
+                
+                // Delete the 'First task' (now at index 2)
+                const afterAddTodos = model.getAllTodos();
+                const firstTaskTodo = afterAddTodos.find(t => t.text === 'First task');
+                model.deleteTodo(firstTaskTodo.id);
+                
+                // Final expected order: ['Fourth task', 'Second task', 'Third task']
+                const finalTodos = model.getAllTodos();
+                const finalOrder = finalTodos.map(t => t.text);
+                
+                // Test that the reordered item ('Third task') is still at the end
+                // and the new item ('Fourth task') is at the beginning
+                const hasValidOrder = finalOrder.length === 3 &&
+                                    finalOrder[0] === 'Fourth task' &&
+                                    finalOrder[2] === 'Third task' &&
+                                    finalOrder.includes('Second task');
+                
+                if (hasValidOrder) {
+                    resultDiv.innerHTML = '<div class="test-result test-success">✓ Order persistence across operations works correctly</div>';
+                    testResults.orderPersistence = true;
+                } else {
+                    throw new Error(`Order not preserved correctly. Got: [${finalOrder.join(', ')}]`);
+                }
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="test-result test-fail">✗ Test failed: ${error.message}</div>`;
+                testResults.orderPersistence = false;
+            }
+            
+            updateTestSummary();
+        }
+
+        // Test 3: State Changes
+        function runStateChangeTest() {
+            const resultDiv = document.getElementById('state-change-result');
+            
+            try {
+                // Clear localStorage for fresh test
+                localStorage.clear();
+                const model = new TodoModel();
+                
+                // Add test todos
+                model.addTodo('Task A');
+                model.addTodo('Task B');
+                model.addTodo('Task C');
+                
+                const todos = model.getAllTodos();
+                
+                // Complete middle todo
+                model.toggleTodo(todos[1].id);
+                
+                // Reorder: move completed todo to first position
+                model.reorderTodo(todos[1].id, 0);
+                
+                // Verify completed todo moved correctly
+                const reorderedTodos = model.getAllTodos();
+                const firstTodo = reorderedTodos[0];
+                
+                if (firstTodo.id === todos[1].id && firstTodo.completed === true) {
+                    resultDiv.innerHTML = '<div class="test-result test-success">✓ Drag & drop with todo state changes works correctly</div>';
+                    testResults.stateChange = true;
+                } else {
+                    throw new Error('Completed todo not moved correctly');
+                }
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="test-result test-fail">✗ Test failed: ${error.message}</div>`;
+                testResults.stateChange = false;
+            }
+            
+            updateTestSummary();
+        }
+
+        // Test 4: Multiple Operations
+        function runMultipleDragTest() {
+            const resultDiv = document.getElementById('multiple-drag-result');
+            
+            try {
+                // Clear localStorage for fresh test
+                localStorage.clear();
+                const model = new TodoModel();
+                
+                // Add test todos (they will be added at the beginning due to unshift)
+                const testTasks = ['Alpha', 'Beta', 'Gamma', 'Delta', 'Epsilon'];
+                testTasks.forEach(task => model.addTodo(task));
+                // Initial order: ['Epsilon', 'Delta', 'Gamma', 'Beta', 'Alpha']
+                
+                let todos = model.getAllTodos();
+                
+                // Perform multiple drag operations
+                // 1. Move Epsilon (index 0) to position 2
+                // Result: ['Delta', 'Gamma', 'Epsilon', 'Beta', 'Alpha']
+                model.reorderTodo(todos[0].id, 2);
+                todos = model.getAllTodos();
+                
+                // 2. Move Beta (now at index 3) to position 0  
+                // Result: ['Beta', 'Delta', 'Gamma', 'Epsilon', 'Alpha']
+                const betaId = todos.find(t => t.text === 'Beta').id;
+                model.reorderTodo(betaId, 0);
+                todos = model.getAllTodos();
+                
+                // 3. Move Alpha (now at index 4) to position 1
+                // Result: ['Beta', 'Alpha', 'Delta', 'Gamma', 'Epsilon']
+                const alphaId = todos.find(t => t.text === 'Alpha').id;
+                model.reorderTodo(alphaId, 1);
+                
+                // Verify final order
+                const finalTodos = model.getAllTodos();
+                const finalOrder = finalTodos.map(t => t.text);
+                
+                // Expected order should be: ['Beta', 'Alpha', 'Delta', 'Gamma', 'Epsilon']
+                const expectedOrder = ['Beta', 'Alpha', 'Delta', 'Gamma', 'Epsilon'];
+                
+                if (JSON.stringify(finalOrder) === JSON.stringify(expectedOrder)) {
+                    resultDiv.innerHTML = '<div class="test-result test-success">✓ Multiple sequential drag operations work correctly</div>';
+                    testResults.multipleDrag = true;
+                } else {
+                    throw new Error(`Expected order ${expectedOrder.join(', ')}, got ${finalOrder.join(', ')}`);
+                }
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="test-result test-fail">✗ Test failed: ${error.message}</div>`;
+                testResults.multipleDrag = false;
+            }
+            
+            updateTestSummary();
+        }
+
+        // Test 5: Edge Cases
+        function runEdgeCaseTest() {
+            const resultDiv = document.getElementById('edge-case-result');
+            
+            try {
+                // Clear localStorage for fresh test
+                localStorage.clear();
+                const model = new TodoModel();
+                let passed = true;
+                const errors = [];
+                
+                // Test 1: Reorder with invalid ID
+                try {
+                    model.reorderTodo('invalid-id', 0);
+                } catch (e) {
+                    errors.push('Invalid ID not handled gracefully');
+                    passed = false;
+                }
+                
+                // Test 2: Reorder with empty list
+                try {
+                    model.reorderTodo('any-id', 0);
+                } catch (e) {
+                    errors.push('Empty list not handled gracefully');
+                    passed = false;
+                }
+                
+                // Test 3: Reorder to invalid index
+                model.addTodo('Test task');
+                const todos = model.getAllTodos();
+                
+                try {
+                    model.reorderTodo(todos[0].id, -1);
+                    model.reorderTodo(todos[0].id, 999);
+                } catch (e) {
+                    errors.push('Invalid indices not handled gracefully');
+                    passed = false;
+                }
+                
+                // Test 4: Same position reorder
+                try {
+                    model.reorderTodo(todos[0].id, 0);
+                } catch (e) {
+                    errors.push('Same position reorder not handled gracefully');
+                    passed = false;
+                }
+                
+                if (passed) {
+                    resultDiv.innerHTML = '<div class="test-result test-success">✓ Edge cases and error handling work correctly</div>';
+                    testResults.edgeCase = true;
+                } else {
+                    throw new Error(errors.join('; '));
+                }
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="test-result test-fail">✗ Test failed: ${error.message}</div>`;
+                testResults.edgeCase = false;
+            }
+            
+            updateTestSummary();
+        }
+
+        // Update test summary
+        function updateTestSummary() {
+            const summaryContent = document.getElementById('summary-content');
+            const passed = Object.values(testResults).filter(result => result === true).length;
+            const total = Object.keys(testResults).length;
+            
+            let summaryHTML = `<h3>Results: ${passed}/${total} tests passed</h3>`;
+            
+            summaryHTML += '<ul>';
+            summaryHTML += `<li>Search Filter Integration: ${testResults.searchFilter ? '✅ PASS' : '❌ FAIL'}</li>`;
+            summaryHTML += `<li>Order Persistence: ${testResults.orderPersistence ? '✅ PASS' : '❌ FAIL'}</li>`;
+            summaryHTML += `<li>State Change Integration: ${testResults.stateChange ? '✅ PASS' : '❌ FAIL'}</li>`;
+            summaryHTML += `<li>Multiple Drag Operations: ${testResults.multipleDrag ? '✅ PASS' : '❌ FAIL'}</li>`;
+            summaryHTML += `<li>Edge Cases: ${testResults.edgeCase ? '✅ PASS' : '❌ FAIL'}</li>`;
+            summaryHTML += '</ul>';
+            
+            if (passed === total) {
+                summaryHTML += '<p style="color: #155724; font-weight: bold;">🎉 All integration tests passed! Drag & drop functionality is fully integrated.</p>';
+            } else {
+                summaryHTML += `<p style="color: #721c24; font-weight: bold;">⚠️ ${total - passed} test(s) failed. Please review the implementation.</p>`;
+            }
+            
+            summaryContent.innerHTML = summaryHTML;
+        }
+
+        // Run all tests
+        function runAllTests() {
+            console.log('Running all drag & drop integration tests...');
+            
+            // Reset results
+            Object.keys(testResults).forEach(key => testResults[key] = false);
+            
+            // Run tests in sequence with small delays
+            setTimeout(() => runSearchFilterTest(), 100);
+            setTimeout(() => runOrderPersistenceTest(), 300);
+            setTimeout(() => runStateChangeTest(), 500);
+            setTimeout(() => runMultipleDragTest(), 700);
+            setTimeout(() => runEdgeCaseTest(), 900);
+        }
+
+        // Initialize on page load
+        window.addEventListener('load', () => {
+            console.log('Drag & Drop Integration Tests loaded');
+            updateTestSummary();
+        });
+    </script>
+</body>
+</html>

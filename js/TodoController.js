@@ -2,10 +2,15 @@
  * TodoController - Handles user interactions and coordinates between Model and View
  */
 class TodoController {
-    constructor(model, view) {
+    constructor(model, view, storageManager = window.storageManager) {
         this.model = model;
         this.view = view;
+        this.storage = storageManager;
         this.searchTerm = '';
+        
+        // Drag and drop functionality
+        this.draggedId = null;
+        this.dragDropSupported = this.checkDragDropSupport();
         
         // Performance optimizations for search functionality
         // Search monitoring: Tracks search performance for large todo lists
@@ -23,38 +28,70 @@ class TodoController {
     }
 
     /**
+     * Check if browser supports HTML5 Drag and Drop API
+     * @returns {boolean} True if drag and drop is supported
+     */
+    checkDragDropSupport() {
+        // Check for essential drag and drop features
+        const testElement = document.createElement('div');
+        
+        return (
+            'draggable' in testElement &&
+            'ondragstart' in testElement &&
+            'ondrop' in testElement &&
+            typeof DataTransfer !== 'undefined' &&
+            typeof DragEvent !== 'undefined'
+        );
+    }
+
+    /**
      * Initialize the controller and set up event listeners
      */
     init() {
         this.bindEvents();
+        this.handleDragDropCompatibility();
         this.initializeTheme();
         this.setupKeyboardShortcuts();
         this.render();
     }
 
     /**
+     * Handle drag and drop compatibility
+     */
+    handleDragDropCompatibility() {
+        if (!this.dragDropSupported) {
+            this.view.showDragDropUnsupportedMessage();
+        }
+    }
+
+    /**
      * Initialize theme management
      */
     initializeTheme() {
-        // Check for saved theme preference or system preference
-        const savedTheme = localStorage.getItem('todo-theme');
-        const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        
-        const initialTheme = savedTheme || (systemPrefersDark ? 'dark' : 'light');
-        this.setTheme(initialTheme, false); // false = don't save to localStorage on init
-        
-        // Listen for system theme changes
-        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
-            if (!localStorage.getItem('todo-theme')) {
-                this.setTheme(e.matches ? 'dark' : 'light', false);
-            }
-        });
+        try {
+            // Check for saved theme preference or system preference
+            const savedTheme = this.storage.getItem('todo-theme');
+            const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            
+            const initialTheme = savedTheme || (systemPrefersDark ? 'dark' : 'light');
+            this.setTheme(initialTheme, false); // false = don't save to storage on init
+            
+            // Listen for system theme changes
+            window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+                if (!this.storage.getItem('todo-theme')) {
+                    this.setTheme(e.matches ? 'dark' : 'light', false);
+                }
+            });
+        } catch (e) {
+            console.warn('Failed to initialize theme, using default light theme:', e);
+            this.setTheme('light', false);
+        }
     }
 
     /**
      * Set the application theme
      * @param {string} theme - 'light' or 'dark'
-     * @param {boolean} save - Whether to save preference to localStorage
+     * @param {boolean} save - Whether to save preference to storage
      */
     setTheme(theme, save = true) {
         const body = document.body;
@@ -73,7 +110,11 @@ class TodoController {
         }
 
         if (save) {
-            localStorage.setItem('todo-theme', theme);
+            try {
+                this.storage.setItem('todo-theme', theme);
+            } catch (e) {
+                console.warn('Failed to save theme preference:', e);
+            }
         }
 
         this.currentTheme = theme;
@@ -246,6 +287,7 @@ class TodoController {
         this.bindTodoListClick();
         this.bindTodoListSubmit();
         this.bindTodoListChange();
+        this.bindDragAndDrop();
         this.bindThemeToggle();
         this.bindArchiveEvents();
         this.bindKeyboardShortcuts();
@@ -357,6 +399,45 @@ class TodoController {
     bindKeyboardShortcuts() {
         document.addEventListener('keydown', (e) => {
             this.keyboardManager.handleKeyboard(e);
+        });
+        
+        // Add keyboard support for drag handles
+        this.view.todoList.addEventListener('keydown', (e) => {
+            this.handleDragHandleKeyboard(e);
+        });
+    }
+
+    /**
+     * Bind drag and drop event handlers
+     */
+    bindDragAndDrop() {
+        // Only bind drag and drop events if supported
+        if (!this.dragDropSupported) {
+            return;
+        }
+
+        this.view.todoList.addEventListener('dragstart', (e) => {
+            this.handleDragStart(e);
+        });
+
+        this.view.todoList.addEventListener('dragover', (e) => {
+            this.handleDragOver(e);
+        });
+
+        this.view.todoList.addEventListener('drop', (e) => {
+            this.handleDrop(e);
+        });
+
+        this.view.todoList.addEventListener('dragend', (e) => {
+            this.handleDragEnd(e);
+        });
+
+        this.view.todoList.addEventListener('dragenter', (e) => {
+            this.handleDragEnter(e);
+        });
+
+        this.view.todoList.addEventListener('dragleave', (e) => {
+            this.handleDragLeave(e);
         });
     }
 
@@ -472,6 +553,99 @@ class TodoController {
     }
 
     /**
+     * Handle keyboard interactions for drag handles
+     * @param {Event} e - Keyboard event
+     */
+    handleDragHandleKeyboard(e) {
+        // Only handle if target is a drag handle
+        if (!e.target.classList.contains('drag-handle') || !this.dragDropSupported) {
+            return;
+        }
+
+        const todoItem = e.target.closest('.todo-item');
+        if (!todoItem) return;
+
+        const todoId = todoItem.dataset.id;
+        const currentTodos = this.getCurrentTodos();
+        const currentIndex = currentTodos.findIndex(t => t.id === todoId);
+        
+        if (currentIndex === -1) return;
+
+        let newIndex = currentIndex;
+        let moved = false;
+
+        // Arrow keys for reordering
+        switch (e.key) {
+            case 'ArrowUp':
+                if (currentIndex > 0) {
+                    newIndex = currentIndex - 1;
+                    moved = true;
+                }
+                break;
+            case 'ArrowDown':
+                if (currentIndex < currentTodos.length - 1) {
+                    newIndex = currentIndex + 1;
+                    moved = true;
+                }
+                break;
+            case 'Home':
+                if (currentIndex > 0) {
+                    newIndex = 0;
+                    moved = true;
+                }
+                break;
+            case 'End':
+                if (currentIndex < currentTodos.length - 1) {
+                    newIndex = currentTodos.length - 1;
+                    moved = true;
+                }
+                break;
+            case 'Enter':
+            case ' ':
+                // Activate drag handle (could be extended for alternative reorder UI)
+                e.preventDefault();
+                this.view.showMessage(`Todo "${currentTodos[currentIndex].text}" selected. Use arrow keys to move.`, 'info');
+                return;
+        }
+
+        if (moved) {
+            e.preventDefault();
+            this.handleReorderTodo(todoId, newIndex);
+            
+            // Keep focus on the drag handle after reorder
+            setTimeout(() => {
+                const newTodoItem = document.querySelector(`[data-id="${todoId}"] .drag-handle`);
+                if (newTodoItem) {
+                    newTodoItem.focus();
+                }
+            }, 100);
+        }
+    }
+
+    /**
+     * Handle reordering a todo
+     * @param {string} todoId - ID of todo to reorder
+     * @param {number} newIndex - New index position
+     */
+    handleReorderTodo(todoId, newIndex) {
+        // Calculate actual index if we're dealing with filtered results
+        if (this.searchTerm) {
+            const filteredTodos = this.model.filterTodos(this.searchTerm);
+            const allTodos = this.model.getAllTodos();
+            const targetTodo = filteredTodos[newIndex];
+            const actualTargetIndex = allTodos.findIndex(todo => todo.id === targetTodo.id);
+            
+            if (this.model.reorderTodo(todoId, actualTargetIndex)) {
+                this.render();
+            }
+        } else {
+            if (this.model.reorderTodo(todoId, newIndex)) {
+                this.render();
+            }
+        }
+    }
+
+    /**
      * Handle toggling todo completion
      * @param {string} id - Todo ID
      */
@@ -558,7 +732,7 @@ class TodoController {
     render() {
         const allTodos = this.model.getAllTodos();
         const filteredTodos = this.model.filterTodos(this.searchTerm);
-        this.view.render(filteredTodos, allTodos, this.searchTerm);
+        this.view.render(filteredTodos, allTodos, this.searchTerm, this.dragDropSupported);
         
         // Update archive stats in the UI
         const stats = this.model.getStats();
@@ -648,6 +822,7 @@ class TodoController {
             }
         }
     }
+    }
 
     /**
      * Get application statistics including performance data
@@ -667,5 +842,116 @@ class TodoController {
                 isSafari: PerformanceUtils.isSafari()
             }
         };
+    }
+
+    /**
+     * Handle drag start event
+     * @param {Event} e - Drag start event
+     */
+    handleDragStart(e) {
+        const todoItem = e.target.closest('.todo-item');
+        if (!todoItem) return;
+
+        this.draggedId = todoItem.dataset.id;
+        todoItem.classList.add('dragging');
+        
+        // Set drag effect
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/html', todoItem.outerHTML);
+    }
+
+    /**
+     * Handle drag over event
+     * @param {Event} e - Drag over event
+     */
+    handleDragOver(e) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+    }
+
+    /**
+     * Handle drag enter event
+     * @param {Event} e - Drag enter event
+     */
+    handleDragEnter(e) {
+        const todoItem = e.target.closest('.todo-item');
+        if (todoItem && todoItem.dataset.id !== this.draggedId) {
+            todoItem.classList.add('drag-over');
+        }
+    }
+
+    /**
+     * Handle drag leave event
+     * @param {Event} e - Drag leave event
+     */
+    handleDragLeave(e) {
+        const todoItem = e.target.closest('.todo-item');
+        if (todoItem) {
+            todoItem.classList.remove('drag-over');
+        }
+    }
+
+    /**
+     * Handle drop event
+     * @param {Event} e - Drop event
+     */
+    handleDrop(e) {
+        e.preventDefault();
+        
+        const targetItem = e.target.closest('.todo-item');
+        if (!targetItem || !this.draggedId) return;
+
+        const targetId = targetItem.dataset.id;
+        if (targetId === this.draggedId) return;
+
+        // Calculate new index based on current filtered todos
+        const currentTodos = this.searchTerm ? 
+            this.model.filterTodos(this.searchTerm) : 
+            this.model.getAllTodos();
+        
+        const targetIndex = currentTodos.findIndex(todo => todo.id === targetId);
+        
+        // If we're dealing with filtered results, we need to find the actual index in the full list
+        if (this.searchTerm) {
+            const allTodos = this.model.getAllTodos();
+            const targetTodo = currentTodos[targetIndex];
+            const actualTargetIndex = allTodos.findIndex(todo => todo.id === targetTodo.id);
+            
+            if (this.model.reorderTodo(this.draggedId, actualTargetIndex)) {
+                this.render();
+            }
+        } else {
+            if (this.model.reorderTodo(this.draggedId, targetIndex)) {
+                this.render();
+            }
+        }
+
+        // Clean up drag classes
+        targetItem.classList.remove('drag-over');
+    }
+
+    /**
+     * Handle drag end event
+     * @param {Event} e - Drag end event
+     */
+    handleDragEnd(e) {
+        const todoItem = e.target.closest('.todo-item');
+        if (todoItem) {
+            todoItem.classList.remove('dragging');
+        }
+
+        // Clean up all drag-over classes
+        const dragOverItems = this.view.todoList.querySelectorAll('.drag-over');
+        dragOverItems.forEach(item => item.classList.remove('drag-over'));
+
+        this.draggedId = null;
+    }
+
+    /**
+     * Get current todos based on search filter
+     * @returns {Array} Current filtered todos
+     */
+    getCurrentTodos() {
+        return this.searchTerm ? this.model.filterTodos(this.searchTerm) : this.model.getAllTodos();
     }
 }
