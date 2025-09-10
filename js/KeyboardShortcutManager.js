@@ -562,7 +562,6 @@ class KeyboardShortcutManager {
             console.log('All shortcuts cleared');
         }
     }
-    }
 
     /**
      * Get a formatted list of shortcuts for display
@@ -642,9 +641,7 @@ class KeyboardShortcutManager {
         });
     }
 
-    // =================
     // Performance and Utility Methods (Enhanced Features)
-    // =================
 
     /**
      * Update performance metrics (Enhanced feature)
@@ -738,9 +735,7 @@ class KeyboardShortcutManager {
         return summary;
     }
 
-    // =================
     // Debugging and Statistics Methods  
-    // =================
 
     /**
      * Get enhanced usage statistics for all shortcuts

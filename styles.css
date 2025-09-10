@@ -15,9 +15,7 @@
     backface-visibility: hidden;
 }
 
-/* ========================================================================
- * SAFARI-SPECIFIC PERFORMANCE AND DARK MODE OPTIMIZATIONS
- * ========================================================================
+/* SAFARI-SPECIFIC PERFORMANCE AND DARK MODE OPTIMIZATIONS
  * 
  * PURPOSE: Provides enhanced compatibility and performance optimizations
  * specifically for Safari's WebKit rendering engine.
@@ -142,9 +140,7 @@
     will-change: contents;
 }
 
-/* ========================================================================
- * CSS CUSTOM PROPERTIES (VARIABLES) FOR THEME MANAGEMENT
- * ========================================================================
+/* CSS CUSTOM PROPERTIES (VARIABLES) FOR THEME MANAGEMENT
  * 
  * BASE LAYER: Light theme colors with Safari 14.3+ dark mode support
  * The color-scheme property enables native browser dark mode detection
@@ -197,9 +193,7 @@
     --shadow: rgba(0, 0, 0, 0.1); /* Light shadows for subtle elevation */
 }
 
-/* ========================================================================
- * AUTOMATIC DARK MODE DETECTION FOR MODERN BROWSERS
- * ========================================================================
+/* AUTOMATIC DARK MODE DETECTION FOR MODERN BROWSERS
  * 
  * PURPOSE: This media query automatically detects when the user's operating
  * system is set to dark mode and applies dark theme colors without requiring
@@ -261,9 +255,7 @@
     }
 }
 
-/* ========================================================================
- * MANUAL DARK THEME OVERRIDE WITH HIGH SPECIFICITY
- * ========================================================================
+/* MANUAL DARK THEME OVERRIDE WITH HIGH SPECIFICITY
  * 
  * PURPOSE: Ensures manual theme selection always takes precedence over
  * automatic system detection when user explicitly chooses a theme.

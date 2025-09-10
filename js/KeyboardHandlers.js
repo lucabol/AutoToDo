@@ -292,9 +292,7 @@ class KeyboardHandlers {
         return Object.keys(this.handlerCategories);
     }
 
-    // =================
     // Enhanced Action Methods
-    // =================
 
     /**
      * Create enhanced delete action with undo support
@@ -428,10 +426,8 @@ class KeyboardHandlers {
         return true;
     }
 
-    // =================
     // Navigation Handlers (Legacy - maintained for backwards compatibility)
     // Note: The enhanced versions are now handled by NavigationShortcutModule
-    // =================
 
     /**
      * Focus the new todo input field with improved error handling
@@ -497,9 +493,7 @@ class KeyboardHandlers {
         }
     }
 
-    // =================
     // Todo Management Handlers
-    // =================
 
     /**
      * Handle adding todo from keyboard shortcut
@@ -593,9 +587,7 @@ class KeyboardHandlers {
         }
     }
 
-    // =================
     // Editing Handlers
-    // =================
 
     /**
      * Handle save edit triggered by keyboard shortcut
@@ -615,9 +607,7 @@ class KeyboardHandlers {
         this.controller.handleCancelEdit();
     }
 
-    // =================
     // General Handlers
-    // =================
 
     /**
      * Show keyboard shortcuts help modal
