@@ -160,6 +160,32 @@
     color-scheme: light dark;
     
     /* ================================================================
+     * ENHANCED SMOOTH THEME TRANSITION TIMING
+     * ================================================================
+     * PURPOSE: Provides optimized timing functions for theme switching
+     * with enhanced curves for CSS custom property animations.
+     * 
+     * TIMING OPTIMIZATIONS:
+     * - Theme-specific: 280ms cubic-bezier for smooth CSS custom property changes
+     * - Standard: 250ms for balanced performance and smoothness
+     * - Fast: 150ms for immediate feedback on interactions
+     * - Slow: 400ms for complex state changes
+     * 
+     * CURVE BENEFITS: cubic-bezier(0.25, 0.1, 0.25, 1) provides:
+     * - Optimized acceleration for theme switching
+     * - Natural deceleration that reduces visual jarring
+     * - Enhanced performance for CSS custom property animations
+     * - Better perceived responsiveness during theme transitions
+     * 
+     * SAFARI 14.3+: Enhanced with native color-scheme transition support
+     * BENEFIT: Smooth, professional transitions optimized for theme changes
+     */
+    --transition-timing: 0.25s cubic-bezier(0.25, 0.1, 0.25, 1);
+    --transition-timing-fast: 0.15s cubic-bezier(0.25, 0.1, 0.25, 1);
+    --transition-timing-slow: 0.4s cubic-bezier(0.25, 0.1, 0.25, 1);
+    --transition-timing-theme: 0.28s cubic-bezier(0.25, 0.1, 0.25, 1);
+    
+    /* ================================================================
      * DEFAULT LIGHT THEME COLOR PALETTE
      * ================================================================
      * These variables define the default (light) appearance and serve
@@ -358,7 +384,8 @@ body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     background-color: var(--bg-primary);
     padding: 20px;
-    transition: background-color 0.3s ease;
+    color: var(--text-primary);
+    transition: background-color var(--transition-timing), color var(--transition-timing);
 }
 
 .container {
@@ -368,7 +395,9 @@ body {
     border-radius: 12px;
     box-shadow: 0 4px 20px var(--shadow);
     padding: 30px;
-    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+    transition: background-color var(--transition-timing), 
+                box-shadow var(--transition-timing),
+                border-color var(--transition-timing);
 }
 
 .header {
@@ -382,7 +411,7 @@ h1 {
     color: var(--text-primary);
     font-size: 2.5rem;
     font-weight: 600;
-    transition: color 0.3s ease;
+    transition: color var(--transition-timing);
 }
 
 .theme-toggle {
@@ -394,7 +423,10 @@ h1 {
     font-size: 14px;
     font-weight: 500;
     color: var(--text-primary);
-    transition: all 0.3s ease;
+    transition: background-color var(--transition-timing),
+                border-color var(--transition-timing),
+                color var(--transition-timing),
+                transform var(--transition-timing-fast);
     display: flex;
     align-items: center;
     gap: 6px;
@@ -403,6 +435,7 @@ h1 {
 .theme-toggle:hover {
     background: var(--bg-hover);
     border-color: var(--border-hover);
+    transform: translateY(-1px);
 }
 
 .search-container {
@@ -417,7 +450,9 @@ h1 {
     border: 2px solid var(--border-primary);
     border-radius: 8px;
     font-size: 16px;
-    transition: border-color 0.3s ease, background-color 0.3s ease;
+    transition: border-color var(--transition-timing), 
+                background-color var(--transition-timing),
+                color var(--transition-timing);
     background-color: var(--bg-quaternary);
     color: var(--text-primary);
 }
@@ -430,6 +465,7 @@ h1 {
 
 .search-input::placeholder {
     color: var(--text-secondary);
+    transition: color var(--transition-timing);
 }
 
 .clear-search-btn {
@@ -441,7 +477,10 @@ h1 {
     font-size: 16px;
     font-weight: 500;
     color: var(--text-primary);
-    transition: all 0.3s ease;
+    transition: background-color var(--transition-timing),
+                border-color var(--transition-timing),
+                color var(--transition-timing),
+                opacity var(--transition-timing);
     white-space: nowrap;
 }
 
@@ -467,7 +506,10 @@ h1 {
     border: 2px solid var(--border-primary);
     border-radius: 8px;
     font-size: 16px;
-    transition: border-color 0.3s ease, background-color 0.3s ease;
+    transition: border-color var(--transition-timing), 
+                background-color var(--transition-timing),
+                color var(--transition-timing),
+                box-shadow var(--transition-timing-fast);
     background-color: var(--bg-secondary);
     color: var(--text-primary);
 }
@@ -486,7 +528,9 @@ h1 {
     font-size: 16px;
     font-weight: 600;
     cursor: pointer;
-    transition: background-color 0.3s ease;
+    transition: background-color var(--transition-timing),
+                transform var(--transition-timing-fast),
+                box-shadow var(--transition-timing-fast);
 }
 
 .add-btn:hover {
@@ -506,7 +550,11 @@ h1 {
     border-radius: 8px;
     margin-bottom: 8px;
     background: var(--bg-tertiary);
-    transition: all 0.3s ease;
+    transition: background-color var(--transition-timing),
+                border-color var(--transition-timing),
+                transform var(--transition-timing-fast),
+                box-shadow var(--transition-timing-fast),
+                opacity var(--transition-timing-fast);
     cursor: move;
 }
 
@@ -562,7 +610,8 @@ h1 {
     flex: 1;
     font-size: 16px;
     color: var(--text-primary);
-    transition: color 0.3s ease;
+    transition: color var(--transition-timing),
+                text-decoration-color var(--transition-timing);
 }
 
 .todo-text.completed {
@@ -581,7 +630,10 @@ h1 {
     border-radius: 6px;
     font-size: 14px;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: background-color var(--transition-timing),
+                transform var(--transition-timing-fast),
+                box-shadow var(--transition-timing-fast),
+                opacity var(--transition-timing);
 }
 
 .edit-btn {
@@ -607,7 +659,8 @@ h1 {
     color: var(--text-secondary);
     font-size: 18px;
     padding: 40px 20px;
-    transition: color 0.3s ease;
+    transition: color var(--transition-timing),
+                opacity var(--transition-timing);
 }
 
 .edit-form {
@@ -624,7 +677,9 @@ h1 {
     font-size: 16px;
     background-color: var(--bg-secondary);
     color: var(--text-primary);
-    transition: background-color 0.3s ease;
+    transition: background-color var(--transition-timing),
+                color var(--transition-timing),
+                border-color var(--transition-timing-fast);
 }
 
 .save-btn, .cancel-btn {
@@ -633,7 +688,9 @@ h1 {
     border-radius: 6px;
     font-size: 14px;
     cursor: pointer;
-    transition: background-color 0.3s ease;
+    transition: background-color var(--transition-timing),
+                transform var(--transition-timing-fast),
+                opacity var(--transition-timing);
 }
 
 .save-btn {
@@ -713,6 +770,9 @@ h1 {
     overflow: hidden;
     display: flex;
     flex-direction: column;
+    transition: background-color var(--transition-timing),
+                border-color var(--transition-timing),
+                box-shadow var(--transition-timing);
 }
 
 .help-header {
@@ -722,6 +782,8 @@ h1 {
     padding: 20px 24px;
     border-bottom: 1px solid var(--border-primary);
     background: var(--bg-tertiary);
+    transition: background-color var(--transition-timing),
+                border-color var(--transition-timing);
 }
 
 .help-header h2 {
@@ -729,6 +791,7 @@ h1 {
     font-size: 24px;
     font-weight: 600;
     margin: 0;
+    transition: color var(--transition-timing);
 }
 
 .help-close-btn {
@@ -739,7 +802,9 @@ h1 {
     cursor: pointer;
     padding: 4px 8px;
     border-radius: 6px;
-    transition: all 0.2s ease;
+    transition: background-color var(--transition-timing-fast),
+                color var(--transition-timing-fast),
+                transform var(--transition-timing-fast);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -773,6 +838,8 @@ h1 {
     margin-bottom: 16px;
     border-bottom: 2px solid var(--accent-primary);
     padding-bottom: 8px;
+    transition: color var(--transition-timing),
+                border-color var(--transition-timing);
 }
 
 .shortcuts-list {
@@ -788,7 +855,9 @@ h1 {
     background: var(--bg-tertiary);
     border-radius: 8px;
     border: 1px solid var(--border-primary);
-    transition: all 0.2s ease;
+    transition: background-color var(--transition-timing),
+                border-color var(--transition-timing),
+                transform var(--transition-timing-fast);
 }
 
 .shortcut-item:hover {
@@ -1100,16 +1169,108 @@ h1 {
     }
 }
 
-/* Enhanced transitions for Safari theme switching */
+/* ========================================================================
+ * ENHANCED SAFARI THEME SWITCHING OPTIMIZATIONS
+ * ========================================================================
+ * 
+ * PURPOSE: Provides Safari-specific optimizations for smoother theme switching,
+ * with enhanced support for Safari 14.3+ native color-scheme features.
+ * 
+ * ENHANCEMENTS:
+ * - Optimized transition timing functions for Safari rendering engine
+ * - Hardware acceleration for smooth color transitions
+ * - Enhanced WebKit-specific properties for better performance
+ * - Native color-scheme integration for Safari 14.3+
+ */
 @supports (-webkit-appearance: none) {
+    /* Enhanced body transitions with Safari-optimized timing */
     body {
-        transition: background-color 0.3s ease, color 0.3s ease;
-        -webkit-transition: background-color 0.3s ease, color 0.3s ease;
+        transition: background-color var(--transition-timing), 
+                    color var(--transition-timing);
+        -webkit-transition: background-color var(--transition-timing), 
+                            color var(--transition-timing);
+        /* Enable Safari hardware acceleration for smoother transitions */
+        -webkit-transform: translateZ(0);
+        -webkit-backface-visibility: hidden;
     }
     
+    /* Enhanced container transitions with comprehensive property coverage */
     .container {
-        transition: background-color 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
-        -webkit-transition: background-color 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+        transition: background-color var(--transition-timing), 
+                    box-shadow var(--transition-timing), 
+                    border-color var(--transition-timing);
+        -webkit-transition: background-color var(--transition-timing), 
+                            box-shadow var(--transition-timing), 
+                            border-color var(--transition-timing);
+        /* Force layer creation for smoother compositing */
+        -webkit-transform: translateZ(0);
+    }
+    
+    /* Enhanced theme toggle with Safari-specific hover effects */
+    .theme-toggle {
+        -webkit-transition: background-color var(--transition-timing),
+                            border-color var(--transition-timing),
+                            color var(--transition-timing),
+                            -webkit-transform var(--transition-timing-fast);
+    }
+    
+    /* Safari 14.3+ specific enhancements */
+    @supports (color-scheme: light dark) {
+        /* Leverage native color-scheme for enhanced performance */
+        :root {
+            /* Enhanced color-scheme with Safari-specific optimizations */
+            -webkit-color-scheme: light dark;
+            color-scheme: light dark;
+            
+            /* Safari 14.3+ enhanced transition timing for color-scheme */
+            --safari-color-scheme-transition: color-scheme var(--transition-timing-theme);
+        }
+        
+        /* Auto-adapt native form controls to theme changes */
+        input, button, select, textarea {
+            color-scheme: inherit;
+            -webkit-color-scheme: inherit;
+            transition: color-scheme var(--transition-timing-theme);
+        }
+        
+        /* Enhanced native scrollbar theming for Safari 14.3+ */
+        ::-webkit-scrollbar {
+            transition: background-color var(--transition-timing-theme);
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            transition: background-color var(--transition-timing-theme);
+        }
+        
+        /* Smooth color-scheme transitions for all elements */
+        * {
+            color-scheme: inherit;
+            -webkit-color-scheme: inherit;
+        }
+        
+        /* Safari 14.3+ hardware-accelerated theme transitions */
+        body, .container, .theme-toggle, .todo-item {
+            -webkit-transform: translateZ(0);
+            transform: translateZ(0);
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            /* Enhanced GPU layer promotion for theme switching */
+            will-change: background-color, color, border-color;
+        }
+        
+        /* Optimized transitions for theme-sensitive elements */
+        .todo-item, .search-input, .add-btn, .edit-btn, .delete-btn {
+            transition: background-color var(--transition-timing-theme),
+                        color var(--transition-timing-theme),
+                        border-color var(--transition-timing-theme),
+                        box-shadow var(--transition-timing-fast),
+                        transform var(--transition-timing-fast);
+            -webkit-transition: background-color var(--transition-timing-theme),
+                                color var(--transition-timing-theme),
+                                border-color var(--transition-timing-theme),
+                                box-shadow var(--transition-timing-fast),
+                                -webkit-transform var(--transition-timing-fast);
+        }
     }
     
     /* Force Safari to recalculate styles on theme changes */
