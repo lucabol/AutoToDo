@@ -158,9 +158,14 @@ Safari 14 and later versions include enhanced privacy features and stricter secu
 
 *localStorage and Data Persistence Issues:*
 - **Intelligent Tracking Prevention (ITP) clears data:** Safari 14+ may automatically clear localStorage after 7 days of inactivity
-  - Solution: Regularly use the app to prevent automatic data clearing
-  - Workaround: Export/backup your todos periodically (copy from browser console: `JSON.stringify(localStorage.getItem('todos'))`)
-  - Consider adding AutoToDo to your Home Screen (iOS) for app-like persistence
+  - ✅ **FIXED**: AutoToDo now includes comprehensive ITP protection:
+    - Automatic persistent storage requests to prevent data clearing
+    - Activity tracking to reset the 7-day ITP timer  
+    - Automatic backup and recovery system for data protection
+    - Risk monitoring with user notifications
+  - Solution: The app now automatically protects your data - no action needed!
+  - Fallback: If protection fails, data is automatically backed up and can be recovered
+  - Additional protection: Adding AutoToDo to your Home Screen (iOS) provides app-like persistence
 
 - **Private browsing severely limits storage:** 
   - Solution: Use regular browsing mode for persistent todo storage
