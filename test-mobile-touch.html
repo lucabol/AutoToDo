@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover, touch-action=manipulation">
+    <title>AutoToDo - Mobile Touch Testing</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        /* Additional testing styles */
+        .test-info {
+            background: #f0f8ff;
+            border: 2px solid #4a90e2;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 16px 0;
+            font-size: 14px;
+        }
+        
+        .test-info h3 {
+            margin: 0 0 8px 0;
+            color: #2c5aa0;
+        }
+        
+        .test-info ul {
+            margin: 8px 0;
+            padding-left: 20px;
+        }
+        
+        .test-checklist {
+            background: #fff8e1;
+            border: 2px solid #ffb74d;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 16px 0;
+        }
+        
+        .test-checklist h3 {
+            margin: 0 0 12px 0;
+            color: #f57c00;
+        }
+        
+        .test-checklist label {
+            display: block;
+            margin: 8px 0;
+            padding: 4px 0;
+            cursor: pointer;
+        }
+        
+        .test-checklist input[type="checkbox"] {
+            margin-right: 8px;
+        }
+        
+        .device-info {
+            background: #e8f5e8;
+            border: 2px solid #4caf50;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 16px 0;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        
+        .device-info h3 {
+            margin: 0 0 8px 0;
+            color: #2e7d32;
+            font-family: sans-serif;
+        }
+        
+        /* Dark theme for test sections */
+        .dark-theme .test-info {
+            background: #1a2332;
+            border-color: #4a90e2;
+            color: #e3f2fd;
+        }
+        
+        .dark-theme .test-info h3 {
+            color: #64b5f6;
+        }
+        
+        .dark-theme .test-checklist {
+            background: #2d2416;
+            border-color: #ffb74d;
+            color: #fff3e0;
+        }
+        
+        .dark-theme .test-checklist h3 {
+            color: #ffb74d;
+        }
+        
+        .dark-theme .device-info {
+            background: #1b2e1b;
+            border-color: #4caf50;
+            color: #e8f5e8;
+        }
+        
+        .dark-theme .device-info h3 {
+            color: #66bb6a;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Test Information Section -->
+        <div class="test-info">
+            <h3>📱 Mobile Touch Testing Environment</h3>
+            <p>This page is designed to test mobile touch interactions and optimizations for the AutoToDo application.</p>
+            <ul>
+                <li><strong>Touch Targets:</strong> All interactive elements should be at least 44px</li>
+                <li><strong>Fast Response:</strong> Touch events should respond immediately without 300ms delay</li>
+                <li><strong>Visual Feedback:</strong> Elements should provide visual feedback when touched</li>
+                <li><strong>No Duplicates:</strong> Touch and click events should not trigger duplicate actions</li>
+            </ul>
+        </div>
+        
+        <!-- Device Information -->
+        <div class="device-info">
+            <h3>📊 Device Information</h3>
+            <div id="deviceInfo">Detecting device capabilities...</div>
+        </div>
+        
+        <!-- Main Application -->
+        <div class="header">
+            <h1>AutoToDo - Touch Test</h1>
+            <button class="theme-toggle" id="themeToggle">
+                <span class="theme-icon">🌙</span>
+                <span class="theme-text">Dark</span>
+            </button>
+        </div>
+        
+        <div class="search-container">
+            <input type="text" id="searchInput" class="search-input" placeholder="Search todos...">
+            <button id="clearSearchBtn" class="clear-search-btn">✕</button>
+        </div>
+        
+        <form id="addTodoForm" class="add-todo-form">
+            <input type="text" id="todoInput" placeholder="Add a new todo..." required>
+            <button type="submit" class="add-btn">Add</button>
+        </form>
+        
+        <ul id="todoList" class="todo-list">
+            <!-- Todos will be populated here -->
+        </ul>
+        
+        <!-- Testing Checklist -->
+        <div class="test-checklist">
+            <h3>✅ Touch Interaction Testing Checklist</h3>
+            <label><input type="checkbox"> Theme toggle button responds to touch immediately</label>
+            <label><input type="checkbox"> Clear search button works with touch</label>
+            <label><input type="checkbox"> Add todo form submits on touch</label>
+            <label><input type="checkbox"> Todo edit buttons respond to touch</label>
+            <label><input type="checkbox"> Todo delete buttons work with touch</label>
+            <label><input type="checkbox"> Todo checkboxes toggle with touch</label>
+            <label><input type="checkbox"> Visual feedback appears on touch start</label>
+            <label><input type="checkbox"> Visual feedback disappears on touch end</label>
+            <label><input type="checkbox"> No duplicate actions from touch + click</label>
+            <label><input type="checkbox"> All touch targets meet 44px minimum size</label>
+            <label><input type="checkbox"> Touch interactions work in dark mode</label>
+            <label><input type="checkbox"> Rapid touches don't cause errors</label>
+        </div>
+    </div>
+
+    <!-- JavaScript Modules -->
+    <!-- Storage System Modules (loaded in dependency order) -->
+    <script src="js/StorageDetector.js"></script>
+    <script src="js/StorageFallbackHandler.js"></script>
+    <script src="js/StorageOperations.js"></script>
+    <script src="js/StorageManager.js"></script>
+    <script src="js/PerformanceUtils.js"></script>
+    <script src="js/VirtualScrollManager.js"></script>
+    <script src="js/ShortcutModules.js"></script>
+    <script src="js/ShortcutsConfig.js"></script>
+    <!-- Keyboard Shortcut Manager Utilities -->
+    <script src="js/ShortcutValidator.js"></script>
+    <script src="js/ShortcutCache.js"></script>
+    <script src="js/ShortcutStatistics.js"></script>
+    <script src="js/DebugLogger.js"></script>
+    <!-- Main Keyboard Shortcut Manager -->
+    <script src="js/KeyboardShortcutManager.js"></script>
+    <script src="js/HelpModalBuilder.js"></script>
+    <script src="js/KeyboardHandlers.js"></script>
+    <script src="js/TodoModel.js"></script>
+    <script src="js/TodoView.js"></script>
+    <script src="js/TouchEventManager.js"></script>
+    <script src="js/TodoController.js"></script>
+    
+    <script>
+        // Initialize the application with debugging enabled
+        window.addEventListener('DOMContentLoaded', () => {
+            // Initialize app with debug mode for touch testing
+            const model = new TodoModel();
+            const view = new TodoView();
+            const controller = new TodoController(model, view);
+            
+            // Add some sample todos for testing
+            model.addTodo('Test todo item 1 - try editing this');
+            model.addTodo('Test todo item 2 - try deleting this');
+            model.addTodo('Test todo item 3 - try marking as complete');
+            model.addTodo('Test todo item 4 - test touch interactions');
+            
+            view.render(model.getAllTodos());
+            
+            // Display device information
+            displayDeviceInfo();
+            
+            // Add touch debugging
+            if (controller.touchManager) {
+                console.log('TouchEventManager Debug Info:', controller.touchManager.getDebugInfo());
+            }
+        });
+        
+        function displayDeviceInfo() {
+            const info = document.getElementById('deviceInfo');
+            const deviceData = {
+                'Touch Support': 'ontouchstart' in window || navigator.maxTouchPoints > 0,
+                'Max Touch Points': navigator.maxTouchPoints || 'Unknown',
+                'User Agent': navigator.userAgent,
+                'Screen Size': `${screen.width}x${screen.height}`,
+                'Viewport Size': `${window.innerWidth}x${window.innerHeight}`,
+                'Device Pixel Ratio': window.devicePixelRatio || 'Unknown',
+                'Touch Action Support': CSS.supports('touch-action', 'manipulation'),
+                'Pointer Events': window.PointerEvent !== undefined,
+                'Platform': navigator.platform || 'Unknown'
+            };
+            
+            let html = '';
+            for (const [key, value] of Object.entries(deviceData)) {
+                html += `<div><strong>${key}:</strong> ${value}</div>`;
+            }
+            
+            info.innerHTML = html;
+        }
+        
+        // Add window resize handler to update viewport info
+        window.addEventListener('resize', () => {
+            setTimeout(displayDeviceInfo, 100);
+        });
+        
+        // Add orientation change handler for mobile devices
+        window.addEventListener('orientationchange', () => {
+            setTimeout(displayDeviceInfo, 500);
+        });
+    </script>
+</body>
+</html>

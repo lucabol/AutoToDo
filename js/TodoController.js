@@ -22,6 +22,10 @@ class TodoController {
             validateConflicts: true
         });
         this.keyboardHandlers = new KeyboardHandlers(this);
+        
+        // Touch event management for mobile optimization
+        this.touchManager = new TouchEventManager(this);
+        
         this.init();
     }
 
@@ -589,6 +593,9 @@ class TodoController {
         this.bindDragAndDrop();
         this.bindThemeToggle();
         this.bindKeyboardShortcuts();
+        
+        // Bind touch events for mobile optimization
+        this.bindTouchEvents();
     }
 
     /**
@@ -599,7 +606,7 @@ class TodoController {
         if (themeToggle) {
             themeToggle.addEventListener('click', (e) => {
                 // Skip if handled by touch event
-                if (this.touchHandled) return;
+                if (this.touchManager.isTouchHandled()) return;
                 this.toggleTheme();
             });
         }
@@ -613,7 +620,7 @@ class TodoController {
         addTodoForm.addEventListener('submit', (e) => {
             e.preventDefault();
             // Skip if handled by touch event
-            if (this.touchHandled) return;
+            if (this.touchManager.isTouchHandled()) return;
             this.handleAddTodo();
         });
     }
@@ -635,7 +642,7 @@ class TodoController {
         const clearSearchBtn = document.getElementById('clearSearchBtn');
         clearSearchBtn.addEventListener('click', (e) => {
             // Skip if handled by touch event
-            if (this.touchHandled) return;
+            if (this.touchManager.isTouchHandled()) return;
             this.handleClearSearch();
         });
     }
@@ -643,135 +650,22 @@ class TodoController {
     /**
      * Bind todo list click event delegation
      */
+    /**
+     * Bind todo list click events and touch optimization
+     */
     bindTodoListClick() {
         this.view.todoList.addEventListener('click', (e) => {
             this.handleTodoListClick(e);
         });
-        
-        // Add touch events for faster mobile response
-        this.bindTouchEvents();
     }
 
     /**
-     * Bind touch events for improved mobile interaction
+     * Bind touch events for mobile optimization using TouchEventManager
+     * This provides faster response times and eliminates the 300ms click delay
      */
     bindTouchEvents() {
-        // Track touch state to prevent duplicate events
-        this.touchHandled = false;
-        
-        // Touch events for faster response on mobile devices
-        this.view.todoList.addEventListener('touchend', (e) => {
-            this.handleTouchEnd(e);
-        });
-        
-        this.view.todoList.addEventListener('touchstart', (e) => {
-            this.handleTouchStart(e);
-        });
-        
-        // Add touch events to other interactive elements
-        this.bindButtonTouchEvents();
-    }
-
-    /**
-     * Bind touch events to buttons for faster response
-     */
-    bindButtonTouchEvents() {
-        // Theme toggle button
-        const themeToggle = document.getElementById('themeToggle');
-        if (themeToggle) {
-            this.addFastTouch(themeToggle, () => this.toggleTheme());
-        }
-        
-        // Clear search button  
-        const clearSearchBtn = document.getElementById('clearSearchBtn');
-        if (clearSearchBtn) {
-            this.addFastTouch(clearSearchBtn, () => this.handleClearSearch());
-        }
-        
-        // Add todo form
-        const addTodoForm = document.getElementById('addTodoForm');
-        if (addTodoForm) {
-            addTodoForm.addEventListener('touchend', (e) => {
-                if (e.target.type === 'submit') {
-                    e.preventDefault();
-                    this.handleAddTodo();
-                    this.touchHandled = true;
-                }
-            });
-        }
-    }
-
-    /**
-     * Add fast touch response to an element
-     * @param {Element} element - Element to add touch handling to
-     * @param {Function} handler - Function to call on touch
-     */
-    addFastTouch(element, handler) {
-        let touchHandled = false;
-        
-        element.addEventListener('touchend', (e) => {
-            e.preventDefault();
-            if (!touchHandled) {
-                handler();
-                touchHandled = true;
-                // Reset flag after a short delay
-                setTimeout(() => touchHandled = false, 300);
-            }
-        });
-        
-        element.addEventListener('touchstart', (e) => {
-            touchHandled = false;
-        });
-    }
-
-    /**
-     * Handle touch start events
-     * @param {TouchEvent} e - Touch event
-     */
-    handleTouchStart(e) {
-        this.touchHandled = false;
-        // Add visual feedback for touch start
-        if (e.target.dataset.action) {
-            e.target.style.transform = 'scale(0.95)';
-        }
-    }
-
-    /**
-     * Handle touch end events for faster mobile response
-     * @param {TouchEvent} e - Touch event
-     */
-    handleTouchEnd(e) {
-        // Remove visual feedback
-        if (e.target.dataset.action) {
-            e.target.style.transform = '';
-        }
-        
-        // Only handle if we haven't already processed this touch
-        if (this.touchHandled) return;
-        
-        const action = e.target.dataset.action;
-        const id = e.target.dataset.id;
-
-        if (!action || !id) return;
-
-        // Prevent the subsequent click event
-        e.preventDefault();
-        this.touchHandled = true;
-        
-        // Reset touch handled flag after delay to allow click fallback
-        setTimeout(() => this.touchHandled = false, 300);
-
-        // Handle the action immediately for fast response
-        switch (action) {
-            case 'edit':
-                this.handleEditTodo(id);
-                break;
-            case 'delete':
-                this.handleDeleteTodo(id);
-                break;
-            case 'cancel-edit':
-                this.handleCancelEdit();
-                break;
+        if (this.touchManager) {
+            this.touchManager.bindAllTouchEvents();
         }
     }
 
@@ -908,7 +802,7 @@ class TodoController {
      */
     handleTodoListClick(e) {
         // Skip if this was already handled by touch event
-        if (this.touchHandled) {
+        if (this.touchManager.isTouchHandled()) {
             return;
         }
         
