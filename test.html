@@ -92,7 +92,10 @@
 </head>
 <body>
     <div class="test-container">
-        <h1>AutoToDo Search Functionality Unit Tests</h1>
+        <h1>AutoToDo Comprehensive Unit Tests</h1>
+        <p style="color: #666; text-align: center; margin-bottom: 20px;">
+            Includes Search Functionality Tests and Archive Functionality Tests
+        </p>
         
         <button class="run-tests-btn" onclick="runAllTests()">Run All Tests</button>
         
@@ -343,6 +346,106 @@
             }
         }
 
+        // TodoModel class for archive functionality testing
+        class TodoModel {
+            constructor() {
+                this.todos = [];
+            }
+
+            generateId() {
+                return 'test-id-' + Math.random().toString(36).substr(2, 9);
+            }
+
+            addTodo(text) {
+                if (!text || !text.trim()) {
+                    throw new Error('Todo text cannot be empty');
+                }
+
+                const todo = {
+                    id: this.generateId(),
+                    text: text.trim(),
+                    completed: false,
+                    archived: false,
+                    createdAt: new Date().toISOString()
+                };
+
+                this.todos.unshift(todo);
+                return todo;
+            }
+
+            toggleTodo(id) {
+                const todo = this.todos.find(t => t.id === id);
+                if (todo) {
+                    todo.completed = !todo.completed;
+                    return todo;
+                }
+                return null;
+            }
+
+            archiveTodo(id) {
+                const todo = this.todos.find(t => t.id === id);
+                if (todo && todo.completed) {
+                    todo.archived = true;
+                    return todo;
+                }
+                return null;
+            }
+
+            unarchiveTodo(id) {
+                const todo = this.todos.find(t => t.id === id);
+                if (todo && todo.archived) {
+                    todo.archived = false;
+                    return todo;
+                }
+                return null;
+            }
+
+            archiveCompletedTodos() {
+                let archived = 0;
+                this.todos.forEach(todo => {
+                    if (todo.completed && !todo.archived) {
+                        todo.archived = true;
+                        archived++;
+                    }
+                });
+                return archived;
+            }
+
+            getTodosFiltered(includeArchived = false) {
+                if (includeArchived) {
+                    return [...this.todos];
+                }
+                return this.todos.filter(todo => !todo.archived);
+            }
+
+            filterTodos(searchTerm, includeArchived = false) {
+                let todosToSearch = includeArchived ? this.todos : this.todos.filter(todo => !todo.archived);
+                
+                if (!searchTerm || !searchTerm.trim()) {
+                    return [...todosToSearch];
+                }
+                
+                const normalizedTerm = searchTerm.toLowerCase().trim();
+                return todosToSearch.filter(todo => 
+                    todo.text.toLowerCase().includes(normalizedTerm)
+                );
+            }
+
+            getStats(includeArchived = false) {
+                const activeTodos = includeArchived ? this.todos : this.todos.filter(todo => !todo.archived);
+                const total = activeTodos.length;
+                const completed = activeTodos.filter(t => t.completed).length;
+                const pending = total - completed;
+                const archived = this.todos.filter(t => t.archived).length;
+                
+                return { total, completed, pending, archived };
+            }
+
+            getTodo(id) {
+                return this.todos.find(t => t.id === id) || null;
+            }
+        }
+
         // Test Framework
         class TestFramework {
             constructor() {
@@ -375,6 +478,24 @@
             assertContains(array, item, message = '') {
                 if (!array.includes(item)) {
                     throw new Error(`${message} Expected array to contain: ${item}`);
+                }
+            }
+
+            assertNull(value, message = '') {
+                if (value !== null) {
+                    throw new Error(`${message} Expected: null, Got: ${value}`);
+                }
+            }
+
+            assertNotNull(value, message = '') {
+                if (value === null) {
+                    throw new Error(`${message} Expected: not null, Got: null`);
+                }
+            }
+
+            assertArrayLength(array, expectedLength, message = '') {
+                if (array.length !== expectedLength) {
+                    throw new Error(`${message} Expected array length: ${expectedLength}, Got: ${array.length}`);
                 }
             }
 
@@ -570,6 +691,278 @@
             // Clear search and verify all todos shown
             app.handleSearch('');
             testFramework.assertEqual(app.filterTodos().length, 2, 'Should show all todos when search cleared');
+        });
+
+        // ===== ARCHIVE FUNCTIONALITY TESTS =====
+
+        // Individual Todo Archiving Tests
+        testFramework.test('Archive individual completed todo - success case', () => {
+            const model = new TodoModel();
+            const todo = model.addTodo('Test todo for archiving');
+            model.toggleTodo(todo.id); // Complete the todo first
+            
+            const archivedTodo = model.archiveTodo(todo.id);
+            
+            testFramework.assertNotNull(archivedTodo, 'Archive individual completed todo should return todo object');
+            testFramework.assertTrue(archivedTodo.archived, 'Archived todo should have archived=true');
+            testFramework.assertTrue(archivedTodo.completed, 'Archived todo should remain completed');
+            testFramework.assertEqual(archivedTodo.id, todo.id, 'Archived todo should have same ID');
+        });
+
+        testFramework.test('Archive individual todo - cannot archive incomplete todo', () => {
+            const model = new TodoModel();
+            const todo = model.addTodo('Incomplete todo');
+            // Don't complete the todo
+            
+            const result = model.archiveTodo(todo.id);
+            
+            testFramework.assertNull(result, 'Cannot archive incomplete todo - should return null');
+            testFramework.assertFalse(todo.archived, 'Incomplete todo should remain unarchived');
+        });
+
+        testFramework.test('Archive individual todo - nonexistent todo', () => {
+            const model = new TodoModel();
+            const result = model.archiveTodo('nonexistent-id');
+            
+            testFramework.assertNull(result, 'Archive nonexistent todo should return null');
+        });
+
+        testFramework.test('Unarchive individual todo - success case', () => {
+            const model = new TodoModel();
+            const todo = model.addTodo('Test todo for unarchiving');
+            model.toggleTodo(todo.id); // Complete first
+            model.archiveTodo(todo.id); // Archive it
+            
+            const unarchivedTodo = model.unarchiveTodo(todo.id);
+            
+            testFramework.assertNotNull(unarchivedTodo, 'Unarchive archived todo should return todo object');
+            testFramework.assertFalse(unarchivedTodo.archived, 'Unarchived todo should have archived=false');
+            testFramework.assertTrue(unarchivedTodo.completed, 'Unarchived todo should remain completed');
+            testFramework.assertEqual(unarchivedTodo.id, todo.id, 'Unarchived todo should have same ID');
+        });
+
+        testFramework.test('Unarchive individual todo - cannot unarchive non-archived todo', () => {
+            const model = new TodoModel();
+            const todo = model.addTodo('Non-archived todo');
+            model.toggleTodo(todo.id); // Complete but don't archive
+            
+            const result = model.unarchiveTodo(todo.id);
+            
+            testFramework.assertNull(result, 'Cannot unarchive non-archived todo - should return null');
+            testFramework.assertFalse(todo.archived, 'Non-archived todo should remain unarchived');
+        });
+
+        testFramework.test('Unarchive individual todo - nonexistent todo', () => {
+            const model = new TodoModel();
+            const result = model.unarchiveTodo('nonexistent-id');
+            
+            testFramework.assertNull(result, 'Unarchive nonexistent todo should return null');
+        });
+
+        // Bulk Archive Operations Tests
+        testFramework.test('Bulk archive - multiple completed todos', () => {
+            const model = new TodoModel();
+            const todo1 = model.addTodo('First completed todo');
+            const todo2 = model.addTodo('Incomplete todo');
+            const todo3 = model.addTodo('Second completed todo');
+            const todo4 = model.addTodo('Third completed todo');
+            
+            // Complete some todos
+            model.toggleTodo(todo1.id);
+            model.toggleTodo(todo3.id);
+            model.toggleTodo(todo4.id);
+            
+            const archived = model.archiveCompletedTodos();
+            
+            testFramework.assertEqual(archived, 3, 'Should archive 3 completed todos');
+            testFramework.assertTrue(todo1.archived, 'First completed todo should be archived');
+            testFramework.assertTrue(todo3.archived, 'Second completed todo should be archived');
+            testFramework.assertFalse(todo2.archived, 'Incomplete todo should not be archived');
+            testFramework.assertTrue(todo4.archived, 'Third completed todo should be archived');
+        });
+
+        testFramework.test('Bulk archive - no completed todos', () => {
+            const model = new TodoModel();
+            model.addTodo('First incomplete todo');
+            model.addTodo('Second incomplete todo');
+            
+            const archived = model.archiveCompletedTodos();
+            
+            testFramework.assertEqual(archived, 0, 'Should archive 0 todos when none are completed');
+        });
+
+        testFramework.test('Bulk archive - mixed completed and already archived todos', () => {
+            const model = new TodoModel();
+            const todo1 = model.addTodo('Already archived todo');
+            const todo2 = model.addTodo('Newly completed todo');
+            
+            // Complete and archive first todo
+            model.toggleTodo(todo1.id);
+            model.archiveTodo(todo1.id);
+            
+            // Complete second todo but don't archive yet
+            model.toggleTodo(todo2.id);
+            
+            const archived = model.archiveCompletedTodos();
+            
+            testFramework.assertEqual(archived, 1, 'Should only archive newly completed todos');
+            testFramework.assertTrue(todo1.archived, 'Previously archived todo should remain archived');
+            testFramework.assertTrue(todo2.archived, 'Newly completed todo should be archived');
+        });
+
+        // Archive State Filtering Tests
+        testFramework.test('Get todos filtered - exclude archived by default', () => {
+            const model = new TodoModel();
+            const todo1 = model.addTodo('Active todo 1');
+            const todo2 = model.addTodo('Active todo 2');
+            const todo3 = model.addTodo('To be archived');
+            
+            model.toggleTodo(todo3.id);
+            model.archiveTodo(todo3.id);
+            
+            const activeTodos = model.getTodosFiltered();
+            
+            testFramework.assertArrayLength(activeTodos, 2, 'Should return only 2 active todos');
+            testFramework.assertTrue(activeTodos.some(t => t.id === todo1.id), 'Should include first active todo');
+            testFramework.assertTrue(activeTodos.some(t => t.id === todo2.id), 'Should include second active todo');
+            testFramework.assertFalse(activeTodos.some(t => t.id === todo3.id), 'Should not include archived todo');
+        });
+
+        testFramework.test('Get todos filtered - include archived when requested', () => {
+            const model = new TodoModel();
+            const todo1 = model.addTodo('Active todo');
+            const todo2 = model.addTodo('To be archived');
+            
+            model.toggleTodo(todo2.id);
+            model.archiveTodo(todo2.id);
+            
+            const allTodos = model.getTodosFiltered(true);
+            
+            testFramework.assertArrayLength(allTodos, 2, 'Should return both active and archived todos');
+            testFramework.assertTrue(allTodos.some(t => t.id === todo1.id), 'Should include active todo');
+            testFramework.assertTrue(allTodos.some(t => t.id === todo2.id), 'Should include archived todo');
+        });
+
+        // Search Integration with Archive Tests
+        testFramework.test('Filter todos with search - exclude archived by default', () => {
+            const model = new TodoModel();
+            const todo1 = model.addTodo('Buy groceries');
+            const todo2 = model.addTodo('Buy milk'); // This will be archived
+            
+            model.toggleTodo(todo2.id);
+            model.archiveTodo(todo2.id);
+            
+            const filtered = model.filterTodos('buy');
+            
+            testFramework.assertArrayLength(filtered, 1, 'Should find only 1 active todo matching search');
+            testFramework.assertEqual(filtered[0].id, todo1.id, 'Should return the active todo');
+        });
+
+        testFramework.test('Filter todos with search - include archived when requested', () => {
+            const model = new TodoModel();
+            const todo1 = model.addTodo('Buy groceries');
+            const todo2 = model.addTodo('Buy milk'); // This will be archived
+            
+            model.toggleTodo(todo2.id);
+            model.archiveTodo(todo2.id);
+            
+            const filtered = model.filterTodos('buy', true);
+            
+            testFramework.assertArrayLength(filtered, 2, 'Should find both active and archived todos matching search');
+            testFramework.assertTrue(filtered.some(t => t.id === todo1.id), 'Should include active todo');
+            testFramework.assertTrue(filtered.some(t => t.id === todo2.id), 'Should include archived todo');
+        });
+
+        // Statistics with Archive Tests
+        testFramework.test('Get stats - exclude archived by default', () => {
+            const model = new TodoModel();
+            const todo1 = model.addTodo('Pending todo');
+            const todo2 = model.addTodo('Completed todo');
+            const todo3 = model.addTodo('Archived todo');
+            
+            model.toggleTodo(todo2.id);
+            model.toggleTodo(todo3.id);
+            model.archiveTodo(todo3.id);
+            
+            const stats = model.getStats();
+            
+            testFramework.assertEqual(stats.total, 2, 'Total active todos should be 2');
+            testFramework.assertEqual(stats.pending, 1, 'Pending active todos should be 1');
+            testFramework.assertEqual(stats.completed, 1, 'Completed active todos should be 1');
+            testFramework.assertEqual(stats.archived, 1, 'Archived todos should be 1');
+        });
+
+        testFramework.test('Get stats - include archived when requested', () => {
+            const model = new TodoModel();
+            const todo1 = model.addTodo('Pending todo');
+            const todo2 = model.addTodo('Completed todo');
+            const todo3 = model.addTodo('Archived todo');
+            
+            model.toggleTodo(todo2.id);
+            model.toggleTodo(todo3.id);
+            model.archiveTodo(todo3.id);
+            
+            const stats = model.getStats(true);
+            
+            testFramework.assertEqual(stats.total, 3, 'Total todos including archived should be 3');
+            testFramework.assertEqual(stats.pending, 1, 'Pending todos should be 1');
+            testFramework.assertEqual(stats.completed, 2, 'Completed todos including archived should be 2');
+            testFramework.assertEqual(stats.archived, 1, 'Archived todos should be 1');
+        });
+
+        // Integration with Existing CRUD Operations Tests
+        testFramework.test('Archive state integration - new todo should not be archived', () => {
+            const model = new TodoModel();
+            const todo = model.addTodo('New todo');
+            
+            testFramework.assertFalse(todo.archived, 'New todo should not be archived initially');
+        });
+
+        testFramework.test('Archive state integration - toggle and archive workflow', () => {
+            const model = new TodoModel();
+            const todo = model.addTodo('Test workflow');
+            
+            // Complete then archive
+            model.toggleTodo(todo.id);
+            const archivedTodo = model.archiveTodo(todo.id);
+            
+            testFramework.assertTrue(archivedTodo.archived, 'Todo should be archived after archiving');
+            
+            // Unarchive
+            const unarchivedTodo = model.unarchiveTodo(todo.id);
+            
+            testFramework.assertFalse(unarchivedTodo.archived, 'Todo should not be archived after unarchiving');
+        });
+
+        // Edge Cases Tests
+        testFramework.test('Archive edge cases - empty model operations', () => {
+            const model = new TodoModel();
+            
+            const bulkResult = model.archiveCompletedTodos();
+            const activeTodos = model.getTodosFiltered();
+            const allTodos = model.getTodosFiltered(true);
+            
+            testFramework.assertEqual(bulkResult, 0, 'Bulk archive on empty model should return 0');
+            testFramework.assertArrayLength(activeTodos, 0, 'Active todos should be empty');
+            testFramework.assertArrayLength(allTodos, 0, 'All todos should be empty');
+        });
+
+        testFramework.test('Archive edge cases - multiple archive/unarchive cycles', () => {
+            const model = new TodoModel();
+            const todo = model.addTodo('Cycle test');
+            model.toggleTodo(todo.id);
+            
+            // First cycle
+            model.archiveTodo(todo.id);
+            testFramework.assertTrue(todo.archived, 'First archive should work');
+            model.unarchiveTodo(todo.id);
+            testFramework.assertFalse(todo.archived, 'First unarchive should work');
+            
+            // Second cycle
+            model.archiveTodo(todo.id);
+            testFramework.assertTrue(todo.archived, 'Second archive should work');
+            model.unarchiveTodo(todo.id);
+            testFramework.assertFalse(todo.archived, 'Second unarchive should work');
         });
 
         // Function to run all tests
