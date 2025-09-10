@@ -24,6 +24,35 @@
     }
 }
 
+/* Safari 14.3+ enhanced dark mode support */
+@media (prefers-color-scheme: dark) {
+    :root {
+        /* Safari 14.3+ automatic dark mode variables when no explicit theme is set */
+        --bg-primary: #1c1c1e;
+        --bg-secondary: #2c2c2e;
+        --bg-tertiary: #3a3a3c;
+        --text-primary: #ffffff;
+        --text-secondary: #98989d;
+        --border-primary: #48484a;
+        --accent-primary: #0a84ff;
+        --shadow: rgba(0, 0, 0, 0.3);
+    }
+}
+
+/* Safari 14.3+ light mode preservation */
+@media (prefers-color-scheme: light) {
+    :root {
+        --bg-primary: #f5f5f7;
+        --bg-secondary: white;
+        --bg-tertiary: #fafafa;
+        --text-primary: #1d1d1f;
+        --text-secondary: #86868b;
+        --border-primary: #e5e5e7;
+        --accent-primary: #007aff;
+        --shadow: rgba(0, 0, 0, 0.1);
+    }
+}
+
 /* Virtual scroll container styles */
 .virtual-scroll-container {
     height: 400px;
@@ -76,7 +105,10 @@
 }
 
 :root {
-    /* Light theme colors */
+    /* Safari 14.3+ color-scheme support */
+    color-scheme: light dark;
+    
+    /* Light theme colors with fallbacks for better Safari compatibility */
     --bg-primary: #f5f5f7;
     --bg-secondary: white;
     --bg-tertiary: #fafafa;
@@ -94,10 +126,17 @@
     --danger: #ff3b30;
     --danger-hover: #d70015;
     --shadow: rgba(0, 0, 0, 0.1);
+    
+    /* Safari 14.3+ enhanced transition properties */
+    --transition-colors: color 0.3s ease, background-color 0.3s ease, border-color 0.3s ease;
+    --transition-theme: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .dark-theme {
-    /* Dark theme colors */
+    /* Safari 14.3+ color-scheme for dark mode */
+    color-scheme: dark;
+    
+    /* Dark theme colors with improved Safari compatibility */
     --bg-primary: #1c1c1e;
     --bg-secondary: #2c2c2e;
     --bg-tertiary: #3a3a3c;
@@ -121,7 +160,9 @@ body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     background-color: var(--bg-primary);
     padding: 20px;
-    transition: background-color 0.3s ease;
+    transition: var(--transition-colors);
+    /* Safari 14.3+ color-scheme inheritance */
+    color-scheme: inherit;
 }
 
 .container {
@@ -131,7 +172,7 @@ body {
     border-radius: 12px;
     box-shadow: 0 4px 20px var(--shadow);
     padding: 30px;
-    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+    transition: var(--transition-theme);
 }
 
 .header {
