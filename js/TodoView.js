@@ -9,6 +9,12 @@ class TodoView {
         this.editingId = null;
         this.dragDropMessageShown = false;
         
+        // Archive controls
+        this.archiveCompletedBtn = document.getElementById('archiveCompletedBtn');
+        this.viewToggleBtn = document.getElementById('viewToggleBtn');
+        this.searchArchivedToggle = document.getElementById('searchArchivedToggle');
+        this.showingArchived = false;
+        
         // Performance optimizations
         this.useVirtualScrolling = true;
         this.virtualScrollThreshold = 50; // Use virtual scrolling for 50+ items
@@ -129,6 +135,8 @@ class TodoView {
             <span class="todo-text"></span>
             <div class="todo-actions">
                 <button class="edit-btn">Edit</button>
+                <button class="archive-btn">Archive</button>
+                <button class="unarchive-btn">Unarchive</button>
                 <button class="delete-btn">Delete</button>
             </div>
         `;
@@ -167,9 +175,18 @@ class TodoView {
         const checkbox = element.querySelector('.todo-checkbox');
         const textSpan = element.querySelector('.todo-text');
         const editBtn = element.querySelector('.edit-btn');
+        const archiveBtn = element.querySelector('.archive-btn');
+        const unarchiveBtn = element.querySelector('.unarchive-btn');
         const deleteBtn = element.querySelector('.delete-btn');
         
         element.setAttribute('data-id', todo.id);
+        
+        // Add archived class if todo is archived
+        if (todo.archived) {
+            element.classList.add('archived');
+        } else {
+            element.classList.remove('archived');
+        }
         
         if (checkbox) {
             checkbox.checked = todo.completed;
@@ -179,12 +196,27 @@ class TodoView {
         
         if (textSpan) {
             textSpan.textContent = todo.text;
-            textSpan.className = todo.completed ? 'todo-text completed' : 'todo-text';
+            let className = 'todo-text';
+            if (todo.completed) className += ' completed';
+            if (todo.archived) className += ' archived';
+            textSpan.className = className;
         }
         
         if (editBtn) {
             editBtn.setAttribute('data-action', 'edit');
             editBtn.setAttribute('data-id', todo.id);
+        }
+        
+        if (archiveBtn) {
+            archiveBtn.setAttribute('data-action', 'archive');
+            archiveBtn.setAttribute('data-id', todo.id);
+            archiveBtn.style.display = todo.archived ? 'none' : 'inline-block';
+        }
+        
+        if (unarchiveBtn) {
+            unarchiveBtn.setAttribute('data-action', 'unarchive');
+            unarchiveBtn.setAttribute('data-id', todo.id);
+            unarchiveBtn.style.display = todo.archived ? 'inline-block' : 'none';
         }
         
         if (deleteBtn) {
@@ -472,5 +504,60 @@ class TodoView {
         const message = 'Your browser does not support drag and drop functionality. You can still add, edit, delete, and search todos normally.';
         this.showMessage(message, 'info');
         this.dragDropMessageShown = true;
+    }
+
+    /**
+     * Update archive controls based on current state
+     * @param {Object} stats - Todo statistics
+     */
+    updateArchiveControls(stats) {
+        if (this.archiveCompletedBtn) {
+            this.archiveCompletedBtn.disabled = stats.completed === 0;
+            this.archiveCompletedBtn.textContent = stats.completed > 0 
+                ? `Archive Completed (${stats.completed})` 
+                : 'Archive Completed';
+        }
+
+        if (this.viewToggleBtn) {
+            if (this.showingArchived) {
+                this.viewToggleBtn.textContent = 'Show Active';
+                this.viewToggleBtn.classList.add('showing-archived');
+            } else {
+                this.viewToggleBtn.textContent = stats.archived > 0 
+                    ? `Show Archived (${stats.archived})`
+                    : 'Show Archived';
+                this.viewToggleBtn.classList.remove('showing-archived');
+            }
+            this.viewToggleBtn.disabled = stats.archived === 0 && !this.showingArchived;
+        }
+    }
+
+    /**
+     * Toggle showing archived todos
+     */
+    toggleArchivedView() {
+        this.showingArchived = !this.showingArchived;
+        return this.showingArchived;
+    }
+
+    /**
+     * Get whether archived todos are included in search
+     */
+    getSearchIncludesArchived() {
+        return this.searchArchivedToggle ? this.searchArchivedToggle.checked : false;
+    }
+
+    /**
+     * Show success message for archive operations
+     * @param {string} action - The action performed ('archived' or 'unarchived')
+     * @param {number} count - Number of items affected
+     */
+    showArchiveSuccess(action, count = 1) {
+        const messages = {
+            'archived': count > 1 ? `${count} todos archived` : 'Todo archived',
+            'unarchived': count > 1 ? `${count} todos unarchived` : 'Todo unarchived',
+            'archive-completed': `${count} completed todo${count > 1 ? 's' : ''} archived`
+        };
+        this.showMessage(messages[action] || `${count} todo${count > 1 ? 's' : ''} ${action}`, 'success');
     }
 }

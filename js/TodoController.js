@@ -402,6 +402,7 @@ class TodoController {
         this.bindAddTodoForm();
         this.bindSearchInput();
         this.bindClearSearchButton();
+        this.bindArchiveControls();
         this.bindTodoListClick();
         this.bindTodoListSubmit();
         this.bindTodoListChange();
@@ -451,6 +452,33 @@ class TodoController {
         clearSearchBtn.addEventListener('click', () => {
             this.handleClearSearch();
         });
+    }
+
+    /**
+     * Bind archive controls event handlers
+     */
+    bindArchiveControls() {
+        const archiveCompletedBtn = document.getElementById('archiveCompletedBtn');
+        const viewToggleBtn = document.getElementById('viewToggleBtn');
+        const searchArchivedToggle = document.getElementById('searchArchivedToggle');
+
+        if (archiveCompletedBtn) {
+            archiveCompletedBtn.addEventListener('click', () => {
+                this.handleArchiveCompleted();
+            });
+        }
+
+        if (viewToggleBtn) {
+            viewToggleBtn.addEventListener('click', () => {
+                this.handleToggleArchivedView();
+            });
+        }
+
+        if (searchArchivedToggle) {
+            searchArchivedToggle.addEventListener('change', () => {
+                this.handleSearchArchivedToggle();
+            });
+        }
     }
 
     /**
@@ -605,6 +633,12 @@ class TodoController {
                 break;
             case 'delete':
                 this.handleDeleteTodo(id);
+                break;
+            case 'archive':
+                this.handleArchiveTodo(id);
+                break;
+            case 'unarchive':
+                this.handleUnarchiveTodo(id);
                 break;
             case 'cancel-edit':
                 this.handleCancelEdit();
@@ -946,10 +980,82 @@ class TodoController {
     }
 
     /**
-     * Get current todos based on search filter
+     * Get current todos based on search filter and archive view state
      * @returns {Array} Current filtered todos
      */
     getCurrentTodos() {
-        return this.searchTerm ? this.model.filterTodos(this.searchTerm) : this.model.getAllTodos();
+        if (this.searchTerm) {
+            return this.model.filterTodos(this.searchTerm, this.view.getSearchIncludesArchived());
+        }
+        
+        return this.view.showingArchived ? this.model.getArchivedTodos() : this.model.getActiveTodos();
+    }
+
+    /**
+     * Handle archiving a single todo
+     * @param {string} id - Todo ID to archive
+     */
+    handleArchiveTodo(id) {
+        const todo = this.model.archiveTodo(id);
+        if (todo) {
+            this.view.showArchiveSuccess('archived');
+            this.render();
+        }
+    }
+
+    /**
+     * Handle unarchiving a single todo
+     * @param {string} id - Todo ID to unarchive
+     */
+    handleUnarchiveTodo(id) {
+        const todo = this.model.unarchiveTodo(id);
+        if (todo) {
+            this.view.showArchiveSuccess('unarchived');
+            this.render();
+        }
+    }
+
+    /**
+     * Handle archiving all completed todos
+     */
+    handleArchiveCompleted() {
+        const archivedCount = this.model.archiveCompleted();
+        if (archivedCount > 0) {
+            this.view.showArchiveSuccess('archive-completed', archivedCount);
+            this.render();
+        }
+    }
+
+    /**
+     * Handle toggling between active and archived view
+     */
+    handleToggleArchivedView() {
+        this.view.toggleArchivedView();
+        this.render();
+    }
+
+    /**
+     * Handle toggling search archived checkbox
+     */
+    handleSearchArchivedToggle() {
+        if (this.searchTerm) {
+            // Re-run search with new archive setting
+            this.performSearch();
+        }
+    }
+
+    /**
+     * Update the render method to handle archive controls
+     */
+    render() {
+        const currentTodos = this.getCurrentTodos();
+        const allTodos = this.model.getAllTodos();
+        const stats = this.model.getStats();
+        
+        // Update archive controls
+        this.view.updateArchiveControls(stats);
+        
+        // Render todos
+        this.view.render(currentTodos, allTodos, this.searchTerm, this.dragDropSupported);
     }
 }

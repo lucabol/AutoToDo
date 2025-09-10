@@ -110,6 +110,7 @@ class TodoModel {
             id: this.generateId(),
             text: text.trim(),
             completed: false,
+            archived: false,
             createdAt: new Date().toISOString()
         };
 
@@ -188,19 +189,103 @@ class TodoModel {
     }
 
     /**
-     * Filter todos by search term with enhanced matching
+     * Get count of todos
+     * @returns {Object} Object with total, completed, pending, archived, and active counts
+     */
+    getStats() {
+        const total = this.todos.length;
+        const completed = this.todos.filter(t => t.completed).length;
+        const archived = this.todos.filter(t => t.archived).length;
+        const active = this.todos.filter(t => !t.archived).length;
+        const pending = total - completed;
+        
+        return { total, completed, pending, archived, active };
+    }
+
+    /**
+     * Archive a todo by ID
+     * @param {string} id - Todo ID to archive
+     * @returns {Object|null} Updated todo object or null if not found
+     */
+    archiveTodo(id) {
+        const todo = this.todos.find(t => t.id === id);
+        if (todo) {
+            todo.archived = true;
+            this.saveTodos();
+            return todo;
+        }
+        return null;
+    }
+
+    /**
+     * Unarchive a todo by ID
+     * @param {string} id - Todo ID to unarchive
+     * @returns {Object|null} Updated todo object or null if not found
+     */
+    unarchiveTodo(id) {
+        const todo = this.todos.find(t => t.id === id);
+        if (todo) {
+            todo.archived = false;
+            this.saveTodos();
+            return todo;
+        }
+        return null;
+    }
+
+    /**
+     * Archive all completed todos
+     * @returns {number} Number of todos archived
+     */
+    archiveCompleted() {
+        let archivedCount = 0;
+        this.todos.forEach(todo => {
+            if (todo.completed && !todo.archived) {
+                todo.archived = true;
+                archivedCount++;
+            }
+        });
+        
+        if (archivedCount > 0) {
+            this.saveTodos();
+        }
+        
+        return archivedCount;
+    }
+
+    /**
+     * Get active (non-archived) todos
+     * @returns {Array} Array of active todos
+     */
+    getActiveTodos() {
+        return this.todos.filter(t => !t.archived);
+    }
+
+    /**
+     * Get archived todos
+     * @returns {Array} Array of archived todos
+     */
+    getArchivedTodos() {
+        return this.todos.filter(t => t.archived);
+    }
+
+    /**
+     * Filter todos by search term with enhanced matching, optionally including archived todos
      * @param {string} searchTerm - Term to search for in todo text
+     * @param {boolean} includeArchived - Whether to include archived todos in search results
      * @returns {Array} Array of filtered todos
      */
-    filterTodos(searchTerm) {
+    filterTodos(searchTerm, includeArchived = false) {
         if (!searchTerm || !searchTerm.trim()) {
-            return this.getAllTodos();
+            return includeArchived ? this.getAllTodos() : this.getActiveTodos();
         }
         
         // Normalize the search term: trim and collapse multiple spaces
         const normalizedTerm = searchTerm.toLowerCase().trim().replace(/\s+/g, ' ');
         
-        return this.todos.filter(todo => {
+        // Get the appropriate todo set to search
+        const todosToSearch = includeArchived ? this.todos : this.getActiveTodos();
+        
+        return todosToSearch.filter(todo => {
             const todoText = todo.text.toLowerCase();
             
             // If the search term contains multiple words, check if all words are present
@@ -235,18 +320,6 @@ class TodoModel {
         
         this.saveTodos();
         return true;
-    }
-
-    /**
-     * Get count of todos
-     * @returns {Object} Object with total, completed, and pending counts
-     */
-    getStats() {
-        const total = this.todos.length;
-        const completed = this.todos.filter(t => t.completed).length;
-        const pending = total - completed;
-        
-        return { total, completed, pending };
     }
 }
 

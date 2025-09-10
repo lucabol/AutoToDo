@@ -218,6 +218,93 @@ h1 {
     cursor: not-allowed;
 }
 
+/* Archive Controls */
+.archive-controls {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.archive-btn, .view-toggle-btn {
+    background: var(--accent-primary);
+    border: none;
+    border-radius: 8px;
+    padding: 12px 16px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    color: white;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+}
+
+.archive-btn:hover, .view-toggle-btn:hover {
+    background: var(--accent-hover);
+    transform: translateY(-1px);
+}
+
+.archive-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.view-toggle-btn.showing-archived {
+    background: var(--success-color);
+}
+
+.search-archived-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+    color: var(--text-secondary);
+    cursor: pointer;
+}
+
+.search-archived-toggle input[type="checkbox"] {
+    margin: 0;
+    cursor: pointer;
+}
+
+/* Archive buttons in todo items */
+.todo-actions .archive-btn,
+.todo-actions .unarchive-btn {
+    background: var(--accent-secondary);
+    border: none;
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 12px;
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.todo-actions .archive-btn:hover {
+    background: var(--accent-primary);
+}
+
+.todo-actions .unarchive-btn {
+    background: var(--success-color);
+}
+
+.todo-actions .unarchive-btn:hover {
+    background: var(--success-hover);
+}
+
+/* Archived todo styling */
+.todo-item.archived {
+    opacity: 0.7;
+    background: var(--bg-tertiary);
+}
+
+.todo-text.archived {
+    font-style: italic;
+    color: var(--text-secondary);
+}
+
 .add-todo-form {
     display: flex;
     gap: 12px;
