@@ -62,11 +62,14 @@ class TodoController {
     }
 
     /**
-     * Initialize theme management
+     * Initialize theme management with Safari 14.3+ enhancements
      */
     initializeTheme() {
         // Use the same storage manager as the model
         this.storage = this.model.storage;
+        
+        // Safari 14.3+ detection for enhanced features
+        this.isSafari143Plus = this.detectSafari143Plus();
         
         // Check for saved theme preference or system preference
         const savedTheme = this.storage.getItem('todo-theme');
@@ -75,16 +78,63 @@ class TodoController {
         const initialTheme = savedTheme || (systemPrefersDark ? 'dark' : 'light');
         this.setTheme(initialTheme, false); // false = don't save to storage on init
         
-        // Listen for system theme changes
-        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+        // Listen for system theme changes with Safari 14.3+ optimizations
+        const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+        const themeChangeHandler = (e) => {
             if (!this.storage.getItem('todo-theme')) {
                 this.setTheme(e.matches ? 'dark' : 'light', false);
             }
-        });
+        };
+        
+        // Use enhanced event handling for Safari 14.3+
+        if (mediaQuery.addEventListener) {
+            mediaQuery.addEventListener('change', themeChangeHandler);
+        } else {
+            // Fallback for older browsers
+            mediaQuery.addListener(themeChangeHandler);
+        }
+        
+        // Safari 14.3+ color-scheme meta tag support
+        this.updateColorSchemeMeta(initialTheme);
+    }
+    
+    /**
+     * Detect Safari 14.3+ for enhanced dark mode features
+     * @returns {boolean} True if Safari 14.3 or later
+     */
+    detectSafari143Plus() {
+        const userAgent = navigator.userAgent;
+        const isSafari = /Safari/.test(userAgent) && /Version/.test(userAgent);
+        
+        if (!isSafari) return false;
+        
+        // Check for Safari 14.3+ specific features
+        const hasColorSchemeSupport = CSS.supports('color-scheme', 'light dark');
+        const hasBackdropFilter = CSS.supports('backdrop-filter', 'blur(10px)');
+        const hasWebKitColorScheme = CSS.supports('-webkit-color-scheme', 'light dark');
+        
+        return hasColorSchemeSupport && hasBackdropFilter && hasWebKitColorScheme;
+    }
+    
+    /**
+     * Update color-scheme meta tag for Safari 14.3+ system integration
+     * @param {string} theme - Current theme
+     */
+    updateColorSchemeMeta(theme) {
+        if (!this.isSafari143Plus) return;
+        
+        let metaTag = document.querySelector('meta[name="color-scheme"]');
+        if (!metaTag) {
+            metaTag = document.createElement('meta');
+            metaTag.name = 'color-scheme';
+            document.head.appendChild(metaTag);
+        }
+        
+        metaTag.content = theme === 'dark' ? 'dark light' : 'light dark';
     }
 
     /**
-     * Set the application theme
+     * Set the application theme with Safari 14.3+ enhancements
      * @param {string} theme - 'light' or 'dark'
      * @param {boolean} save - Whether to save preference to storage
      */
@@ -94,21 +144,47 @@ class TodoController {
         const themeIcon = themeToggle?.querySelector('.theme-icon');
         const themeText = themeToggle?.querySelector('.theme-text');
 
+        // Safari 14.3+ smooth transition preparation
+        if (this.isSafari143Plus) {
+            body.style.transition = 'var(--transition-theme-safari, all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94))';
+        }
+
         if (theme === 'dark') {
             body.classList.add('dark-theme');
             if (themeIcon) themeIcon.textContent = '☀️';
             if (themeText) themeText.textContent = 'Light';
+            
+            // Safari 14.3+ meta tag update
+            this.updateColorSchemeMeta('dark');
         } else {
             body.classList.remove('dark-theme');
             if (themeIcon) themeIcon.textContent = '🌙';
             if (themeText) themeText.textContent = 'Dark';
+            
+            // Safari 14.3+ meta tag update
+            this.updateColorSchemeMeta('light');
         }
 
+        // Save preference
         if (save && this.storage) {
             this.storage.setItem('todo-theme', theme);
         }
 
         this.currentTheme = theme;
+        
+        // Trigger custom event for Safari 14.3+ optimizations
+        if (this.isSafari143Plus) {
+            window.dispatchEvent(new CustomEvent('themechange', {
+                detail: { theme, isSafari143Plus: true }
+            }));
+        }
+        
+        // Ensure smooth transitions complete properly
+        setTimeout(() => {
+            if (this.isSafari143Plus) {
+                body.style.transition = '';
+            }
+        }, 300);
     }
 
     /**

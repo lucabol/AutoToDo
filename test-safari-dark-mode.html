@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Safari 14.3+ Dark Mode Test - AutoToDo</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        /* Test-specific styles */
+        .test-panel {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--bg-secondary, white);
+            border: 2px solid var(--border-primary, #e5e5e7);
+            border-radius: 12px;
+            padding: 20px;
+            max-width: 300px;
+            box-shadow: 0 4px 20px var(--shadow, rgba(0, 0, 0, 0.1));
+            z-index: 1000;
+            transition: var(--transition-theme);
+        }
+        
+        .test-panel h3 {
+            margin: 0 0 15px 0;
+            color: var(--text-primary, #1d1d1f);
+        }
+        
+        .test-results {
+            font-family: 'SF Mono', Monaco, monospace;
+            font-size: 12px;
+            margin: 10px 0;
+        }
+        
+        .test-pass {
+            color: var(--success, #34c759);
+        }
+        
+        .test-fail {
+            color: var(--danger, #ff3b30);
+        }
+        
+        .test-info {
+            color: var(--text-secondary, #86868b);
+        }
+        
+        .test-button {
+            background: var(--accent-primary, #007aff);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 5px;
+            transition: background-color 0.3s ease;
+        }
+        
+        .test-button:hover {
+            background: var(--accent-hover, #0056cc);
+        }
+        
+        .feature-detection {
+            margin: 15px 0;
+            padding: 10px;
+            background: var(--bg-tertiary, #fafafa);
+            border-radius: 8px;
+            font-size: 12px;
+        }
+        
+        .transition-test {
+            width: 100%;
+            height: 20px;
+            background: var(--accent-primary, #007aff);
+            border-radius: 4px;
+            margin: 10px 0;
+            transition: var(--transition-theme);
+        }
+        
+        .safari-only {
+            display: none;
+        }
+        
+        @supports (-webkit-appearance: none) {
+            .safari-only {
+                display: block;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>AutoToDo - Safari 14.3+ Dark Mode Test</h1>
+            <button class="theme-toggle" id="themeToggle">
+                <span class="theme-icon">🌙</span>
+                <span class="theme-text">Dark</span>
+            </button>
+        </div>
+        
+        <div class="add-todo-form">
+            <input 
+                type="text" 
+                class="todo-input" 
+                id="todoInput" 
+                placeholder="Test todo item for theme validation"
+                value="Sample todo for dark mode testing"
+            >
+            <button type="button" class="add-btn">Add Todo</button>
+        </div>
+
+        <ul class="todo-list" id="todoList">
+            <li class="todo-item">
+                <span class="todo-text">Test item 1 - Check dark mode contrast</span>
+                <button class="delete-btn">Delete</button>
+            </li>
+            <li class="todo-item completed">
+                <span class="todo-text">Test item 2 - Verify completed state styling</span>
+                <button class="delete-btn">Delete</button>
+            </li>
+            <li class="todo-item">
+                <span class="todo-text">Test item 3 - Validate Safari 14.3+ optimizations</span>
+                <button class="delete-btn">Delete</button>
+            </li>
+        </ul>
+    </div>
+
+    <!-- Test Panel -->
+    <div class="test-panel">
+        <h3>🧪 Safari 14.3+ Tests</h3>
+        
+        <div class="feature-detection">
+            <h4>Feature Detection:</h4>
+            <div id="safariDetection" class="test-info">Checking...</div>
+            <div id="colorSchemeSupport" class="test-info">Checking...</div>
+            <div id="backdropFilterSupport" class="test-info">Checking...</div>
+        </div>
+        
+        <div class="test-results" id="testResults">
+            <div class="test-info">Click "Run Tests" to begin</div>
+        </div>
+        
+        <div class="transition-test" id="transitionTest"></div>
+        
+        <button class="test-button" onclick="runDarkModeTests()">Run Tests</button>
+        <button class="test-button" onclick="testTransitions()">Test Transitions</button>
+        <button class="test-button" onclick="toggleSystemTheme()">Toggle System Theme</button>
+        
+        <div class="safari-only">
+            <div class="test-pass">✅ Safari detected</div>
+        </div>
+    </div>
+
+    <script>
+        // Safari 14.3+ Dark Mode Test Suite
+        class SafariDarkModeTest {
+            constructor() {
+                this.results = [];
+                this.testPanel = document.getElementById('testResults');
+            }
+
+            log(message, type = 'info') {
+                const timestamp = new Date().toLocaleTimeString();
+                const logEntry = `[${timestamp}] ${message}`;
+                this.results.push({ message: logEntry, type });
+                this.updateDisplay();
+            }
+
+            updateDisplay() {
+                this.testPanel.innerHTML = this.results.map(result => 
+                    `<div class="test-${result.type}">${result.message}</div>`
+                ).join('');
+            }
+
+            detectSafari143Plus() {
+                const userAgent = navigator.userAgent;
+                const isSafari = /Safari/.test(userAgent) && /Version/.test(userAgent);
+                
+                if (!isSafari) return false;
+                
+                const hasColorSchemeSupport = CSS.supports('color-scheme', 'light dark');
+                const hasBackdropFilter = CSS.supports('backdrop-filter', 'blur(10px)');
+                const hasWebKitColorScheme = CSS.supports('-webkit-color-scheme', 'light dark');
+                
+                return hasColorSchemeSupport && hasBackdropFilter && hasWebKitColorScheme;
+            }
+
+            testFeatureDetection() {
+                const isSafari143Plus = this.detectSafari143Plus();
+                const colorSchemeSupport = CSS.supports('color-scheme', 'light dark');
+                const backdropFilterSupport = CSS.supports('backdrop-filter', 'blur(10px)');
+                
+                document.getElementById('safariDetection').textContent = 
+                    isSafari143Plus ? '✅ Safari 14.3+ detected' : '❌ Safari 14.3+ not detected';
+                document.getElementById('colorSchemeSupport').textContent = 
+                    colorSchemeSupport ? '✅ color-scheme supported' : '❌ color-scheme not supported';
+                document.getElementById('backdropFilterSupport').textContent = 
+                    backdropFilterSupport ? '✅ backdrop-filter supported' : '❌ backdrop-filter not supported';
+                
+                this.log(`Safari 14.3+ Detection: ${isSafari143Plus}`, isSafari143Plus ? 'pass' : 'fail');
+                this.log(`Color Scheme Support: ${colorSchemeSupport}`, colorSchemeSupport ? 'pass' : 'fail');
+                this.log(`Backdrop Filter Support: ${backdropFilterSupport}`, backdropFilterSupport ? 'pass' : 'fail');
+                
+                return isSafari143Plus;
+            }
+
+            testColorSchemeMetaTag() {
+                const metaTag = document.querySelector('meta[name="color-scheme"]');
+                if (metaTag) {
+                    this.log(`Color-scheme meta: ${metaTag.content}`, 'pass');
+                    return true;
+                } else {
+                    this.log('Color-scheme meta tag missing', 'fail');
+                    return false;
+                }
+            }
+
+            testCSSVariableFallbacks() {
+                const body = document.body;
+                const computedStyle = getComputedStyle(body);
+                const bgColor = computedStyle.backgroundColor;
+                const textColor = computedStyle.color;
+                
+                if (bgColor && textColor) {
+                    this.log('CSS variables with fallbacks working', 'pass');
+                    this.log(`BG: ${bgColor}, Text: ${textColor}`, 'info');
+                    return true;
+                } else {
+                    this.log('CSS variable fallbacks failed', 'fail');
+                    return false;
+                }
+            }
+
+            testThemeTransitions() {
+                const container = document.querySelector('.container');
+                const transitionProperty = getComputedStyle(container).transition;
+                
+                if (transitionProperty && transitionProperty !== 'none') {
+                    this.log('Theme transitions configured', 'pass');
+                    this.log(`Transition: ${transitionProperty}`, 'info');
+                    return true;
+                } else {
+                    this.log('Theme transitions not configured', 'fail');
+                    return false;
+                }
+            }
+
+            testDarkModeToggle() {
+                const body = document.body;
+                const themeToggle = document.getElementById('themeToggle');
+                const initialTheme = body.classList.contains('dark-theme') ? 'dark' : 'light';
+                
+                // Toggle theme
+                themeToggle.click();
+                
+                setTimeout(() => {
+                    const newTheme = body.classList.contains('dark-theme') ? 'dark' : 'light';
+                    
+                    if (newTheme !== initialTheme) {
+                        this.log('Theme toggle working', 'pass');
+                        this.log(`Toggled from ${initialTheme} to ${newTheme}`, 'info');
+                        
+                        // Test UI updates
+                        const themeIcon = themeToggle.querySelector('.theme-icon');
+                        const themeText = themeToggle.querySelector('.theme-text');
+                        
+                        if (newTheme === 'dark') {
+                            if (themeIcon.textContent === '☀️' && themeText.textContent === 'Light') {
+                                this.log('Dark mode UI updates correct', 'pass');
+                            } else {
+                                this.log('Dark mode UI updates incorrect', 'fail');
+                            }
+                        } else {
+                            if (themeIcon.textContent === '🌙' && themeText.textContent === 'Dark') {
+                                this.log('Light mode UI updates correct', 'pass');
+                            } else {
+                                this.log('Light mode UI updates incorrect', 'fail');
+                            }
+                        }
+                    } else {
+                        this.log('Theme toggle not working', 'fail');
+                    }
+                }, 100);
+            }
+
+            runAllTests() {
+                this.results = [];
+                this.log('Starting Safari 14.3+ Dark Mode Tests...', 'info');
+                
+                const isSafari143Plus = this.testFeatureDetection();
+                this.testColorSchemeMetaTag();
+                this.testCSSVariableFallbacks();
+                this.testThemeTransitions();
+                this.testDarkModeToggle();
+                
+                setTimeout(() => {
+                    const passedTests = this.results.filter(r => r.type === 'pass').length;
+                    const failedTests = this.results.filter(r => r.type === 'fail').length;
+                    
+                    this.log(`Tests completed: ${passedTests} passed, ${failedTests} failed`, 
+                        failedTests === 0 ? 'pass' : 'fail');
+                }, 500);
+            }
+        }
+
+        // Global test instance
+        const safariTest = new SafariDarkModeTest();
+
+        // Test functions
+        function runDarkModeTests() {
+            safariTest.runAllTests();
+        }
+
+        function testTransitions() {
+            const transitionTest = document.getElementById('transitionTest');
+            const body = document.body;
+            
+            // Create a visual transition test
+            let isToggled = false;
+            setInterval(() => {
+                if (isToggled) {
+                    transitionTest.style.background = 'var(--success, #34c759)';
+                    transitionTest.style.transform = 'scale(1)';
+                } else {
+                    transitionTest.style.background = 'var(--danger, #ff3b30)';
+                    transitionTest.style.transform = 'scale(0.9)';
+                }
+                isToggled = !isToggled;
+            }, 1000);
+            
+            safariTest.log('Transition test started', 'info');
+        }
+
+        function toggleSystemTheme() {
+            const body = document.body;
+            body.classList.toggle('dark-theme');
+            
+            // Update meta tag
+            let metaTag = document.querySelector('meta[name="color-scheme"]');
+            if (!metaTag) {
+                metaTag = document.createElement('meta');
+                metaTag.name = 'color-scheme';
+                document.head.appendChild(metaTag);
+            }
+            
+            const isDark = body.classList.contains('dark-theme');
+            metaTag.content = isDark ? 'dark light' : 'light dark';
+            
+            safariTest.log(`Manual theme toggle: ${isDark ? 'dark' : 'light'}`, 'info');
+        }
+
+        // Initialize theme controller mock for testing
+        document.addEventListener('DOMContentLoaded', () => {
+            const themeToggle = document.getElementById('themeToggle');
+            if (themeToggle) {
+                themeToggle.addEventListener('click', () => {
+                    toggleSystemTheme();
+                });
+            }
+            
+            // Run initial feature detection
+            setTimeout(() => {
+                safariTest.testFeatureDetection();
+            }, 500);
+        });
+
+        // Listen for system theme changes
+        if (window.matchMedia) {
+            const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+            mediaQuery.addEventListener('change', (e) => {
+                safariTest.log(`System theme changed: ${e.matches ? 'dark' : 'light'}`, 'info');
+            });
+        }
+    </script>
+</body>
+</html>

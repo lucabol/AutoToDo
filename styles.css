@@ -21,6 +21,52 @@
         -webkit-transform: translateZ(0);
         -webkit-backface-visibility: hidden;
         -webkit-perspective: 1000px;
+        will-change: var(--safari-will-change);
+    }
+    
+    /* Safari 14.3+ enhanced backdrop support */
+    .container {
+        -webkit-backdrop-filter: var(--safari-backdrop-filter);
+        backdrop-filter: var(--safari-backdrop-filter);
+    }
+    
+    /* Safari 14.3+ smooth scrolling optimization */
+    * {
+        -webkit-overflow-scrolling: touch;
+    }
+}
+
+/* Safari 14.3+ specific dark mode enhancements */
+@media (prefers-color-scheme: dark) and (-webkit-min-device-pixel-ratio: 1) {
+    :root {
+        /* Enhanced dark mode variables for Safari 14.3+ with high DPI */
+        --safari-dark-overlay: rgba(0, 0, 0, 0.4);
+        --safari-dark-backdrop: rgba(28, 28, 30, 0.8);
+    }
+    
+    .container {
+        -webkit-backdrop-filter: blur(20px) saturate(180%);
+        backdrop-filter: blur(20px) saturate(180%);
+        background: linear-gradient(135deg, 
+            var(--bg-primary, #1c1c1e) 0%, 
+            var(--bg-secondary, #2c2c2e) 100%);
+    }
+}
+
+/* Safari 14.3+ light mode enhancements */
+@media (prefers-color-scheme: light) and (-webkit-min-device-pixel-ratio: 1) {
+    :root {
+        /* Enhanced light mode variables for Safari 14.3+ with high DPI */
+        --safari-light-overlay: rgba(255, 255, 255, 0.7);
+        --safari-light-backdrop: rgba(245, 245, 247, 0.8);
+    }
+    
+    .container {
+        -webkit-backdrop-filter: blur(20px) saturate(120%);
+        backdrop-filter: blur(20px) saturate(120%);
+        background: linear-gradient(135deg, 
+            var(--bg-primary, #f5f5f7) 0%, 
+            var(--bg-secondary, white) 100%);
     }
 }
 
@@ -105,74 +151,132 @@
 }
 
 :root {
-    /* Safari 14.3+ color-scheme support */
+    /* Safari 14.3+ color-scheme support with automatic fallback */
     color-scheme: light dark;
+    -webkit-color-scheme: light dark; /* Safari 14.3+ specific */
     
-    /* Light theme colors with fallbacks for better Safari compatibility */
+    /* Light theme colors with enhanced Safari 14.3+ fallbacks */
     --bg-primary: #f5f5f7;
+    --bg-primary-fallback: rgb(245, 245, 247); /* RGB fallback for older Safari */
     --bg-secondary: white;
+    --bg-secondary-fallback: rgb(255, 255, 255);
     --bg-tertiary: #fafafa;
+    --bg-tertiary-fallback: rgb(250, 250, 250);
     --bg-quaternary: #f8f8f8;
+    --bg-quaternary-fallback: rgb(248, 248, 248);
     --bg-hover: #f0f0f2;
+    --bg-hover-fallback: rgb(240, 240, 242);
     --text-primary: #1d1d1f;
+    --text-primary-fallback: rgb(29, 29, 31);
     --text-secondary: #86868b;
+    --text-secondary-fallback: rgb(134, 134, 139);
     --border-primary: #e5e5e7;
+    --border-primary-fallback: rgb(229, 229, 231);
     --border-hover: #d1d1d6;
+    --border-hover-fallback: rgb(209, 209, 214);
     --accent-primary: #007aff;
+    --accent-primary-fallback: rgb(0, 122, 255);
     --accent-hover: #0056cc;
+    --accent-hover-fallback: rgb(0, 86, 204);
     --success: #34c759;
+    --success-fallback: rgb(52, 199, 89);
     --warning: #ff9500;
+    --warning-fallback: rgb(255, 149, 0);
     --warning-hover: #e6850e;
+    --warning-hover-fallback: rgb(230, 133, 14);
     --danger: #ff3b30;
+    --danger-fallback: rgb(255, 59, 48);
     --danger-hover: #d70015;
+    --danger-hover-fallback: rgb(215, 0, 21);
     --shadow: rgba(0, 0, 0, 0.1);
+    --shadow-fallback: rgba(0, 0, 0, 0.1);
     
-    /* Safari 14.3+ enhanced transition properties */
-    --transition-colors: color 0.3s ease, background-color 0.3s ease, border-color 0.3s ease;
+    /* Safari 14.3+ enhanced transition properties with hardware acceleration */
+    --transition-colors: color 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94), background-color 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94), border-color 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
     --transition-theme: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-theme-safari: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    
+    /* Safari 14.3+ specific optimizations */
+    --safari-backdrop-filter: blur(20px);
+    --safari-transform-gpu: translateZ(0);
+    --safari-will-change: transform, opacity;
 }
 
 .dark-theme {
-    /* Safari 14.3+ color-scheme for dark mode */
+    /* Safari 14.3+ color-scheme for dark mode with fallback */
     color-scheme: dark;
+    -webkit-color-scheme: dark; /* Safari 14.3+ specific */
     
-    /* Dark theme colors with improved Safari compatibility */
+    /* Dark theme colors with enhanced Safari 14.3+ fallbacks */
     --bg-primary: #1c1c1e;
+    --bg-primary-fallback: rgb(28, 28, 30);
     --bg-secondary: #2c2c2e;
+    --bg-secondary-fallback: rgb(44, 44, 46);
     --bg-tertiary: #3a3a3c;
+    --bg-tertiary-fallback: rgb(58, 58, 60);
     --bg-quaternary: #48484a;
+    --bg-quaternary-fallback: rgb(72, 72, 74);
     --bg-hover: #4a4a4c;
+    --bg-hover-fallback: rgb(74, 74, 76);
     --text-primary: #ffffff;
+    --text-primary-fallback: rgb(255, 255, 255);
     --text-secondary: #98989d;
+    --text-secondary-fallback: rgb(152, 152, 157);
     --border-primary: #48484a;
+    --border-primary-fallback: rgb(72, 72, 74);
     --border-hover: #6d6d70;
+    --border-hover-fallback: rgb(109, 109, 112);
     --accent-primary: #0a84ff;
+    --accent-primary-fallback: rgb(10, 132, 255);
     --accent-hover: #409cff;
+    --accent-hover-fallback: rgb(64, 156, 255);
     --success: #32d74b;
+    --success-fallback: rgb(50, 215, 75);
     --warning: #ff9f0a;
+    --warning-fallback: rgb(255, 159, 10);
     --warning-hover: #ffb340;
+    --warning-hover-fallback: rgb(255, 179, 64);
     --danger: #ff453a;
+    --danger-fallback: rgb(255, 69, 58);
     --danger-hover: #ff6961;
+    --danger-hover-fallback: rgb(255, 105, 97);
     --shadow: rgba(0, 0, 0, 0.3);
+    --shadow-fallback: rgba(0, 0, 0, 0.3);
+    
+    /* Safari 14.3+ dark mode specific optimizations */
+    --safari-backdrop-filter: blur(20px) saturate(180%);
+    --safari-transform-gpu: translateZ(0);
+    --safari-will-change: transform, opacity, background-color;
 }
 
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background-color: var(--bg-primary);
+    background-color: var(--bg-primary, var(--bg-primary-fallback, #f5f5f7));
+    color: var(--text-primary, var(--text-primary-fallback, #1d1d1f));
     padding: 20px;
     transition: var(--transition-colors);
     /* Safari 14.3+ color-scheme inheritance */
     color-scheme: inherit;
+    -webkit-color-scheme: inherit;
+    
+    /* Safari 14.3+ performance optimizations */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
 }
 
 .container {
     max-width: 800px;
     margin: 0 auto;
-    background: var(--bg-secondary);
+    background: var(--bg-secondary, var(--bg-secondary-fallback, white));
     border-radius: 12px;
-    box-shadow: 0 4px 20px var(--shadow);
+    box-shadow: 0 4px 20px var(--shadow, var(--shadow-fallback, rgba(0, 0, 0, 0.1)));
     padding: 30px;
     transition: var(--transition-theme);
+    
+    /* Safari 14.3+ GPU acceleration and will-change optimization */
+    transform: var(--safari-transform-gpu, translateZ(0));
+    will-change: var(--safari-will-change, auto);
 }
 
 .header {
