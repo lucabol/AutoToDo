@@ -212,6 +212,28 @@ If you continue experiencing issues:
 
 AutoToDo features a comprehensive keyboard shortcut system designed for efficient task management. All shortcuts are context-aware and work intelligently based on your current activity.
 
+### Quick Reference - All 15 Keyboard Shortcuts
+
+| Shortcut | Action | Context |
+|----------|--------|---------|
+| **Ctrl+N** | Focus new todo input field | Global |
+| **Ctrl+F** | Focus search input field | Global |
+| **/** | Focus search input field (alternative) | Global |
+| **Ctrl+Enter** | Add new todo | Global |
+| **Ctrl+T** | Toggle completion status of first todo | Global |
+| **Ctrl+Delete** | Delete first todo (with confirmation) | Global |
+| **Ctrl+A** | Select all todos | Global |
+| **Ctrl+Shift+D** | Clear all completed todos | Global |
+| **Escape** | Cancel editing and discard changes | Editing Mode |
+| **Ctrl+S** | Save changes and exit edit mode | Editing Mode |
+| **Enter** | Save changes and exit edit mode | Editing Mode |
+| **Ctrl+H** | Show keyboard shortcuts help dialog | Global |
+| **?** | Show keyboard shortcuts help dialog (alternative) | Global |
+| **F1** | Show keyboard shortcuts help dialog (traditional) | Global |
+| **Ctrl+M** | Toggle between light and dark themes | Global |
+
+> **💡 Quick Access**: Press **Ctrl+H**, **?**, or **F1** at any time to view this help within the application.
+
 ### How to Access Keyboard Shortcuts in the Application
 
 AutoToDo provides multiple ways to access and view available keyboard shortcuts directly within the application:
