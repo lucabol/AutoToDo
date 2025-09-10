@@ -11,12 +11,19 @@ class KeyboardShortcutManager {
         this.contextHandlers = new Map();
         this.eventStats = new Map();
         
+        // Performance optimization: cache frequently computed values
+        this._shortcutKeyCache = new Map();
+        this._modifierStringCache = new Map();
+        
         // Configuration options
         this.options = {
             debug: options.debug || false,
             enableLogging: options.enableLogging || false,
             validateConflicts: options.validateConflicts !== false, // true by default
-            maxShortcutsPerContext: options.maxShortcutsPerContext || 50
+            maxShortcutsPerContext: options.maxShortcutsPerContext || 50,
+            maxErrorsPerShortcut: options.maxErrorsPerShortcut || 10,
+            problematicKeys: options.problematicKeys || ['Tab', 'F5', 'F12'],
+            enableCaching: options.enableCaching !== false // true by default
         };
         
         // Backward compatibility for debugMode
@@ -161,16 +168,48 @@ class KeyboardShortcutManager {
     }
 
     /**
-     * Generate a unique key for the shortcut
+     * Generate a unique key for the shortcut with optional caching
+     * @param {string} key - The key
+     * @param {boolean} ctrlKey - Whether Ctrl key is required
+     * @param {boolean} altKey - Whether Alt key is required  
+     * @param {boolean} shiftKey - Whether Shift key is required
+     * @param {string} context - The context
+     * @returns {string} Unique shortcut key identifier
      * @private
      */
     generateShortcutKey(key, ctrlKey, altKey, shiftKey, context) {
+        if (this.options.enableCaching) {
+            const cacheKey = `${key}-${ctrlKey}-${altKey}-${shiftKey}-${context}`;
+            
+            if (this._shortcutKeyCache.has(cacheKey)) {
+                return this._shortcutKeyCache.get(cacheKey);
+            }
+            
+            const shortcutKey = this._computeShortcutKey(key, ctrlKey, altKey, shiftKey, context);
+            this._shortcutKeyCache.set(cacheKey, shortcutKey);
+            return shortcutKey;
+        }
+        
+        return this._computeShortcutKey(key, ctrlKey, altKey, shiftKey, context);
+    }
+
+    /**
+     * Compute the shortcut key without caching
+     * @param {string} key - The key
+     * @param {boolean} ctrlKey - Whether Ctrl key is required
+     * @param {boolean} altKey - Whether Alt key is required
+     * @param {boolean} shiftKey - Whether Shift key is required
+     * @param {string} context - The context
+     * @returns {string} Unique shortcut key identifier
+     * @private
+     */
+    _computeShortcutKey(key, ctrlKey, altKey, shiftKey, context) {
         const modifierStr = this.createModifierString(ctrlKey, altKey, shiftKey);
         return `${context}:${modifierStr}${key.toLowerCase()}`;
     }
 
     /**
-     * Create a modifier string for shortcut key generation
+     * Create a modifier string for shortcut key generation with optional caching
      * @param {boolean} ctrlKey - Whether Ctrl key is required
      * @param {boolean} altKey - Whether Alt key is required
      * @param {boolean} shiftKey - Whether Shift key is required
@@ -178,6 +217,30 @@ class KeyboardShortcutManager {
      * @private
      */
     createModifierString(ctrlKey, altKey, shiftKey) {
+        if (this.options.enableCaching) {
+            const cacheKey = `${ctrlKey}-${altKey}-${shiftKey}`;
+            
+            if (this._modifierStringCache.has(cacheKey)) {
+                return this._modifierStringCache.get(cacheKey);
+            }
+            
+            const modifierString = this._computeModifierString(ctrlKey, altKey, shiftKey);
+            this._modifierStringCache.set(cacheKey, modifierString);
+            return modifierString;
+        }
+        
+        return this._computeModifierString(ctrlKey, altKey, shiftKey);
+    }
+
+    /**
+     * Compute modifier string without caching
+     * @param {boolean} ctrlKey - Whether Ctrl key is required
+     * @param {boolean} altKey - Whether Alt key is required
+     * @param {boolean} shiftKey - Whether Shift key is required
+     * @returns {string} Modifier string with trailing '+' if modifiers exist
+     * @private
+     */
+    _computeModifierString(ctrlKey, altKey, shiftKey) {
         const modifiers = [];
         if (ctrlKey) modifiers.push('ctrl');
         if (altKey) modifiers.push('alt');
@@ -191,6 +254,7 @@ class KeyboardShortcutManager {
     /**
      * Handle keyboard events with enhanced error handling and debugging
      * @param {KeyboardEvent} event - The keyboard event
+     * @returns {boolean} True if a shortcut was handled, false otherwise
      */
     handleKeyboard(event) {
         if (!this._validateKeyboardEvent(event)) {
@@ -290,6 +354,54 @@ class KeyboardShortcutManager {
     }
 
     /**
+     * Start a debug session for performance tracking and timing measurement.
+     * Creates a session object with the current timestamp to measure execution time
+     * of keyboard shortcut processing. Only creates the session if debug mode is enabled.
+     * 
+     * @returns {Object|null} Debug session object containing startTime property if debug 
+     *                        mode is enabled, null otherwise. The startTime is captured 
+     *                        using performance.now() for high-precision timing.
+     * @private
+     */
+    _startDebugSession() {
+        return this.options.debug ? { startTime: performance.now() } : null;
+    }
+
+    /**
+     * End a debug session and log performance metrics to the console.
+     * Calculates the elapsed time since the debug session started and logs timing
+     * information. If a shortcut was executed, logs the specific shortcut and its
+     * execution time. If no shortcut matched, logs general keyboard handling completion time.
+     * Only performs logging if debug mode is enabled and a valid session object is provided.
+     * 
+     * @param {Object|null} debugSession - Debug session object returned from _startDebugSession().
+     *                                     Should contain a startTime property with the session 
+     *                                     start timestamp. Pass null if no session was created.
+     * @param {Object} [shortcut] - Optional. The executed shortcut configuration object.
+     *                              If provided along with event, logs specific shortcut timing.
+     *                              Contains properties like context, key, ctrlKey, etc.
+     * @param {KeyboardEvent} [event] - Optional. The keyboard event that triggered the shortcut.
+     *                                  Used with shortcut parameter to generate the shortcut key
+     *                                  for detailed logging. Contains key, ctrlKey, altKey, shiftKey.
+     * @private
+     */
+    _endDebugSession(debugSession, shortcut = null, event = null) {
+        if (!debugSession || !this.options.debug) return;
+        
+        const endTime = performance.now();
+        const duration = endTime - debugSession.startTime;
+        
+        if (shortcut && event) {
+            const shortcutKey = this.generateShortcutKey(
+                event.key, event.ctrlKey, event.altKey, event.shiftKey, shortcut.context
+            );
+            console.log(`Shortcut ${shortcutKey} executed in ${duration}ms`);
+        } else {
+            console.log(`Keyboard handling completed in ${duration}ms (no match)`);
+        }
+    }
+
+    /**
      * Find the first matching shortcut for the given keyboard event
      * @param {KeyboardEvent} event - The keyboard event
      * @returns {Object|null} The matching shortcut configuration, or null if no shortcut matches
@@ -299,6 +411,27 @@ class KeyboardShortcutManager {
         const activeContexts = this._getActiveContextsCached();
         const contextOrder = [...activeContexts, 'global'];
         
+        this._logKeyboardEvent(event, activeContexts);
+
+        for (const context of contextOrder) {
+            const shortcut = this._findShortcutInContext(event, context);
+            if (shortcut) {
+                this._updateShortcutStatistics(event, context);
+                return shortcut;
+            }
+        }
+        
+        this._logNoMatchFound(event);
+        return null;
+    }
+
+    /**
+     * Log keyboard event details for debugging
+     * @param {KeyboardEvent} event - The keyboard event
+     * @param {Array} activeContexts - Currently active contexts
+     * @private
+     */
+    _logKeyboardEvent(event, activeContexts) {
         if (this.options.debug) {
             console.log('Keyboard event:', {
                 key: event.key,
@@ -308,6 +441,7 @@ class KeyboardShortcutManager {
                 activeContexts
             });
         }
+    }
 
         return this._findShortcutInContexts(event, contextOrder);
     }
@@ -438,41 +572,64 @@ class KeyboardShortcutManager {
      * @param {string} shortcutKey - The shortcut key for error tracking
      * @private
      */
-    handleShortcutError(error, shortcut, shortcutKey) {
-        // Log error with specific shortcut information for better troubleshooting
+    _handleShortcutExecutionError(error, shortcut, shortcutKey) {
+        this._logShortcutError(error, shortcut);
+        this._recordShortcutError(error, shortcut, shortcutKey);
+    }
+
+    /**
+     * Log shortcut execution error
+     * @param {Error} error - The error that occurred
+     * @param {Object} shortcut - The shortcut configuration
+     * @private
+     */
+    _logShortcutError(error, shortcut) {
         const shortcutInfo = shortcut ? 
             `${shortcut.context}:${this.createModifierString(shortcut.ctrlKey, shortcut.altKey, shortcut.shiftKey)}${shortcut.key}` :
             'unknown shortcut';
         
         console.error(`KeyboardShortcutManager: Error executing shortcut '${shortcutInfo}':`, error.message || error);
         
-        // Log error to statistics
-        if (shortcutKey) {
-            const stats = this.eventStats.get(shortcutKey);
-            if (stats) {
-                const errorInfo = {
-                    error: error.message,
-                    timestamp: new Date().toISOString(),
-                    shortcutKey,
-                    event: shortcut.key
-                };
-                
-                stats.errors.push(errorInfo);
-                // Keep only last 10 errors per shortcut
-                if (stats.errors.length > 10) {
-                    stats.errors = stats.errors.slice(-10);
-                }
-            }
-        }
-        
-        // In debug mode, provide more detailed error information
         if (this.options.debug) {
             console.error('Shortcut configuration:', shortcut);
             console.error('Full error object:', error);
         }
+    }
+
+    /**
+     * Record error in statistics for tracking
+     * @param {Error} error - The error that occurred
+     * @param {Object} shortcut - The shortcut configuration
+     * @param {string} shortcutKey - The shortcut key identifier
+     * @private
+     */
+    _recordShortcutError(error, shortcut, shortcutKey) {
+        if (!shortcutKey) return;
         
-        // In production, you might want to send this to an error reporting service
-        // or display a user-friendly message
+        const stats = this.eventStats.get(shortcutKey);
+        if (stats) {
+            const errorInfo = {
+                error: error.message,
+                timestamp: new Date().toISOString(),
+                shortcutKey,
+                event: shortcut.key
+            };
+            
+            stats.errors.push(errorInfo);
+            // Keep only last 10 errors per shortcut to prevent memory bloat
+            if (stats.errors.length > this._getMaxErrorsPerShortcut()) {
+                stats.errors = stats.errors.slice(-this._getMaxErrorsPerShortcut());
+            }
+        }
+    }
+
+    /**
+     * Get maximum number of errors to keep per shortcut
+     * @returns {number} Maximum error count
+     * @private
+     */
+    _getMaxErrorsPerShortcut() {
+        return this.options.maxErrorsPerShortcut || 10;
     }
 
     /**
@@ -536,10 +693,23 @@ class KeyboardShortcutManager {
     }
 
     /**
-     * Clear all shortcuts
+     * Clear all shortcuts and reset caches
      */
     clearShortcuts() {
         this.shortcuts.clear();
+        this.eventStats.clear();
+        this._clearCaches();
+    }
+
+    /**
+     * Clear performance caches
+     * @private
+     */
+    _clearCaches() {
+        if (this.options.enableCaching) {
+            this._shortcutKeyCache.clear();
+            this._modifierStringCache.clear();
+        }
     }
 
     /**
@@ -626,9 +796,23 @@ class KeyboardShortcutManager {
 
     /**
      * Validate shortcut configuration
+     * @param {Object} config - Shortcut configuration to validate
+     * @throws {Error} If configuration is invalid
      * @private
      */
     _validateShortcutConfig(config) {
+        this._validateRequiredFields(config);
+        this._validateModifierUsage(config);
+        this._validateProblematicKeys(config);
+    }
+
+    /**
+     * Validate required fields in shortcut configuration
+     * @param {Object} config - Shortcut configuration
+     * @throws {Error} If required fields are missing or invalid
+     * @private
+     */
+    _validateRequiredFields(config) {
         const { key, action } = config;
 
         if (!key || typeof key !== 'string' || key.trim() === '') {
@@ -638,17 +822,38 @@ class KeyboardShortcutManager {
         if (!action || typeof action !== 'function') {
             throw new Error('Shortcut must have a valid action function');
         }
+    }
 
-        // Validate modifier combinations
+    /**
+     * Validate modifier key usage
+     * @param {Object} config - Shortcut configuration
+     * @private
+     */
+    _validateModifierUsage(config) {
         if (config.ctrlKey && config.altKey && config.shiftKey) {
-            console.warn(`Shortcut with key "${key}" uses all three modifiers, which may be difficult for users`);
+            console.warn(`Shortcut with key "${config.key}" uses all three modifiers, which may be difficult for users`);
         }
+    }
 
-        // Check for potentially problematic keys
-        const problematicKeys = ['Tab', 'F5', 'F12'];
-        if (problematicKeys.includes(key)) {
-            console.warn(`Key "${key}" may conflict with browser functionality`);
+    /**
+     * Validate against potentially problematic keys
+     * @param {Object} config - Shortcut configuration
+     * @private
+     */
+    _validateProblematicKeys(config) {
+        const problematicKeys = this._getProblematicKeys();
+        if (problematicKeys.includes(config.key)) {
+            console.warn(`Key "${config.key}" may conflict with browser functionality`);
         }
+    }
+
+    /**
+     * Get list of keys that may cause issues
+     * @returns {Array<string>} Array of problematic keys
+     * @private
+     */
+    _getProblematicKeys() {
+        return this.options.problematicKeys || ['Tab', 'F5', 'F12'];
     }
 
     /**
