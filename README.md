@@ -2,6 +2,27 @@
 
 A modern, feature-rich todo application built with vanilla JavaScript. AutoToDo provides a clean, intuitive interface for managing your tasks with full keyboard navigation support and persistent local storage.
 
+## 📋 What's New: Enhanced Keyboard Shortcuts Documentation
+
+This documentation update significantly enhances the keyboard shortcuts experience with comprehensive guides and improved discoverability:
+
+**🚀 Key Improvements:**
+- **15 fully documented keyboard shortcuts** (expanded from basic arrow key navigation to comprehensive todo management)
+- **Built-in help system** - Press `Ctrl+H`, `?`, or `F1` to access shortcuts within the app
+- **User customization guides** - Learn how to personalize shortcuts using browser extensions and developer tools  
+- **Accessibility compliance** - WCAG 2.1 AA compliant with screen reader support and assistive technology integration
+- **International keyboard support** - Guidance for QWERTY, AZERTY, QWERTZ, and alternative layouts
+- **Developer contribution framework** - Complete guidelines for extending the shortcut system
+
+**🎯 User Benefits:**
+- **Faster task management** - Navigate, create, edit, and organize todos without touching the mouse
+- **Better discoverability** - Find shortcuts easily with the integrated help system  
+- **Personalized experience** - Customize shortcuts to match your workflow preferences
+- **Inclusive accessibility** - Full support for users with disabilities and diverse keyboard layouts
+- **Community extensibility** - Clear pathways for contributing new shortcuts and improvements
+
+**📖 Quick Start:** Press `Ctrl+H` in the application to explore all available shortcuts, or jump to the [Keyboard Shortcuts](#keyboard-shortcuts) section below for detailed documentation.
+
 ## Installation
 
 AutoToDo is a simple, self-contained web application that runs entirely in your browser. No server setup or package installation required!
