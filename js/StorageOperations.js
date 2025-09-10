@@ -425,3 +425,8 @@ class StorageOperations {
 if (typeof window !== 'undefined') {
     window.StorageOperations = StorageOperations;
 }
+
+// Export for Node.js/testing environments
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = { StorageOperations };
+}

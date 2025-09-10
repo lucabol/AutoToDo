@@ -459,3 +459,8 @@ SafariITPHandler: Data Loss Prevention Tips:
 if (typeof window !== 'undefined') {
     window.SafariITPHandler = SafariITPHandler;
 }
+
+// Export for Node.js/testing environments
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = { SafariITPHandler };
+}

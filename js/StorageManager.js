@@ -21,6 +21,28 @@
  * - Performance monitoring and optimization
  * - Detailed logging and debugging capabilities
  */
+
+// Import dependencies for Node.js/testing environments
+let StorageDetector, StorageFallbackHandler, StorageOperations, SafariITPHandler;
+
+if (typeof module !== 'undefined' && module.exports) {
+    // Node.js environment - require dependencies
+    try {
+        ({ StorageDetector } = require('./StorageDetector.js'));
+        ({ StorageFallbackHandler } = require('./StorageFallbackHandler.js'));
+        ({ StorageOperations } = require('./StorageOperations.js'));
+        ({ SafariITPHandler } = require('./SafariITPHandler.js'));
+    } catch (error) {
+        console.warn('StorageManager: Could not import some dependencies in Node.js:', error.message);
+    }
+} else {
+    // Browser environment - use global objects
+    StorageDetector = typeof window !== 'undefined' ? window.StorageDetector : undefined;
+    StorageFallbackHandler = typeof window !== 'undefined' ? window.StorageFallbackHandler : undefined;
+    StorageOperations = typeof window !== 'undefined' ? window.StorageOperations : undefined;
+    SafariITPHandler = typeof window !== 'undefined' ? window.SafariITPHandler : undefined;
+}
+
 class StorageManager {
     constructor() {
         // Initialize the modular storage system
@@ -48,6 +70,17 @@ class StorageManager {
      */
     async initializeModules() {
         try {
+            // Check if dependencies are available
+            if (!StorageDetector) {
+                throw new Error('StorageDetector not available');
+            }
+            if (!StorageFallbackHandler) {
+                throw new Error('StorageFallbackHandler not available');
+            }
+            if (!StorageOperations) {
+                throw new Error('StorageOperations not available');
+            }
+            
             // Initialize storage detection module
             this.detector = new StorageDetector();
             
@@ -58,7 +91,7 @@ class StorageManager {
             this.operations = new StorageOperations(this.fallbackHandler);
             
             // Initialize Safari ITP handler for data loss prevention
-            if (typeof SafariITPHandler !== 'undefined') {
+            if (SafariITPHandler) {
                 this.itpHandler = new SafariITPHandler();
                 // ITP handler initializes asynchronously
                 await this.itpHandler.init();
@@ -100,6 +133,13 @@ class StorageManager {
 
     /**
      * Detect if browser is Safari 14+ 
+     * 
+     * Safari 14+ introduced significant localStorage changes that require special handling:
+     * - Extremely limited storage quota in private browsing (~5-10KB vs 2-5MB in older versions)
+     * - Silent data loss where setItem succeeds but getItem returns null
+     * - Delayed failure patterns where first few operations work then fail
+     * - More aggressive Intelligent Tracking Prevention (ITP) data clearing
+     * 
      * @returns {boolean} True if Safari 14+ detected
      */
     detectSafari14Plus() {
@@ -109,20 +149,22 @@ class StorageManager {
             }
             
             const userAgent = navigator.userAgent;
+            // Safari detection that excludes Chrome/Chromium which also contain "Safari" in UA string
             const isSafari = /Safari/.test(userAgent) && !/Chrome|Chromium/.test(userAgent);
             
             if (!isSafari) {
                 return false;
             }
             
-            // Extract Safari version
+            // Extract Safari version from User-Agent string (e.g., "Version/14.1.2")
             const versionMatch = userAgent.match(/Version\/(\d+)\.(\d+)/);
             if (versionMatch) {
                 const majorVersion = parseInt(versionMatch[1], 10);
                 return majorVersion >= 14;
             }
             
-            // Fallback: try to detect Safari 14+ specific behaviors
+            // Fallback: Use behavioral feature detection if version parsing fails
+            // This tests for Safari 14+ specific localStorage behaviors
             return this.detectSafari14Features();
         } catch (error) {
             console.warn('Could not detect Safari version:', error);
@@ -131,8 +173,16 @@ class StorageManager {
     }
 
     /**
-     * Detect Safari 14+ specific features
-     * @returns {boolean} True if Safari 14+ features detected
+     * Detect Safari 14+ specific features through behavioral testing
+     * 
+     * Safari 14+ has unique localStorage behaviors that can be detected:
+     * 1. Silent data loss: setItem appears to succeed but getItem returns different value
+     * 2. Intermittent failures: localStorage operations randomly fail
+     * 3. Quota exceeded errors at very low thresholds
+     * 
+     * This method performs a controlled test to identify these behaviors.
+     * 
+     * @returns {boolean} True if Safari 14+ behaviors detected
      */
     detectSafari14Features() {
         try {
@@ -149,15 +199,19 @@ class StorageManager {
                 const retrieved = localStorage.getItem(testKey);
                 localStorage.removeItem(testKey);
                 
-                // In Safari 14+ private mode, this may succeed but data may not persist
+                // In Safari 14+ private mode, setItem may succeed but getItem returns null
+                // This is different from other browsers where setItem would throw an exception
                 if (retrieved !== testValue) {
+                    console.log('StorageManager: Safari 14+ silent data loss behavior detected');
                     return true;
                 }
                 
-                // Additional feature detection could be added here
+                // Future enhancement: Additional Safari 14+ specific feature tests could be added here
+                // such as testing for extremely low quota limits or ITP behavior patterns
                 return false;
             } catch (e) {
                 // If any localStorage operation fails, it might be Safari 14+ private mode
+                // where operations sometimes work initially but fail later
                 return true;
             }
         } catch (error) {
@@ -259,25 +313,53 @@ class StorageManager {
 
     /**
      * Create an emergency fallback system if module initialization fails
+     * 
+     * This is a critical safety net that ensures the application continues to function
+     * even if the sophisticated modular storage system fails to initialize.
+     * Common failure scenarios include:
+     * - Missing dependencies (StorageDetector, StorageFallbackHandler, etc.)
+     * - Browser security restrictions preventing module loading
+     * - Corrupted state from previous sessions
+     * - Extreme browser compatibility issues
+     * 
+     * The emergency system provides:
+     * - Pure in-memory storage that always works
+     * - Minimal API compatibility with the full system
+     * - Proper error handling and logging
+     * - Graceful degradation of features
+     * 
      * Provides basic functionality even if the modular system can't be initialized
      */
     createEmergencyFallback() {
-        console.warn('StorageManager: Using emergency fallback system');
+        console.warn('StorageManager: Using emergency fallback system - advanced features disabled');
         
+        // Initialize minimal storage state
         this.memoryStorage = new Map();
         this.storageType = 'memory';
-        this.isPrivateMode = true;
+        this.isPrivateMode = true;  // Assume private mode for safety
         this.hasLocalStorage = false;
         this.hasSessionStorage = false;
         
-        // Create minimal operations object for emergency use
+        // Create minimal operations object that provides basic functionality
+        // This ensures the public API still works even without the modular system
         this.operations = {
             getItem: (key) => this.memoryStorage.get(key) || null,
-            setItem: (key, value) => { this.memoryStorage.set(key, value); return true; },
-            removeItem: (key) => { this.memoryStorage.delete(key); return true; },
-            clear: () => { this.memoryStorage.clear(); return true; },
-            isAvailable: () => true
+            setItem: (key, value) => { 
+                this.memoryStorage.set(key, value); 
+                return true; 
+            },
+            removeItem: (key) => { 
+                this.memoryStorage.delete(key); 
+                return true; 
+            },
+            clear: () => { 
+                this.memoryStorage.clear(); 
+                return true; 
+            },
+            isAvailable: () => true  // Memory storage is always available
         };
+        
+        console.warn('StorageManager: Emergency fallback active - data will only persist during this session');
     }
 
     /**
@@ -370,13 +452,26 @@ class StorageManager {
     /**
      * Store an item with comprehensive fallback and error handling
      * 
-     * This method ensures data is stored reliably even in challenging environments
-     * like Safari 14+ Private Browsing mode and protects against Safari 14+ ITP
-     * data clearing after 7 days of inactivity. It automatically handles:
-     * - QuotaExceededError by falling back to alternative storage
-     * - Storage unavailability by using memory storage
-     * - Large data by optimizing storage strategy
-     * - ITP data loss prevention through activity tracking and backup
+     * This method is the core of the Safari 14+ data loss prevention system.
+     * It handles multiple challenging scenarios:
+     * 
+     * 1. **Safari 14+ Silent Data Loss**: Uses verification to detect when data
+     *    appears to store successfully but actually doesn't persist
+     * 
+     * 2. **Safari 14+ ITP Data Clearing**: Creates backups and tracks activity
+     *    to prevent data loss from Intelligent Tracking Prevention after 7 days
+     * 
+     * 3. **Progressive Degradation**: Automatically falls back through storage types:
+     *    localStorage → sessionStorage → memory storage
+     * 
+     * 4. **Quota Management**: Handles QuotaExceededError by switching to 
+     *    alternative storage mechanisms
+     * 
+     * 5. **Operation Monitoring**: Tracks operation counts to detect Safari 14+
+     *    patterns where failures occur after initial success
+     * 
+     * The method ensures data is stored reliably even in challenging environments
+     * and always returns true due to memory fallback guarantee.
      * 
      * @param {string} key - Storage key
      * @param {string} value - Value to store
@@ -386,43 +481,49 @@ class StorageManager {
         try {
             let result;
             
-            // Safari 14+ operation counting and verification
+            // Safari 14+ specific operation monitoring and enhanced handling
             if (this.safari14Mode) {
                 this.operationCount++;
                 
-                // Verify data after storing for Safari 14+ private browsing
+                // Use verification for Safari 14+ to prevent silent data loss
+                // Verification is performed periodically to balance performance with reliability
                 if (this.operationCount % this.verificationInterval === 0) {
                     result = this.setItemWithVerification(key, value);
                 } else {
                     result = this.operations.setItem(key, value);
                 }
             } else {
+                // Standard operation for non-Safari 14+ browsers
                 result = this.operations.setItem(key, value);
             }
             
-            // If ITP handler is available, create backup and update activity
+            // Safari ITP protection: Create backups and reset activity timer
+            // This prevents data loss from Safari's 7-day inactivity clearing
             if (this.itpHandler && this.itpHandler.isInitialized) {
-                // Update activity to reset ITP timer
+                // Reset the ITP timer to prevent data clearing
                 this.itpHandler.resetTimer();
                 
-                // Create backup of todos data for protection
+                // Create protective backup of todos data
                 if (key === 'todos' || key.includes('todo')) {
                     try {
                         const currentTodos = JSON.parse(value);
                         this.itpHandler.backup({ todos: currentTodos });
                     } catch (parseError) {
-                        console.warn('StorageManager: Could not parse todos for backup:', parseError);
+                        console.warn('StorageManager: Could not parse todos for ITP backup:', parseError);
                     }
                 }
             }
             
             return result;
         } catch (error) {
+            // Track failures for Safari 14+ monitoring
             if (this.safari14Mode) {
                 this.failureCount++;
             }
             console.error('StorageManager.setItem failed:', error);
-            // Emergency fallback to memory storage
+            
+            // Emergency fallback: Always ensure data is stored somewhere
+            // This is the final safety net that prevents data loss
             try {
                 this.memoryStorage.set(key, value);
                 console.warn('StorageManager: Used emergency memory storage for key:', key);
@@ -436,30 +537,48 @@ class StorageManager {
 
     /**
      * Set item with data verification for Safari 14+ private browsing
-     * This prevents silent data loss by verifying the data was actually stored
+     * 
+     * Safari 14+ private browsing has a critical issue where localStorage.setItem() 
+     * appears to succeed (no exception thrown) but the data is not actually stored.
+     * This creates silent data loss that users don't notice until they reload the page.
+     * 
+     * This method prevents that by:
+     * 1. Attempting to store the data normally
+     * 2. Immediately retrieving it to verify it was actually stored
+     * 3. If verification fails, falling back to in-memory storage
+     * 4. Logging the issue for debugging purposes
+     * 
      * @param {string} key - Storage key  
      * @param {string} value - Value to store
      * @returns {boolean} True if storage and verification succeeded
      */
     setItemWithVerification(key, value) {
         try {
-            // Attempt to store the data
+            // Step 1: Attempt to store the data using the normal operation
             const storeResult = this.operations.setItem(key, value);
             if (!storeResult) {
-                return false;
-            }
-            
-            // Verify the data was actually stored (Safari 14+ issue)
-            const retrievedValue = this.operations.getItem(key);
-            if (retrievedValue !== value) {
-                console.warn('StorageManager: Data verification failed for Safari 14+, using memory storage');
+                // If the operation itself failed, fall back to memory immediately
                 this.inMemoryStorage.set(key, value);
                 return true;
             }
             
+            // Step 2: Critical verification step - check if data was actually stored
+            // In Safari 14+ private browsing, this is where we catch silent failures
+            const retrievedValue = this.operations.getItem(key);
+            if (retrievedValue !== value) {
+                console.warn('StorageManager: Safari 14+ silent data loss detected - data appeared to store but verification failed');
+                console.warn(`StorageManager: Expected "${value}", but retrieved "${retrievedValue}"`);
+                
+                // Fall back to reliable in-memory storage
+                this.inMemoryStorage.set(key, value);
+                return true;
+            }
+            
+            // Step 3: Data verified successfully - storage is working properly
             return true;
         } catch (error) {
-            console.error('StorageManager: Verification failed:', error);
+            console.error('StorageManager: Verification process failed:', error);
+            // Even if verification fails, ensure data is stored somewhere
             this.inMemoryStorage.set(key, value);
             return true;
         }
@@ -674,4 +793,9 @@ class StorageManager {
 // Create a global instance for the application if in browser environment
 if (typeof window !== 'undefined') {
     window.storageManager = new StorageManager();
+}
+
+// Export for Node.js/testing environments
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = { StorageManager };
 }

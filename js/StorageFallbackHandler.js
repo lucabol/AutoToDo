@@ -370,3 +370,8 @@ class StorageFallbackHandler {
 if (typeof window !== 'undefined') {
     window.StorageFallbackHandler = StorageFallbackHandler;
 }
+
+// Export for Node.js/testing environments
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = { StorageFallbackHandler };
+}

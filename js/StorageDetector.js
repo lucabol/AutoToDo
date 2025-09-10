@@ -216,3 +216,8 @@ class StorageDetector {
 if (typeof window !== 'undefined') {
     window.StorageDetector = StorageDetector;
 }
+
+// Export for Node.js/testing environments
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = { StorageDetector };
+}
