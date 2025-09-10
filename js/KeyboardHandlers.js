@@ -9,6 +9,20 @@ class KeyboardHandlers {
         this.controller = controller;
         this.model = controller.model;
         this.view = controller.view;
+        this._initializeHandlerMaps();
+    }
+
+    /**
+     * Initialize handler categorization maps for better organization
+     * @private
+     */
+    _initializeHandlerMaps() {
+        this.handlerCategories = {
+            navigation: ['focusNewTodo', 'focusSearch'],
+            todoManagement: ['addTodo', 'toggleFirstTodo', 'deleteFirstTodo', 'selectAll', 'clearCompleted'],
+            editing: ['cancelEdit', 'saveEdit'],
+            general: ['showHelp', 'toggleTheme']
+        };
     }
 
     /**
@@ -18,24 +32,86 @@ class KeyboardHandlers {
     getAllHandlers() {
         return {
             // Navigation and focus shortcuts
-            focusNewTodo: () => this.focusNewTodoInput(),
-            focusSearch: (event) => this.focusSearchInput(event),
+            focusNewTodo: () => this._safeExecute('focusNewTodoInput', 'focusing new todo input'),
+            focusSearch: (event) => this._safeExecute('focusSearchInput', 'focusing search input', event),
             
             // Todo management shortcuts
-            addTodo: () => this.handleAddTodoFromShortcut(),
-            toggleFirstTodo: () => this.handleToggleFirstTodo(),
-            deleteFirstTodo: () => this.handleDeleteFirstTodo(),
-            selectAll: () => this.handleSelectAllTodos(),
-            clearCompleted: () => this.handleClearCompleted(),
+            addTodo: () => this._safeExecute('handleAddTodoFromShortcut', 'adding todo from shortcut'),
+            toggleFirstTodo: () => this._safeExecute('handleToggleFirstTodo', 'toggling first todo'),
+            deleteFirstTodo: () => this._safeExecute('handleDeleteFirstTodo', 'deleting first todo'),
+            selectAll: () => this._safeExecute('handleSelectAllTodos', 'selecting all todos'),
+            clearCompleted: () => this._safeExecute('handleClearCompleted', 'clearing completed todos'),
             
             // Editing shortcuts
-            cancelEdit: () => this.handleCancelEdit(),
-            saveEdit: () => this.handleSaveEditFromShortcut(),
+            cancelEdit: () => this._safeExecute('handleCancelEdit', 'canceling edit'),
+            saveEdit: () => this._safeExecute('handleSaveEditFromShortcut', 'saving edit from shortcut'),
             
             // General shortcuts
-            showHelp: () => this.showKeyboardHelp(),
-            toggleTheme: () => this.controller.toggleTheme()
+            showHelp: () => this._safeExecute('showKeyboardHelp', 'showing keyboard help'),
+            toggleTheme: () => this._safeExecute(() => this.controller.toggleTheme(), 'toggling theme')
         };
+    }
+
+    /**
+     * Safely execute a handler method with error handling
+     * @param {string|Function} methodOrFunction - Method name or function to execute
+     * @param {string} actionDescription - Description of the action for error logging
+     * @param {...any} args - Arguments to pass to the method/function
+     * @private
+     */
+    _safeExecute(methodOrFunction, actionDescription, ...args) {
+        try {
+            if (typeof methodOrFunction === 'string') {
+                return this[methodOrFunction](...args);
+            } else if (typeof methodOrFunction === 'function') {
+                return methodOrFunction(...args);
+            } else {
+                throw new Error(`Invalid method or function: ${methodOrFunction}`);
+            }
+        } catch (error) {
+            console.error(`KeyboardHandlers: Error ${actionDescription}:`, error);
+            this._showErrorMessage(actionDescription, error);
+        }
+    }
+
+    /**
+     * Show user-friendly error message
+     * @param {string} actionDescription - Description of the failed action
+     * @param {Error} error - The error that occurred
+     * @private
+     */
+    _showErrorMessage(actionDescription, error) {
+        if (this.view && typeof this.view.showMessage === 'function') {
+            this.view.showMessage(`Error ${actionDescription}. Please try again.`, 'error');
+        }
+    }
+
+    /**
+     * Get handlers for a specific category
+     * @param {string} category - Category name (navigation, todoManagement, editing, general)
+     * @returns {Object} Object containing handlers for the specified category
+     */
+    getHandlersByCategory(category) {
+        const allHandlers = this.getAllHandlers();
+        const categoryHandlers = {};
+        
+        if (this.handlerCategories[category]) {
+            for (const handlerName of this.handlerCategories[category]) {
+                if (allHandlers[handlerName]) {
+                    categoryHandlers[handlerName] = allHandlers[handlerName];
+                }
+            }
+        }
+        
+        return categoryHandlers;
+    }
+
+    /**
+     * Get all available handler categories
+     * @returns {Array} Array of category names
+     */
+    getAvailableCategories() {
+        return Object.keys(this.handlerCategories);
     }
 
     // =================
