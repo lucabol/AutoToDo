@@ -562,7 +562,6 @@ class KeyboardShortcutManager {
             console.log('All shortcuts cleared');
         }
     }
-    }
 
     /**
      * Get a formatted list of shortcuts for display
