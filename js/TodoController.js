@@ -63,144 +63,241 @@ class TodoController {
 
     /**
      * Initialize enhanced theme management with Safari 14.3+ support
+     * Sets up theme based on user preference or system settings, with automatic theme switching
      */
     initializeTheme() {
-        // Use the same storage manager as the model
+        // Use the same storage manager as the model for consistency
         this.storage = this.model.storage;
         
-        // Check for saved theme preference or system preference
+        // Priority order: 1) saved user preference, 2) system preference, 3) default light
         const savedTheme = this.storage.getItem('todo-theme');
         
-        // Enhanced Safari 14.3+ system theme detection
+        // Safari 14.3+ enhanced system theme detection using matchMedia API
+        // This provides better compatibility than older detection methods
         const systemPrefersDark = this._getSystemThemePreference();
         
+        // Determine initial theme: user preference takes precedence over system
         const initialTheme = savedTheme || (systemPrefersDark ? 'dark' : 'light');
-        this.setTheme(initialTheme, false); // false = don't save to storage on init
         
-        // Enhanced listener for system theme changes with Safari compatibility
+        // Set initial theme without saving to avoid overriding system preference behavior
+        // The 'false' parameter prevents automatic storage of the initial theme
+        this.setTheme(initialTheme, false);
+        
+        // Set up dynamic system theme change listener for automatic switching
+        // Only affects users who haven't manually set a theme preference
         this._setupSystemThemeListener();
     }
 
     /**
      * Get system theme preference with Safari 14.3+ enhanced support
+     * Uses matchMedia API which is more reliable than other detection methods
      * @returns {boolean} Whether system prefers dark theme
      */
     _getSystemThemePreference() {
         try {
-            // Safari 14.3+ enhanced media query matching
+            // Safari 14.3+ enhanced media query matching for dark mode preference
+            // matchMedia provides real-time system preference detection
             const darkMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
             return darkMediaQuery.matches;
         } catch (error) {
-            console.warn('System theme detection not supported:', error);
-            return false;
+            // Fallback for browsers that don't support prefers-color-scheme
+            // Log warning but don't block theme initialization
+            console.warn('System theme detection not supported in this browser:', error.message);
+            return false; // Default to light theme when detection fails
         }
     }
 
     /**
      * Setup system theme change listener with Safari 14.3+ compatibility
+     * Automatically switches theme when system preference changes (for users without manual preference)
      */
     _setupSystemThemeListener() {
         try {
             const darkMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
             
-            // Safari 14.3+ compatible event listener
-            const handleThemeChange = (e) => {
+            // Safari 14.3+ compatible event listener for system theme changes
+            // This handles both automatic switching and respects user preferences
+            const handleThemeChange = (mediaQueryEvent) => {
                 // Only auto-switch if user hasn't manually set a preference
+                // This prevents overriding user's explicit choice with system changes
                 if (!this.storage.getItem('todo-theme')) {
-                    this.setTheme(e.matches ? 'dark' : 'light', false);
+                    const newTheme = mediaQueryEvent.matches ? 'dark' : 'light';
+                    // Don't save auto-switched themes to maintain system preference behavior
+                    this.setTheme(newTheme, false);
                 }
             };
 
-            // Use both addEventListener and legacy addListener for compatibility
+            // Use modern addEventListener if available (Safari 14+)
+            // Otherwise fall back to legacy addListener for older Safari versions
             if (darkMediaQuery.addEventListener) {
                 darkMediaQuery.addEventListener('change', handleThemeChange);
             } else if (darkMediaQuery.addListener) {
-                // Fallback for older Safari versions
+                // Legacy fallback for Safari < 14
                 darkMediaQuery.addListener(handleThemeChange);
+            } else {
+                throw new Error('MediaQueryList event handling not supported');
             }
         } catch (error) {
-            console.warn('System theme change listener setup failed:', error);
+            // Log specific error details for better debugging
+            console.warn('Failed to setup system theme change listener:', {
+                error: error.message,
+                browser: navigator.userAgent,
+                timestamp: new Date().toISOString()
+            });
         }
     }
 
     /**
      * Set the application theme with Safari 14.3+ enhancements
+     * Updates DOM classes, UI elements, and browser color-scheme for optimal integration
      * @param {string} theme - 'light' or 'dark'
-     * @param {boolean} save - Whether to save preference to storage
+     * @param {boolean} save - Whether to save preference to storage (default: true)
      */
     setTheme(theme, save = true) {
-        const body = document.body;
-        const themeToggle = document.getElementById('themeToggle');
-        const themeIcon = themeToggle?.querySelector('.theme-icon');
-        const themeText = themeToggle?.querySelector('.theme-text');
-
-        // Safari 14.3+ enhanced theme switching with smooth transitions
-        if (theme === 'dark') {
-            body.classList.remove('light-theme');
-            body.classList.add('dark-theme');
-            if (themeIcon) themeIcon.textContent = '☀️';
-            if (themeText) themeText.textContent = 'Light';
-        } else {
-            body.classList.remove('dark-theme');
-            body.classList.add('light-theme');
-            if (themeIcon) themeIcon.textContent = '🌙';
-            if (themeText) themeText.textContent = 'Dark';
+        // Validate theme parameter
+        const validThemes = ['light', 'dark'];
+        if (!validThemes.includes(theme)) {
+            console.error('Invalid theme provided to setTheme:', {
+                providedTheme: theme,
+                validThemes: validThemes,
+                timestamp: new Date().toISOString()
+            });
+            theme = 'light'; // Fallback to light theme
         }
 
-        // Safari 14.3+ color-scheme meta tag support
-        this._updateColorSchemeMeta(theme);
+        try {
+            const body = document.body;
+            const themeToggle = document.getElementById('themeToggle');
+            const themeIcon = themeToggle?.querySelector('.theme-icon');
+            const themeText = themeToggle?.querySelector('.theme-text');
 
-        if (save && this.storage) {
-            this.storage.setItem('todo-theme', theme);
+            // Safari 14.3+ enhanced theme switching with CSS class management
+            // Remove existing theme classes first to avoid conflicts
+            if (theme === 'dark') {
+                body.classList.remove('light-theme');
+                body.classList.add('dark-theme');
+                // Update toggle button to show opposite theme (what clicking will switch to)
+                if (themeIcon) themeIcon.textContent = '☀️'; // Sun icon = switch to light
+                if (themeText) themeText.textContent = 'Light';
+            } else {
+                body.classList.remove('dark-theme');
+                body.classList.add('light-theme');
+                // Update toggle button to show opposite theme (what clicking will switch to)
+                if (themeIcon) themeIcon.textContent = '🌙'; // Moon icon = switch to dark
+                if (themeText) themeText.textContent = 'Dark';
+            }
+
+            // Safari 14.3+ color-scheme meta tag support for enhanced system integration
+            // This improves form controls, scrollbars, and other native UI elements
+            this._updateColorSchemeMeta(theme);
+
+            // Save user preference to localStorage for persistence across sessions
+            // Only save when explicitly requested (manual theme changes, not system changes)
+            if (save && this.storage) {
+                try {
+                    this.storage.setItem('todo-theme', theme);
+                } catch (storageError) {
+                    console.warn('Failed to save theme preference to storage:', {
+                        error: storageError.message,
+                        theme: theme,
+                        storageAvailable: !!this.storage,
+                        timestamp: new Date().toISOString()
+                    });
+                }
+            }
+
+            // Track current theme for internal state management
+            this.currentTheme = theme;
+            
+            // Dispatch custom event for potential future component integration
+            // Allows other parts of the app to react to theme changes
+            this._dispatchThemeChangeEvent(theme);
+            
+        } catch (error) {
+            console.error('Critical error in setTheme method:', {
+                error: error.message,
+                stack: error.stack,
+                theme: theme,
+                bodyExists: !!document.body,
+                timestamp: new Date().toISOString()
+            });
+            
+            // Attempt minimal fallback
+            try {
+                if (document.body) {
+                    document.body.className = document.body.className.replace(/\b(light|dark)-theme\b/g, '');
+                    document.body.classList.add(`${theme}-theme`);
+                }
+            } catch (fallbackError) {
+                console.error('Even fallback theme setting failed:', fallbackError.message);
+            }
         }
-
-        this.currentTheme = theme;
-        
-        // Trigger custom event for theme change (useful for other components)
-        this._dispatchThemeChangeEvent(theme);
     }
 
     /**
      * Update color-scheme meta tag for Safari 14.3+ enhanced support
-     * @param {string} theme - Current theme
+     * This improves native browser UI elements (scrollbars, form controls, etc.)
+     * @param {string} theme - Current theme ('light' or 'dark')
      */
     _updateColorSchemeMeta(theme) {
         try {
             let metaColorScheme = document.querySelector('meta[name="color-scheme"]');
             
+            // Create meta tag if it doesn't exist
             if (!metaColorScheme) {
                 metaColorScheme = document.createElement('meta');
                 metaColorScheme.name = 'color-scheme';
                 document.head.appendChild(metaColorScheme);
             }
             
+            // Set content to current theme first, fallback second
+            // This tells Safari which color scheme to prefer for native UI elements
             metaColorScheme.content = theme === 'dark' ? 'dark light' : 'light dark';
         } catch (error) {
-            console.warn('Color scheme meta tag update failed:', error);
+            // Provide specific error context for debugging
+            console.warn('Failed to update color-scheme meta tag:', {
+                error: error.message,
+                theme: theme,
+                headElementExists: !!document.head,
+                timestamp: new Date().toISOString()
+            });
         }
     }
 
     /**
-     * Dispatch custom theme change event
-     * @param {string} theme - New theme
+     * Dispatch custom theme change event for component integration
+     * Enables other parts of the application to react to theme changes
+     * @param {string} theme - New theme that was applied
      */
     _dispatchThemeChangeEvent(theme) {
         try {
             const event = new CustomEvent('themechange', {
-                detail: { theme, timestamp: Date.now() }
+                detail: { 
+                    theme, 
+                    timestamp: Date.now(),
+                    source: 'TodoController' // Identifies the source of the theme change
+                }
             });
             document.dispatchEvent(event);
         } catch (error) {
-            console.warn('Theme change event dispatch failed:', error);
+            // Log detailed error information for debugging
+            console.warn('Failed to dispatch theme change event:', {
+                error: error.message,
+                theme: theme,
+                customEventSupported: typeof CustomEvent !== 'undefined',
+                timestamp: new Date().toISOString()
+            });
         }
     }
 
     /**
      * Toggle between light and dark themes
+     * This is the main method called by the theme toggle button and keyboard shortcut (Ctrl+M)
      */
     toggleTheme() {
         const newTheme = this.currentTheme === 'dark' ? 'light' : 'dark';
-        this.setTheme(newTheme);
+        // Always save manual theme changes to override system preference behavior
+        this.setTheme(newTheme, true);
     }
 
     /**
@@ -495,13 +592,35 @@ class TodoController {
     }
 
     /**
-     * Bind theme toggle button event
+     * Bind theme toggle button event with error handling 
      */
     bindThemeToggle() {
         const themeToggle = document.getElementById('themeToggle');
         if (themeToggle) {
             themeToggle.addEventListener('click', () => {
-                this.toggleTheme();
+                try {
+                    this.toggleTheme();
+                } catch (error) {
+                    console.error('Failed to toggle theme via button click:', {
+                        error: error.message,
+                        stack: error.stack,
+                        elementId: 'themeToggle',
+                        timestamp: new Date().toISOString()
+                    });
+                    // Fallback: try to at least toggle CSS classes manually
+                    try {
+                        document.body.classList.toggle('dark-theme');
+                        document.body.classList.toggle('light-theme');
+                    } catch (fallbackError) {
+                        console.error('Fallback theme toggle also failed:', fallbackError.message);
+                    }
+                }
+            });
+        } else {
+            console.warn('Theme toggle button not found in DOM:', {
+                expectedId: 'themeToggle',
+                availableElements: Array.from(document.querySelectorAll('[id]')).map(el => el.id),
+                timestamp: new Date().toISOString()
             });
         }
     }
