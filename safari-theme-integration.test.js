@@ -1,6 +1,31 @@
 /**
- * Safari Theme Integration Tests
- * Unit tests for Safari 14.0-14.2 theme switching functionality integration
+ * Safari 14.0-14.2 Theme Integration Tests
+ * 
+ * Comprehensive integration test suite that validates the complete Safari theme
+ * switching functionality in real-world usage scenarios. These tests simulate
+ * actual user interactions and browser behaviors to ensure the Safari workarounds
+ * work effectively in production environments.
+ * 
+ * **Test Categories**:
+ * 
+ * 1. **TodoController Integration**: Tests the complete MVC flow with Safari detection
+ * 2. **DOM Manipulation Validation**: Verifies workaround techniques work correctly
+ * 3. **Notification System Integration**: Tests user guidance system end-to-end
+ * 4. **Cross-Browser Compatibility**: Ensures non-Safari browsers aren't affected
+ * 5. **Edge Case Handling**: Tests boundary conditions and error scenarios
+ * 
+ * **Expected Outcomes**:
+ * - Safari 14.0-14.2 users receive proper workarounds and notifications
+ * - Other Safari versions and browsers work without interference
+ * - DOM manipulations successfully trigger style recalculation
+ * - Notifications appear only once per session with proper auto-hide behavior
+ * - All theme preferences persist correctly regardless of browser quirks
+ * 
+ * **Test Methodology**:
+ * - Mock DOM environment with realistic browser simulation
+ * - User agent string manipulation for precise Safari version testing
+ * - Integration with actual TodoController and PerformanceUtils classes
+ * - Validation of both successful operations and error handling paths
  */
 
 // Import dependencies for testing
