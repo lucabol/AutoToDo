@@ -7,8 +7,10 @@ class TodoController {
         this.view = view;
         this.searchTerm = '';
         
-        // Performance optimizations
+        // Performance optimizations for search functionality
+        // Search monitoring: Tracks search performance for large todo lists
         this.searchMonitor = PerformanceUtils.createMonitor('Search Performance');
+        // Debounced search: Prevents excessive search operations during fast typing (300ms delay)
         this.debouncedSearch = PerformanceUtils.debounce(this.performSearch.bind(this), 300);
         
         this.keyboardManager = new KeyboardShortcutManager({
