@@ -262,3 +262,8 @@ class PerformanceUtils {
         };
     }
 }
+
+// Export for Node.js
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = PerformanceUtils;
+}
