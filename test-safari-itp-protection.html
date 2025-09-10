@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Safari ITP Protection Test - AutoToDo</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .status-section {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 6px;
+            border-left: 4px solid #007AFF;
+            background: #f0f9ff;
+        }
+        .warning {
+            border-left-color: #FF9500;
+            background: #fff8f0;
+        }
+        .critical {
+            border-left-color: #FF3B30;
+            background: #fff0f0;
+        }
+        .success {
+            border-left-color: #34C759;
+            background: #f0fff4;
+        }
+        button {
+            background: #007AFF;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056CC;
+        }
+        .test-results {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f8f8;
+            border-radius: 6px;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .info-item {
+            padding: 10px;
+            background: #f8f8f8;
+            border-radius: 6px;
+        }
+        .info-label {
+            font-weight: bold;
+            color: #666;
+            font-size: 12px;
+            text-transform: uppercase;
+        }
+        .info-value {
+            font-size: 16px;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Safari ITP Protection Test</h1>
+        <p>This page tests the Safari 14+ Intelligent Tracking Prevention (ITP) data loss protection features.</p>
+        
+        <div id="detectionStatus" class="status-section">
+            <h3>Browser Detection</h3>
+            <p id="browserInfo">Detecting browser...</p>
+        </div>
+
+        <div id="storageStatus" class="status-section">
+            <h3>Storage Protection Status</h3>
+            <div id="storageInfo">Loading storage information...</div>
+        </div>
+
+        <div class="info-grid" id="infoGrid">
+            <!-- Dynamic info items will be added here -->
+        </div>
+
+        <div>
+            <h3>Test Actions</h3>
+            <button onclick="testStorageOperations()">Test Storage Operations</button>
+            <button onclick="testBackupRestore()">Test Backup/Restore</button>
+            <button onclick="simulateDataLoss()">Simulate Data Loss</button>
+            <button onclick="simulateInactivity()">Simulate 6-Day Inactivity</button>
+            <button onclick="resetActivity()">Reset Activity Timer</button>
+            <button onclick="refreshStatus()">Refresh Status</button>
+        </div>
+
+        <div class="test-results" id="testResults">
+Test results will appear here...
+        </div>
+    </div>
+
+    <!-- Load required modules -->
+    <script src="js/StorageDetector.js"></script>
+    <script src="js/StorageFallbackHandler.js"></script>
+    <script src="js/StorageOperations.js"></script>
+    <script src="js/SafariITPHandler.js"></script>
+    <script src="js/StorageManager.js"></script>
+
+    <script>
+        let storageManager;
+        let itpHandler;
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', async function() {
+            try {
+                // Initialize storage manager
+                storageManager = new StorageManager();
+                
+                // Wait a bit for async initialization
+                await new Promise(resolve => setTimeout(resolve, 200));
+                
+                // Get ITP handler reference
+                itpHandler = storageManager.itpHandler;
+                
+                // Initial status update
+                updateBrowserDetection();
+                updateStorageStatus();
+                updateInfoGrid();
+                
+                log('Safari ITP Protection test page initialized successfully');
+                
+            } catch (error) {
+                log('Error initializing test page: ' + error.message);
+            }
+        });
+
+        function updateBrowserDetection() {
+            const browserInfo = document.getElementById('browserInfo');
+            const detectionStatus = document.getElementById('detectionStatus');
+            
+            const userAgent = navigator.userAgent;
+            const isSafari = /^((?!chrome|android).)*safari/i.test(userAgent);
+            
+            let detectionText = `User Agent: ${userAgent}\n`;
+            detectionText += `Safari Detected: ${isSafari}\n`;
+            
+            if (itpHandler) {
+                const isSafariWithITP = itpHandler.detectSafariITP();
+                detectionText += `Safari with ITP: ${isSafariWithITP}`;
+                
+                if (isSafariWithITP) {
+                    detectionStatus.className = 'status-section warning';
+                } else {
+                    detectionStatus.className = 'status-section success';
+                }
+            }
+            
+            browserInfo.textContent = detectionText;
+        }
+
+        function updateStorageStatus() {
+            const storageInfo = document.getElementById('storageInfo');
+            const storageStatus = document.getElementById('storageStatus');
+            
+            if (!storageManager) {
+                storageInfo.textContent = 'Storage manager not initialized';
+                return;
+            }
+            
+            const info = storageManager.getStorageInfo();
+            let statusText = '';
+            
+            // Basic storage info
+            statusText += `Current Storage: ${info.currentType}\n`;
+            statusText += `localStorage Available: ${info.hasLocalStorage}\n`;
+            statusText += `sessionStorage Available: ${info.hasSessionStorage}\n`;
+            statusText += `Private Mode: ${info.isPrivateMode}\n`;
+            
+            // ITP protection info
+            if (info.itpProtection) {
+                const itp = info.itpProtection;
+                statusText += `\nITP Protection Status:\n`;
+                statusText += `- Persistent Storage Granted: ${itp.persistentStorageGranted}\n`;
+                statusText += `- Days Since Activity: ${itp.daysSinceActivity.toFixed(2)}\n`;
+                statusText += `- Risk Level: ${itp.riskLevel}\n`;
+                statusText += `- Days Until Clearing: ${itp.daysUntilClearing.toFixed(2)}\n`;
+                statusText += `- Activity Tracking: ${itp.activityTrackingEnabled}`;
+                
+                // Set status color based on risk level
+                if (itp.riskLevel === 'critical') {
+                    storageStatus.className = 'status-section critical';
+                } else if (itp.riskLevel === 'warning') {
+                    storageStatus.className = 'status-section warning';
+                } else {
+                    storageStatus.className = 'status-section success';
+                }
+            } else {
+                statusText += '\nITP Protection: Not available';
+            }
+            
+            storageInfo.textContent = statusText;
+        }
+
+        function updateInfoGrid() {
+            const infoGrid = document.getElementById('infoGrid');
+            
+            if (!storageManager || !itpHandler) {
+                return;
+            }
+            
+            const status = itpHandler.getITPStatus();
+            
+            const infoItems = [
+                { label: 'Browser Type', value: status.isSafariWithITP ? 'Safari with ITP' : 'Other Browser' },
+                { label: 'Persistent Storage', value: status.persistentStorageGranted ? 'Granted' : 'Not Granted' },
+                { label: 'Last Activity', value: new Date(status.lastActivity).toLocaleString() },
+                { label: 'Risk Level', value: status.riskLevel.toUpperCase() },
+                { label: 'Days Since Activity', value: status.daysSinceActivity.toFixed(2) },
+                { label: 'Days Until Clearing', value: status.daysUntilClearing.toFixed(2) }
+            ];
+            
+            infoGrid.innerHTML = infoItems.map(item => `
+                <div class="info-item">
+                    <div class="info-label">${item.label}</div>
+                    <div class="info-value">${item.value}</div>
+                </div>
+            `).join('');
+        }
+
+        function testStorageOperations() {
+            log('Testing storage operations...');
+            
+            try {
+                // Test storing data
+                const testData = {
+                    timestamp: Date.now(),
+                    todos: [
+                        { id: 1, text: 'Test Safari ITP protection', completed: false },
+                        { id: 2, text: 'Verify data persistence', completed: true }
+                    ]
+                };
+                
+                const success = storageManager.setItem('todos', JSON.stringify(testData));
+                log(`Storage test: ${success ? 'SUCCESS' : 'FAILED'}`);
+                
+                // Test retrieving data
+                const retrieved = storageManager.getItem('todos');
+                const parsedData = JSON.parse(retrieved);
+                log(`Retrieval test: ${parsedData.timestamp === testData.timestamp ? 'SUCCESS' : 'FAILED'}`);
+                
+                // Update status after operation
+                updateStorageStatus();
+                updateInfoGrid();
+                
+            } catch (error) {
+                log(`Storage test ERROR: ${error.message}`);
+            }
+        }
+
+        function testBackupRestore() {
+            log('Testing backup and restore functionality...');
+            
+            if (!itpHandler) {
+                log('ITP handler not available for backup test');
+                return;
+            }
+            
+            try {
+                const testData = {
+                    todos: [
+                        { id: 1, text: 'Backup test todo', completed: false }
+                    ],
+                    timestamp: Date.now()
+                };
+                
+                // Create backup
+                const backupSuccess = itpHandler.backup(testData);
+                log(`Backup creation: ${backupSuccess ? 'SUCCESS' : 'FAILED'}`);
+                
+                // Restore backup
+                const restored = itpHandler.restore();
+                log(`Backup restoration: ${restored && restored.timestamp === testData.timestamp ? 'SUCCESS' : 'FAILED'}`);
+                
+                if (restored) {
+                    log(`Restored data: ${JSON.stringify(restored, null, 2)}`);
+                }
+                
+            } catch (error) {
+                log(`Backup/restore test ERROR: ${error.message}`);
+            }
+        }
+
+        function simulateDataLoss() {
+            log('Simulating data loss scenario...');
+            
+            try {
+                // Store some test data first
+                storageManager.setItem('todos', JSON.stringify([
+                    { id: 1, text: 'Original todo', completed: false }
+                ]));
+                
+                // Clear localStorage to simulate ITP clearing
+                localStorage.clear();
+                
+                log('localStorage cleared (simulating ITP data loss)');
+                
+                // Try to retrieve data - should attempt restore from backup
+                const retrieved = storageManager.getItem('todos');
+                
+                if (retrieved) {
+                    log(`Data recovery: SUCCESS - ${retrieved}`);
+                } else {
+                    log('Data recovery: No data recovered from backup');
+                }
+                
+                updateStorageStatus();
+                
+            } catch (error) {
+                log(`Data loss simulation ERROR: ${error.message}`);
+            }
+        }
+
+        function simulateInactivity() {
+            log('Simulating 6-day inactivity...');
+            
+            if (!itpHandler) {
+                log('ITP handler not available for inactivity simulation');
+                return;
+            }
+            
+            try {
+                // Set last activity to 6 days ago
+                const sixDaysAgo = Date.now() - (6 * 24 * 60 * 60 * 1000);
+                localStorage.setItem(itpHandler.lastActivityKey, sixDaysAgo.toString());
+                
+                // Check risk level
+                const riskLevel = itpHandler.checkDataLossRisk();
+                log(`Risk level after 6-day inactivity: ${riskLevel}`);
+                
+                updateStorageStatus();
+                updateInfoGrid();
+                
+            } catch (error) {
+                log(`Inactivity simulation ERROR: ${error.message}`);
+            }
+        }
+
+        function resetActivity() {
+            log('Resetting activity timer...');
+            
+            if (!itpHandler) {
+                log('ITP handler not available for activity reset');
+                return;
+            }
+            
+            try {
+                itpHandler.resetTimer();
+                log('Activity timer reset successfully');
+                
+                updateStorageStatus();
+                updateInfoGrid();
+                
+            } catch (error) {
+                log(`Activity reset ERROR: ${error.message}`);
+            }
+        }
+
+        function refreshStatus() {
+            log('Refreshing status information...');
+            updateBrowserDetection();
+            updateStorageStatus();
+            updateInfoGrid();
+        }
+
+        function log(message) {
+            const testResults = document.getElementById('testResults');
+            const timestamp = new Date().toLocaleTimeString();
+            testResults.textContent += `[${timestamp}] ${message}\n`;
+            testResults.scrollTop = testResults.scrollHeight;
+            console.log(message);
+        }
+    </script>
+</body>
+</html>

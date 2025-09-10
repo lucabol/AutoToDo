@@ -3,17 +3,20 @@
  * 
  * This is the main interface for storage operations in AutoToDo. It coordinates
  * multiple specialized modules to provide reliable data persistence even in
- * challenging browser environments like Safari 14+ Private Browsing mode.
+ * challenging browser environments like Safari 14+ Private Browsing mode and
+ * Safari 14+ Intelligent Tracking Prevention (ITP) data clearing.
  * 
  * Architecture:
  * - StorageDetector: Detects available storage types and browser limitations
  * - StorageFallbackHandler: Manages fallback strategies when storage fails
  * - StorageOperations: Provides high-level API with validation and error handling
+ * - SafariITPHandler: Prevents Safari 14+ ITP data loss after 7 days of inactivity
  * - StorageManager: Orchestrates the modules and provides the public API
  * 
  * Key Features:
  * - Automatic fallback: localStorage → sessionStorage → memory storage
  * - Safari 14+ Private Browsing compatibility
+ * - Safari 14+ ITP data loss prevention with persistent storage and activity tracking
  * - Comprehensive error handling and recovery
  * - Performance monitoring and optimization
  * - Detailed logging and debugging capabilities
@@ -21,23 +24,29 @@
 class StorageManager {
     constructor() {
         // Initialize the modular storage system
-        this.initializeModules();
-        
-        // Safari 14+ specific initialization
-        this.initializeSafari14Plus();
-        
-        // Legacy compatibility properties (for existing code)
-        this.initializeLegacyProperties();
-        
-        // Log initialization results
-        this.logInitialization();
+        this.initializeModules().then(() => {
+            // Safari 14+ specific initialization
+            this.initializeSafari14Plus();
+            
+            // Legacy compatibility properties (for existing code)
+            this.initializeLegacyProperties();
+            
+            // Log initialization results
+            this.logInitialization();
+        }).catch(error => {
+            console.error('StorageManager: Async initialization failed:', error);
+            // Continue with Safari 14+ and legacy properties for basic functionality
+            this.initializeSafari14Plus();
+            this.initializeLegacyProperties();
+            this.logInitialization();
+        });
     }
 
     /**
      * Initialize the modular storage system components
      * Creates and connects the specialized storage modules
      */
-    initializeModules() {
+    async initializeModules() {
         try {
             // Initialize storage detection module
             this.detector = new StorageDetector();
@@ -47,6 +56,16 @@ class StorageManager {
             
             // Initialize operations module
             this.operations = new StorageOperations(this.fallbackHandler);
+            
+            // Initialize Safari ITP handler for data loss prevention
+            if (typeof SafariITPHandler !== 'undefined') {
+                this.itpHandler = new SafariITPHandler();
+                // ITP handler initializes asynchronously
+                await this.itpHandler.init();
+                console.log('StorageManager: Safari ITP handler initialized');
+            } else {
+                console.warn('StorageManager: SafariITPHandler not available');
+            }
             
             console.log('StorageManager: All modules initialized successfully');
             
@@ -293,7 +312,6 @@ class StorageManager {
     // ============================================================================
 
     /**
-<<<<<<< HEAD
      * Initialize legacy compatibility properties
      * Maintains compatibility with existing code that expects certain properties
      */
@@ -315,73 +333,34 @@ class StorageManager {
     }
 
     /**
-     * Create an emergency fallback system if module initialization fails
-     * Provides basic functionality even if the modular system can't be initialized
-     */
-    createEmergencyFallback() {
-        console.warn('StorageManager: Using emergency fallback system');
-        
-        this.memoryStorage = new Map();
-        this.storageType = 'memory';
-        this.isPrivateMode = true;
-        this.hasLocalStorage = false;
-        this.hasSessionStorage = false;
-        
-        // Create minimal operations object for emergency use
-        this.operations = {
-            getItem: (key) => this.memoryStorage.get(key) || null,
-            setItem: (key, value) => { this.memoryStorage.set(key, value); return true; },
-            removeItem: (key) => { this.memoryStorage.delete(key); return true; },
-            clear: () => { this.memoryStorage.clear(); return true; },
-            isAvailable: () => true
-        };
-    }
-
-    /**
-     * Log initialization results for debugging and monitoring
-     * Provides detailed information about the storage system setup
-     */
-    logInitialization() {
-        const info = this.getStorageInfo();
-        
-        console.log(`StorageManager initialized successfully:`, {
-            primaryStorage: info.currentType,
-            privateMode: info.isPrivateMode,
-            capabilities: {
-                localStorage: info.hasLocalStorage,
-                sessionStorage: info.hasSessionStorage
-            },
-            modulesLoaded: {
-                detector: !!this.detector,
-                fallbackHandler: !!this.fallbackHandler,
-                operations: !!this.operations
-            }
-        });
-
-        if (info.isPrivateMode) {
-            console.warn('StorageManager: Private browsing mode detected - enhanced fallbacks active');
-        }
-    }
-
-    // ============================================================================
-    // PUBLIC API METHODS
-    // These methods provide the main interface for storage operations
-    // ============================================================================
-
-    /**
-=======
->>>>>>> main
      * Get an item from storage with comprehensive fallback support
      * 
      * This method attempts to retrieve data using the most reliable mechanism
      * available, automatically falling back through storage types as needed.
+     * Includes data recovery from ITP backup if main data is lost.
      * 
      * @param {string} key - Storage key to retrieve
      * @returns {string|null} Stored value or null if not found
      */
     getItem(key) {
         try {
-            return this.operations.getItem(key);
+            let result = this.operations.getItem(key);
+            
+            // If no data found and we have ITP handler, try to restore from backup
+            if (!result && this.itpHandler && this.itpHandler.isInitialized) {
+                if (key === 'todos' || key.includes('todo')) {
+                    const backupData = this.itpHandler.restore();
+                    if (backupData && backupData.todos) {
+                        console.log('StorageManager: Restored todos from ITP backup');
+                        result = JSON.stringify(backupData.todos);
+                        
+                        // Re-store the recovered data
+                        this.setItem(key, result);
+                    }
+                }
+            }
+            
+            return result;
         } catch (error) {
             console.error('StorageManager.getItem failed:', error);
             return null;
@@ -392,10 +371,12 @@ class StorageManager {
      * Store an item with comprehensive fallback and error handling
      * 
      * This method ensures data is stored reliably even in challenging environments
-     * like Safari 14+ Private Browsing mode. It automatically handles:
+     * like Safari 14+ Private Browsing mode and protects against Safari 14+ ITP
+     * data clearing after 7 days of inactivity. It automatically handles:
      * - QuotaExceededError by falling back to alternative storage
      * - Storage unavailability by using memory storage
      * - Large data by optimizing storage strategy
+     * - ITP data loss prevention through activity tracking and backup
      * 
      * @param {string} key - Storage key
      * @param {string} value - Value to store
@@ -403,17 +384,39 @@ class StorageManager {
      */
     setItem(key, value) {
         try {
-            // Safari 14+ operation counting
+            let result;
+            
+            // Safari 14+ operation counting and verification
             if (this.safari14Mode) {
                 this.operationCount++;
                 
                 // Verify data after storing for Safari 14+ private browsing
                 if (this.operationCount % this.verificationInterval === 0) {
-                    return this.setItemWithVerification(key, value);
+                    result = this.setItemWithVerification(key, value);
+                } else {
+                    result = this.operations.setItem(key, value);
+                }
+            } else {
+                result = this.operations.setItem(key, value);
+            }
+            
+            // If ITP handler is available, create backup and update activity
+            if (this.itpHandler && this.itpHandler.isInitialized) {
+                // Update activity to reset ITP timer
+                this.itpHandler.resetTimer();
+                
+                // Create backup of todos data for protection
+                if (key === 'todos' || key.includes('todo')) {
+                    try {
+                        const currentTodos = JSON.parse(value);
+                        this.itpHandler.backup({ todos: currentTodos });
+                    } catch (parseError) {
+                        console.warn('StorageManager: Could not parse todos for backup:', parseError);
+                    }
                 }
             }
             
-            return this.operations.setItem(key, value);
+            return result;
         } catch (error) {
             if (this.safari14Mode) {
                 this.failureCount++;
@@ -548,7 +551,7 @@ class StorageManager {
                 hasLocalStorage: this.hasLocalStorage,
                 hasSessionStorage: this.hasSessionStorage,
                 isPrivateMode: this.isPrivateMode,
-                memoryItems: this.memoryStorage.size,
+                memoryItems: this.memoryStorage ? this.memoryStorage.size : 0,
                 
                 // Enhanced information from modules
                 ...baseInfo,
@@ -567,8 +570,14 @@ class StorageManager {
                 modulesLoaded: {
                     detector: !!this.detector,
                     fallbackHandler: !!this.fallbackHandler,
-                    operations: !!this.operations
-                }
+                    operations: !!this.operations,
+                    itpHandler: !!this.itpHandler
+                },
+
+                // ITP protection status (if available)
+                ...(this.itpHandler && { 
+                    itpProtection: this.itpHandler.getITPStatus() 
+                })
             };
         } catch (error) {
             console.warn('StorageManager: Error getting storage info:', error);
@@ -579,7 +588,7 @@ class StorageManager {
                 hasLocalStorage: this.hasLocalStorage,
                 hasSessionStorage: this.hasSessionStorage,
                 isPrivateMode: this.isPrivateMode,
-                memoryItems: this.memoryStorage.size,
+                memoryItems: this.memoryStorage ? this.memoryStorage.size : 0,
                 error: 'Failed to get detailed storage info'
             };
         }
