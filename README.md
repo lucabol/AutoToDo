@@ -184,29 +184,48 @@ If you continue experiencing issues:
 ## Features
 
 - ✅ **Task Management**: Create, edit, and delete todos with a clean interface
-- ✅ **Smart Search**: Real-time filtering with instant results as you type
-- ✅ **Completion Tracking**: Mark tasks as completed with visual feedback
+- ✅ **Smart Search**: Real-time filtering with instant results as you type (`Ctrl+F` or `/`)
+- ✅ **Completion Tracking**: Mark tasks as completed with visual feedback (`Ctrl+T`)
 - ✅ **Data Persistence**: Automatic saving using browser's localStorage
-- ✅ **Keyboard Navigation**: Complete keyboard support for power users
+- ✅ **Comprehensive Keyboard Shortcuts**: 15 fully documented shortcuts for complete mouse-free operation
+  - **Navigation shortcuts**: Quick focus switching (`Ctrl+N`, `Ctrl+F`, `/`)
+  - **Todo management**: Add (`Ctrl+Enter`), toggle (`Ctrl+T`), delete (`Ctrl+Delete`)
+  - **Bulk operations**: Select all (`Ctrl+A`), clear completed (`Ctrl+Shift+D`)
+  - **Editing controls**: Save (`Ctrl+S`, `Enter`), cancel (`Escape`)
+  - **Help system**: Built-in shortcuts reference (`Ctrl+H`, `?`, `F1`)
 - ✅ **Responsive Design**: Works seamlessly on desktop and mobile devices
-- ✅ **Theme Support**: Light and dark mode toggle for comfortable viewing
-- ✅ **Accessibility**: Screen reader compatible with proper ARIA labels
+- ✅ **Theme Support**: Light and dark mode toggle for comfortable viewing (`Ctrl+M`)
+- ✅ **Accessibility**: Screen reader compatible with proper ARIA labels and WCAG 2.1 AA compliance
 
 ## How to Use
 
 **Getting Started:**
 1. Open `index.html` in a web browser
-2. Add new todos using the input field at the top
-3. Use the search field to filter todos by keywords
-4. Click checkboxes to mark todos as completed
-5. Use Edit buttons to modify todo text
-6. Use Delete buttons to remove todos (with confirmation)
+2. Add new todos using the input field at the top (or press **Ctrl+N** to focus it quickly)
+3. Use the search field to filter todos by keywords (press **Ctrl+F** or **/** for instant access)
+4. Click checkboxes to mark todos as completed (or use **Ctrl+T** for keyboard access)
+5. Use Edit buttons to modify todo text (save with **Enter** or **Ctrl+S**, cancel with **Escape**)
+6. Use Delete buttons to remove todos (or **Ctrl+Delete** with confirmation)
+
+**Keyboard-First Workflow:**
+AutoToDo is designed for efficient keyboard-only operation. Here's how to maximize your productivity:
+
+1. **Quick Todo Creation**: Press **Ctrl+N** → Type your todo → Press **Ctrl+Enter** to add
+2. **Fast Search & Filter**: Press **/** → Type keywords → Use arrows to navigate results
+3. **Bulk Management**: Use **Ctrl+A** to select all, **Ctrl+Shift+D** to clear completed todos
+4. **Theme & Help**: Press **Ctrl+M** for dark mode, **Ctrl+H** for complete shortcuts reference
+
+**Accessibility Features:**
+- All 15 keyboard shortcuts work with screen readers and assistive technologies
+- Visual focus indicators and proper ARIA labeling throughout
+- Support for international keyboard layouts (QWERTY, AZERTY, QWERTZ)
+- High contrast mode compatibility and keyboard-only navigation
 
 **Pro Tips:**
-- Press **Ctrl+H** to see all available keyboard shortcuts
-- Use **Ctrl+N** to quickly add new todos without clicking
-- Use **/** to instantly jump to search and filter your tasks
-- Enable dark mode with **Ctrl+M** for comfortable night usage
+- Press **Ctrl+H**, **?**, or **F1** to access the built-in help system with all shortcuts
+- Use **Escape** to quickly cancel any editing operation and return to normal mode  
+- **Ctrl+S** saves changes instantly when editing todos
+- The app automatically saves all changes to your browser's local storage
 
 ## Keyboard Shortcuts
 
