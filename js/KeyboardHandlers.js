@@ -72,7 +72,7 @@ class KeyboardHandlers {
                 searchInput.focus();
                 // Clear any existing text and add the '/' character
                 searchInput.value = '/';
-                // Move cursor to end
+                // Position cursor after the '/' character (at index 1) so users can immediately continue typing their search query
                 searchInput.setSelectionRange(1, 1);
                 // Trigger input event to update search
                 searchInput.dispatchEvent(new Event('input', { bubbles: true }));
