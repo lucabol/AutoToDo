@@ -1133,6 +1133,421 @@ echo "All keyboard shortcut tests passed ✅"
 
 This comprehensive testing methodology ensures all documented keyboard shortcuts work reliably and maintain consistency across development cycles and browser environments.
 
+### Practical Testing Examples and Workflows
+
+#### Manual Testing Procedures
+
+**Complete Keyboard Shortcut Validation Checklist:**
+
+1. **Navigation Shortcuts Testing:**
+   ```
+   ✓ Press Ctrl+N → Verify input field gets focus
+   ✓ Press Ctrl+F → Verify search field gets focus  
+   ✓ Press / → Verify search field gets focus (alternative)
+   ✓ Press ? → Verify help dialog opens
+   ✓ Press F1 → Verify help dialog opens (alternative)
+   ✓ Press Ctrl+H → Verify help dialog opens (alternative)
+   ```
+
+2. **Todo Management Testing:**
+   ```
+   ✓ Add todo, press Ctrl+T → Verify first todo toggles completion
+   ✓ Add multiple todos, press Ctrl+A → Verify all todos get selected
+   ✓ Complete some todos, press Ctrl+Shift+D → Verify completed todos cleared
+   ✓ Press Ctrl+Delete → Verify deletion confirmation appears
+   ✓ Focus input, press Ctrl+Enter → Verify todo gets added
+   ```
+
+3. **Editing Mode Testing:**
+   ```
+   ✓ Double-click todo to edit, press Ctrl+S → Verify changes saved
+   ✓ Double-click todo to edit, press Escape → Verify editing cancelled
+   ✓ Edit todo, make changes, press Escape → Verify changes discarded
+   ```
+
+4. **Theme and General Testing:**
+   ```
+   ✓ Press Ctrl+M → Verify theme toggles between light/dark
+   ✓ Press Escape when not editing → Verify no unintended effects
+   ✓ Press shortcuts with Caps Lock on → Verify still work correctly
+   ```
+
+#### Browser-Specific Testing Examples
+
+**Chrome Testing Workflow:**
+```javascript
+// Chrome DevTools Console Testing
+console.log('=== Chrome Keyboard Shortcut Testing ===');
+
+// Test shortcut registration
+document.addEventListener('keydown', (e) => {
+    console.log(`Key: ${e.key}, Ctrl: ${e.ctrlKey}, Alt: ${e.altKey}, Shift: ${e.shiftKey}`);
+});
+
+// Simulate Ctrl+N
+const event = new KeyboardEvent('keydown', {
+    key: 'n',
+    ctrlKey: true,
+    bubbles: true
+});
+document.dispatchEvent(event);
+```
+
+**Firefox Testing Considerations:**
+- Firefox may handle `event.key` differently for some special keys
+- Test F1 behavior (may conflict with Firefox help)
+- Verify `preventDefault()` works correctly for browser shortcuts
+
+**Safari Testing Considerations:**
+- Test Cmd key behavior on macOS (maps to Ctrl in shortcuts)
+- Verify mobile Safari compatibility if applicable
+- Test with VoiceOver screen reader enabled
+
+#### User Acceptance Testing Scenarios
+
+**Scenario 1: New User Workflow**
+```
+Given: User opens AutoToDo for the first time
+When: User presses ? key
+Then: Help dialog should appear showing all shortcuts
+And: User can navigate through categories
+And: Each shortcut description is clear and actionable
+
+When: User presses Escape
+Then: Help dialog should close
+And: User returns to main interface
+
+When: User presses Ctrl+N
+Then: Input field should get focus with visible cursor
+And: User can immediately start typing
+```
+
+**Scenario 2: Power User Workflow**
+```
+Given: User has experience with keyboard shortcuts
+When: User presses Ctrl+N, types "Buy milk", presses Ctrl+Enter
+Then: Todo should be added and input should remain focused
+
+When: User types "Call mom", presses Enter
+Then: Second todo should be added
+
+When: User presses Ctrl+T
+Then: First todo should be marked complete
+
+When: User presses Ctrl+Shift+D
+Then: Confirmation should appear for clearing completed todos
+```
+
+**Scenario 3: Accessibility Testing**
+```
+Given: User relies on keyboard navigation
+When: User presses Tab to navigate
+Then: Focus should move logically through interactive elements
+
+When: User activates screen reader
+Then: Shortcuts should still function correctly
+And: Screen reader should announce focus changes
+And: Help dialog content should be readable
+```
+
+#### Test-Driven Development Examples
+
+**Adding a New Shortcut (Ctrl+R for Refresh):**
+
+1. **Write the Test First:**
+```javascript
+// In keyboard-shortcuts.test.js
+function testCtrlRRefreshShortcut() {
+    const handler = createTestHandler();
+    let refreshCalled = false;
+    
+    handler.onRefresh = () => { refreshCalled = true; };
+    
+    const ctrlREvent = {
+        key: 'r',
+        ctrlKey: true,
+        preventDefault: () => {}
+    };
+    
+    handler.handleKeyboardShortcuts(ctrlREvent);
+    
+    assert(refreshCalled === true, 'Ctrl+R should trigger refresh');
+}
+```
+
+2. **Run Test (Should Fail):**
+```bash
+node keyboard-shortcuts.test.js
+# Expected: ❌ FAIL: Ctrl+R should trigger refresh
+```
+
+3. **Implement the Feature:**
+```javascript
+// In ShortcutsConfig.js
+{
+    key: 'r',
+    ctrlKey: true,
+    context: 'global',
+    action: () => todoController.refresh(),
+    description: 'Refresh todo list',
+    category: 'General',
+    preventDefault: true
+}
+```
+
+4. **Run Test Again (Should Pass):**
+```bash
+node keyboard-shortcuts.test.js
+# Expected: ✅ PASS: Ctrl+R should trigger refresh
+```
+
+#### Interactive Browser Testing Examples
+
+**Real-Time Shortcut Debugging:**
+
+1. **Open Browser Console:**
+```javascript
+// Monitor all keyboard events
+window.addEventListener('keydown', (e) => {
+    console.log({
+        key: e.key,
+        code: e.code,
+        ctrlKey: e.ctrlKey,
+        altKey: e.altKey,
+        shiftKey: e.shiftKey,
+        timestamp: Date.now()
+    });
+});
+```
+
+2. **Test Specific Shortcut:**
+```javascript
+// Test Ctrl+N focus behavior
+function testCtrlNFocus() {
+    const input = document.getElementById('todo-input');
+    const initialFocus = document.activeElement;
+    
+    console.log('Before Ctrl+N:', { 
+        activeElement: document.activeElement.id,
+        inputFocused: document.activeElement === input 
+    });
+    
+    // Simulate Ctrl+N
+    const event = new KeyboardEvent('keydown', {
+        key: 'n',
+        ctrlKey: true,
+        bubbles: true
+    });
+    document.dispatchEvent(event);
+    
+    setTimeout(() => {
+        console.log('After Ctrl+N:', { 
+            activeElement: document.activeElement.id,
+            inputFocused: document.activeElement === input,
+            focusChanged: initialFocus !== document.activeElement
+        });
+    }, 100);
+}
+
+testCtrlNFocus();
+```
+
+3. **Performance Testing:**
+```javascript
+// Measure shortcut response time
+function measureShortcutPerformance() {
+    const results = [];
+    
+    for (let i = 0; i < 10; i++) {
+        const start = performance.now();
+        
+        const event = new KeyboardEvent('keydown', {
+            key: 'n',
+            ctrlKey: true,
+            bubbles: true
+        });
+        document.dispatchEvent(event);
+        
+        const end = performance.now();
+        results.push(end - start);
+    }
+    
+    console.log('Shortcut Performance Results:', {
+        average: results.reduce((a, b) => a + b) / results.length,
+        min: Math.min(...results),
+        max: Math.max(...results),
+        results
+    });
+}
+
+measureShortcutPerformance();
+```
+
+#### Regression Testing Examples
+
+**Automated Regression Test Suite:**
+```bash
+#!/bin/bash
+# regression-test-shortcuts.sh
+
+echo "🔄 Running Keyboard Shortcut Regression Tests..."
+
+# Store current test results
+npm test > current_results.log 2>&1
+
+# Extract pass/fail counts
+CURRENT_PASSES=$(grep -o "✅ PASS:" current_results.log | wc -l)
+CURRENT_FAILS=$(grep -o "❌ FAIL:" current_results.log | wc -l)
+
+echo "📊 Current Results: $CURRENT_PASSES passed, $CURRENT_FAILS failed"
+
+# Compare with baseline (if exists)
+if [ -f "baseline_results.log" ]; then
+    BASELINE_PASSES=$(grep -o "✅ PASS:" baseline_results.log | wc -l)
+    BASELINE_FAILS=$(grep -o "❌ FAIL:" baseline_results.log | wc -l)
+    
+    echo "📋 Baseline Results: $BASELINE_PASSES passed, $BASELINE_FAILS failed"
+    
+    if [ $CURRENT_PASSES -lt $BASELINE_PASSES ]; then
+        echo "⚠️  WARNING: Fewer tests passing than baseline!"
+        echo "   Regression detected in keyboard shortcuts"
+        exit 1
+    fi
+    
+    if [ $CURRENT_FAILS -gt $BASELINE_FAILS ]; then
+        echo "⚠️  WARNING: More tests failing than baseline!"
+        echo "   New failures detected in keyboard shortcuts"
+        exit 1
+    fi
+fi
+
+echo "✅ Regression tests passed!"
+
+# Update baseline
+cp current_results.log baseline_results.log
+```
+
+#### Edge Case Testing Examples
+
+**Complex Scenarios Testing:**
+
+1. **Rapid Key Combination Testing:**
+```javascript
+// Test rapid key presses don't interfere
+function testRapidKeyPresses() {
+    let actions = [];
+    
+    // Simulate rapid Ctrl+N, Ctrl+F sequence
+    const events = [
+        { key: 'n', ctrlKey: true },
+        { key: 'f', ctrlKey: true }
+    ];
+    
+    events.forEach((eventData, index) => {
+        setTimeout(() => {
+            const event = new KeyboardEvent('keydown', {
+                ...eventData,
+                bubbles: true
+            });
+            document.dispatchEvent(event);
+            actions.push(`Event ${index}: ${eventData.key}`);
+        }, index * 50); // 50ms apart
+    });
+    
+    setTimeout(() => {
+        console.log('Rapid key test results:', actions);
+    }, 200);
+}
+```
+
+2. **Context Switching Testing:**
+```javascript
+// Test shortcuts work correctly when switching contexts
+function testContextSwitching() {
+    console.log('Testing context switching...');
+    
+    // Start editing
+    const todoItem = document.querySelector('.todo-item');
+    todoItem.dispatchEvent(new Event('dblclick'));
+    
+    console.log('Editing mode active');
+    
+    // Test Escape (should work in editing context)
+    document.dispatchEvent(new KeyboardEvent('keydown', {
+        key: 'Escape',
+        bubbles: true
+    }));
+    
+    console.log('Escape pressed - should cancel editing');
+    
+    // Test Ctrl+N (should work in global context)
+    setTimeout(() => {
+        document.dispatchEvent(new KeyboardEvent('keydown', {
+            key: 'n',
+            ctrlKey: true,
+            bubbles: true
+        }));
+        console.log('Ctrl+N pressed - should focus input');
+    }, 100);
+}
+```
+
+#### Developer Testing Workflow
+
+**Complete Development Testing Process:**
+
+1. **Pre-Implementation Testing:**
+```bash
+# Before making changes
+npm test > pre_changes.log
+echo "Baseline established"
+```
+
+2. **During Development:**
+```bash
+# Run tests frequently during development
+npm run test:shortcuts
+# Monitor for immediate feedback
+```
+
+3. **Manual Validation:**
+```
+- Open index.html in browser
+- Test each new shortcut manually
+- Verify existing shortcuts still work
+- Test in multiple browsers
+- Test with different keyboard layouts
+```
+
+4. **Performance Validation:**
+```javascript
+// Add to browser console
+console.time('shortcut-response');
+// Press shortcut
+console.timeEnd('shortcut-response');
+// Should be < 10ms for good UX
+```
+
+5. **Post-Implementation Testing:**
+```bash
+# Full test suite
+npm test
+
+# Compare results
+diff pre_changes.log current_results.log
+```
+
+6. **Documentation Testing:**
+```bash
+# Verify all documented shortcuts work
+grep -o "Ctrl+[A-Z]" README.md | while read shortcut; do
+    echo "Testing $shortcut"
+    # Manual verification required
+done
+```
+
+This comprehensive testing approach ensures keyboard shortcuts remain reliable, performant, and user-friendly across all development cycles and deployment environments.
+
 ### Visual Guide and Demonstrations
 
 #### Built-in Help System
