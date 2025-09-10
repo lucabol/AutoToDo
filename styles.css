@@ -22,6 +22,38 @@
         -webkit-backface-visibility: hidden;
         -webkit-perspective: 1000px;
     }
+    
+    /* Safari 14.3+ Dark Mode Enhancements */
+    :root {
+        /* Enhanced color-scheme support for Safari */
+        -webkit-color-scheme: light dark;
+        color-scheme: light dark;
+    }
+    
+    /* Safari-specific dark mode form elements */
+    @media (prefers-color-scheme: dark) {
+        input, button, select, textarea {
+            -webkit-appearance: none;
+            background-color: var(--bg-quaternary);
+            color: var(--text-primary);
+            border-color: var(--border-primary);
+        }
+        
+        /* Safari dark mode scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+            background-color: var(--bg-tertiary);
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background-color: var(--border-hover);
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background-color: var(--text-secondary);
+        }
+    }
 }
 
 /* Virtual scroll container styles */
@@ -76,6 +108,9 @@
 }
 
 :root {
+    /* Safari 14.3+ Dark Mode Support */
+    color-scheme: light dark;
+    
     /* Light theme colors */
     --bg-primary: #f5f5f7;
     --bg-secondary: white;
@@ -115,6 +150,52 @@
     --danger: #ff453a;
     --danger-hover: #ff6961;
     --shadow: rgba(0, 0, 0, 0.3);
+}
+
+/* Safari 14.3+ Automatic Dark Mode Detection */
+@media (prefers-color-scheme: dark) {
+    :root {
+        /* Dark theme colors for automatic system detection */
+        --bg-primary: #1c1c1e;
+        --bg-secondary: #2c2c2e;
+        --bg-tertiary: #3a3a3c;
+        --bg-quaternary: #48484a;
+        --bg-hover: #4a4a4c;
+        --text-primary: #ffffff;
+        --text-secondary: #98989d;
+        --border-primary: #48484a;
+        --border-hover: #6d6d70;
+        --accent-primary: #0a84ff;
+        --accent-hover: #409cff;
+        --success: #32d74b;
+        --warning: #ff9f0a;
+        --warning-hover: #ffb340;
+        --danger: #ff453a;
+        --danger-hover: #ff6961;
+        --shadow: rgba(0, 0, 0, 0.3);
+    }
+}
+
+/* Explicit dark theme class override for manual control */
+.dark-theme {
+    /* Ensure manual dark theme always takes precedence */
+    --bg-primary: #1c1c1e !important;
+    --bg-secondary: #2c2c2e !important;
+    --bg-tertiary: #3a3a3c !important;
+    --bg-quaternary: #48484a !important;
+    --bg-hover: #4a4a4c !important;
+    --text-primary: #ffffff !important;
+    --text-secondary: #98989d !important;
+    --border-primary: #48484a !important;
+    --border-hover: #6d6d70 !important;
+    --accent-primary: #0a84ff !important;
+    --accent-hover: #409cff !important;
+    --success: #32d74b !important;
+    --warning: #ff9f0a !important;
+    --warning-hover: #ffb340 !important;
+    --danger: #ff453a !important;
+    --danger-hover: #ff6961 !important;
+    --shadow: rgba(0, 0, 0, 0.3) !important;
 }
 
 body {
