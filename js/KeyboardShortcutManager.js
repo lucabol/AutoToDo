@@ -10,6 +10,23 @@
  * - ShortcutStatistics: Tracks usage statistics
  * - DebugLogger: Handles debugging and logging
  */
+
+// Constants
+const DEFAULT_CONFIG = {
+    MAX_SHORTCUTS_PER_CONTEXT: 50,
+    MAX_ERRORS_PER_SHORTCUT: 10,
+    PERFORMANCE_LOG_THRESHOLD: 10 // ms
+};
+
+const SYSTEM_SHORTCUTS = [
+    'F5', 'F12', 'Tab'
+];
+
+const MODIFIER_KEYS = {
+    CTRL: 'ctrl',
+    ALT: 'alt',
+    SHIFT: 'shift'
+};
 class KeyboardShortcutManager {
     constructor(options = {}) {
         this.shortcuts = new Map();
@@ -26,7 +43,10 @@ class KeyboardShortcutManager {
             debug: options.debug || false,
             enableLogging: options.enableLogging || false,
             validateConflicts: options.validateConflicts !== false, // true by default
-            maxShortcutsPerContext: options.maxShortcutsPerContext || 50,
+            maxShortcutsPerContext: options.maxShortcutsPerContext || DEFAULT_CONFIG.MAX_SHORTCUTS_PER_CONTEXT,
+            maxErrorsPerShortcut: options.maxErrorsPerShortcut || DEFAULT_CONFIG.MAX_ERRORS_PER_SHORTCUT,
+            problematicKeys: options.problematicKeys || SYSTEM_SHORTCUTS,
+            enableCaching: options.enableCaching !== false, // true by default
             enablePriority: options.enablePriority !== false, // Enable priority system by default
             cacheContexts: options.cacheContexts !== false // Enable context caching for performance
         };
@@ -262,6 +282,7 @@ class KeyboardShortcutManager {
     }
 
     /**
+    /**
      * Find the first matching shortcut for the given keyboard event using optimized lookup
      * @param {KeyboardEvent} event - The keyboard event
      * @returns {Object|null} The matching shortcut configuration, or null if no shortcut matches
@@ -347,6 +368,8 @@ class KeyboardShortcutManager {
         );
         
         return this.shortcuts.get(shortcutKey) || null;
+    }
+
     /**
      * Execute a shortcut action with proper error handling
      * @param {Object} shortcut - The shortcut configuration
