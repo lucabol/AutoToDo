@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Safari Private Browsing Integration Test</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; margin: 20px; }
+        .test-section { border: 1px solid #ccc; margin: 10px 0; padding: 15px; border-radius: 8px; }
+        .pass { color: green; }
+        .fail { color: red; }
+        .info { color: blue; }
+        pre { background: #f5f5f5; padding: 10px; border-radius: 5px; }
+        button { padding: 10px 15px; margin: 5px; border: none; border-radius: 5px; cursor: pointer; }
+        .test-btn { background: #007AFF; color: white; }
+        .clear-btn { background: #FF3B30; color: white; }
+    </style>
+</head>
+<body>
+    <h1>Safari 14+ Private Browsing Mode Integration Test</h1>
+    <p class="info">This test verifies that the AutoToDo app works correctly in Safari 14+ private browsing mode.</p>
+    
+    <div class="test-section">
+        <h3>Storage Manager Status</h3>
+        <div id="storage-status"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>Todo Operations Test</h3>
+        <button class="test-btn" onclick="testTodoOperations()">Test Todo CRUD Operations</button>
+        <button class="clear-btn" onclick="clearTestData()">Clear Test Data</button>
+        <div id="todo-test-results"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>Storage Fallback Test</h3>
+        <button class="test-btn" onclick="testStorageFallback()">Test Storage Fallback Chain</button>
+        <div id="fallback-test-results"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>App Integration Test</h3>
+        <button class="test-btn" onclick="testAppIntegration()">Test Full App Integration</button>
+        <div id="app-test-results"></div>
+    </div>
+
+    <!-- Storage Management System (same order as main app) -->
+    <script src="js/StorageDetector.js"></script>
+    <script src="js/StorageFallbackHandler.js"></script>
+    <script src="js/StorageOperations.js"></script>
+    <script src="js/StorageManager.js"></script>
+    
+    <!-- Core app components -->
+    <script src="js/TodoModel.js"></script>
+    <script src="js/TodoView.js"></script>
+    <script src="js/TodoController.js"></script>
+
+    <script>
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            displayStorageStatus();
+        });
+
+        function log(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            const className = type === 'pass' ? 'pass' : type === 'fail' ? 'fail' : 'info';
+            element.innerHTML += `<p class="${className}">${message}</p>`;
+            console.log(message);
+        }
+
+        function displayStorageStatus() {
+            const statusElement = document.getElementById('storage-status');
+            
+            try {
+                if (!window.storageManager) {
+                    statusElement.innerHTML = '<p class="fail">❌ StorageManager not available</p>';
+                    return;
+                }
+
+                const info = window.storageManager.getStorageInfo();
+                statusElement.innerHTML = `
+                    <p class="pass">✅ StorageManager initialized successfully</p>
+                    <pre>Current Storage Type: ${info.currentType}
+Private Mode Detected: ${info.isPrivateMode}
+localStorage Available: ${info.hasLocalStorage}
+sessionStorage Available: ${info.hasSessionStorage}
+Memory Items: ${info.memoryItems}
+Modules Loaded: ${JSON.stringify(info.modulesLoaded, null, 2)}</pre>
+                `;
+            } catch (error) {
+                statusElement.innerHTML = `<p class="fail">❌ Error getting storage status: ${error.message}</p>`;
+            }
+        }
+
+        function testTodoOperations() {
+            const resultsElement = document.getElementById('todo-test-results');
+            resultsElement.innerHTML = '<p class="info">🧪 Testing Todo operations...</p>';
+
+            try {
+                // Test basic storage operations
+                window.storageManager.setItem('test-todo', JSON.stringify([
+                    { id: '1', text: 'Test Todo 1', completed: false },
+                    { id: '2', text: 'Test Todo 2', completed: true }
+                ]));
+
+                const saved = window.storageManager.getItem('test-todo');
+                const todos = JSON.parse(saved);
+
+                if (todos && todos.length === 2) {
+                    log('todo-test-results', '✅ Basic storage operations work', 'pass');
+                } else {
+                    log('todo-test-results', '❌ Storage operations failed', 'fail');
+                    return;
+                }
+
+                // Test TodoModel integration
+                const model = new TodoModel(window.storageManager);
+                model.addTodo('Safari Private Test Todo');
+                
+                if (model.todos.length > 0) {
+                    log('todo-test-results', '✅ TodoModel integration works', 'pass');
+                } else {
+                    log('todo-test-results', '❌ TodoModel integration failed', 'fail');
+                }
+
+                log('todo-test-results', `📊 Current todos count: ${model.todos.length}`, 'info');
+
+            } catch (error) {
+                log('todo-test-results', `❌ Error testing todo operations: ${error.message}`, 'fail');
+            }
+        }
+
+        function testStorageFallback() {
+            const resultsElement = document.getElementById('fallback-test-results');
+            resultsElement.innerHTML = '<p class="info">🧪 Testing storage fallback chain...</p>';
+
+            try {
+                // Test that storage manager handles different scenarios
+                const testData = {
+                    small: 'small data',
+                    medium: 'x'.repeat(1000),
+                    large: 'x'.repeat(10000)
+                };
+
+                let passCount = 0;
+                let totalTests = 0;
+
+                for (const [key, data] of Object.entries(testData)) {
+                    totalTests++;
+                    try {
+                        const testKey = `fallback-test-${key}`;
+                        const success = window.storageManager.setItem(testKey, data);
+                        const retrieved = window.storageManager.getItem(testKey);
+                        
+                        if (retrieved === data) {
+                            log('fallback-test-results', `✅ ${key} data test passed`, 'pass');
+                            passCount++;
+                        } else {
+                            log('fallback-test-results', `❌ ${key} data test failed - data mismatch`, 'fail');
+                        }
+                    } catch (error) {
+                        log('fallback-test-results', `❌ ${key} data test failed: ${error.message}`, 'fail');
+                    }
+                }
+
+                log('fallback-test-results', `📊 Fallback tests: ${passCount}/${totalTests} passed`, 'info');
+
+                // Test storage info
+                const info = window.storageManager.getStorageInfo();
+                log('fallback-test-results', `📊 Using storage type: ${info.currentType}`, 'info');
+
+            } catch (error) {
+                log('fallback-test-results', `❌ Error testing storage fallback: ${error.message}`, 'fail');
+            }
+        }
+
+        function testAppIntegration() {
+            const resultsElement = document.getElementById('app-test-results');
+            resultsElement.innerHTML = '<p class="info">🧪 Testing full app integration...</p>';
+
+            try {
+                // Simulate the app initialization sequence
+                const model = new TodoModel(window.storageManager);
+                const view = new TodoView();
+                
+                // Add some test todos
+                model.addTodo('Integration Test Todo 1');
+                model.addTodo('Integration Test Todo 2');
+                
+                log('app-test-results', '✅ Model and View initialization works', 'pass');
+                log('app-test-results', `📊 Todos created: ${model.todos.length}`, 'info');
+
+                // Test persistence
+                const savedTodos = window.storageManager.getItem('todos');
+                if (savedTodos) {
+                    const parsed = JSON.parse(savedTodos);
+                    log('app-test-results', `✅ Persistence works - ${parsed.length} todos saved`, 'pass');
+                } else {
+                    log('app-test-results', '❌ Persistence failed - no todos found in storage', 'fail');
+                }
+
+                // Test storage info display
+                const info = window.storageManager.getStorageInfo();
+                log('app-test-results', `📊 Final storage type: ${info.currentType}`, 'info');
+                log('app-test-results', '✅ All app integration tests completed', 'pass');
+
+            } catch (error) {
+                log('app-test-results', `❌ Error in app integration test: ${error.message}`, 'fail');
+            }
+        }
+
+        function clearTestData() {
+            try {
+                // Clear test data
+                ['test-todo', 'todos', 'fallback-test-small', 'fallback-test-medium', 'fallback-test-large'].forEach(key => {
+                    window.storageManager.removeItem(key);
+                });
+                
+                // Clear results
+                ['todo-test-results', 'fallback-test-results', 'app-test-results'].forEach(id => {
+                    document.getElementById(id).innerHTML = '<p class="info">Test data cleared</p>';
+                });
+                
+                // Refresh storage status
+                displayStorageStatus();
+                
+            } catch (error) {
+                alert('Error clearing test data: ' + error.message);
+            }
+        }
+    </script>
+</body>
+</html>

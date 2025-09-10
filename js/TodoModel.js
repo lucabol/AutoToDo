@@ -2,24 +2,43 @@
  * TodoModel - Handles data management and persistence for todos
  */
 class TodoModel {
-    constructor() {
+    constructor(storageManager = window.storageManager) {
+        this.storage = storageManager;
         this.todos = this.loadTodos();
     }
 
     /**
-     * Load todos from localStorage
+     * Load todos from storage with fallback support
      * @returns {Array} Array of todo objects
      */
     loadTodos() {
-        const saved = localStorage.getItem('todos');
-        return saved ? JSON.parse(saved) : [];
+        try {
+            const saved = this.storage.getItem('todos');
+            return saved ? JSON.parse(saved) : [];
+        } catch (e) {
+            console.warn('Failed to load todos from storage:', e);
+            return [];
+        }
     }
 
     /**
-     * Save todos to localStorage
+     * Save todos to storage with fallback support
      */
     saveTodos() {
-        localStorage.setItem('todos', JSON.stringify(this.todos));
+        try {
+            const success = this.storage.setItem('todos', JSON.stringify(this.todos));
+            if (!success && this.storage.getStorageType() === 'memory') {
+                // Show a warning only once when localStorage first fails
+                if (!this._memoryWarningShown) {
+                    console.warn('Todos are being stored in memory only and will not persist between sessions.');
+                    this._memoryWarningShown = true;
+                }
+            }
+            return success;
+        } catch (error) {
+            console.error('Failed to save todos to storage:', error);
+            return false;
+        }
     }
 
     /**
@@ -154,7 +173,7 @@ class TodoModel {
     }
 
     /**
-     * Filter todos by search term
+     * Filter todos by search term with enhanced matching
      * @param {string} searchTerm - Term to search for in todo text
      * @returns {Array} Array of filtered todos
      */
@@ -163,10 +182,22 @@ class TodoModel {
             return this.getAllTodos();
         }
         
-        const term = searchTerm.toLowerCase().trim();
-        return this.todos.filter(todo => 
-            todo.text.toLowerCase().includes(term)
-        );
+        // Normalize the search term: trim and collapse multiple spaces
+        const normalizedTerm = searchTerm.toLowerCase().trim().replace(/\s+/g, ' ');
+        
+        return this.todos.filter(todo => {
+            const todoText = todo.text.toLowerCase();
+            
+            // If the search term contains multiple words, check if all words are present
+            const searchWords = normalizedTerm.split(' ');
+            if (searchWords.length > 1) {
+                // All words must be present in the todo text
+                return searchWords.every(word => todoText.includes(word));
+            }
+            
+            // Single word or phrase search - use original substring matching
+            return todoText.includes(normalizedTerm);
+        });
     }
 
     /**
