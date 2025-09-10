@@ -153,7 +153,32 @@ class KeyboardShortcutManager {
      * @param {KeyboardEvent} event - The keyboard event
      */
     handleKeyboard(event) {
+        // Validate event object
+        if (!event || typeof event !== 'object') {
+            if (this.options.debug) {
+                console.warn('KeyboardShortcutManager: Invalid event object received');
+            }
+            return false;
+        }
+        
         const startTime = this.options.debug ? performance.now() : 0;
+        
+        // Add defensive check for event properties
+        const key = event.key || '';
+        const ctrlKey = Boolean(event.ctrlKey);
+        const altKey = Boolean(event.altKey);
+        const shiftKey = Boolean(event.shiftKey);
+        
+        // Log key combination for debugging if enabled
+        if (this.options.debug) {
+            console.log('KeyboardShortcutManager: Processing key event', {
+                key,
+                ctrlKey,
+                altKey,
+                shiftKey,
+                target: event.target?.tagName || 'unknown'
+            });
+        }
         
         const matchingShortcut = this.findMatchingShortcut(event);
         
@@ -163,7 +188,7 @@ class KeyboardShortcutManager {
             if (this.options.debug) {
                 const endTime = performance.now();
                 const shortcutKey = this.generateShortcutKey(
-                    event.key, event.ctrlKey, event.altKey, event.shiftKey, matchingShortcut.context
+                    key, ctrlKey, altKey, shiftKey, matchingShortcut.context
                 );
                 console.log(`Shortcut ${shortcutKey} executed in ${endTime - startTime}ms`);
             }
