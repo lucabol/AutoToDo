@@ -152,6 +152,84 @@ Your todos are automatically saved in your browser's local storage. Data persist
 - Check "Develop" menu for JavaScript errors
 - localStorage restrictions are common in private browsing
 
+**For Safari 14+ (Specific Issues and Solutions):**
+
+Safari 14 and later versions include enhanced privacy features and stricter security policies that can affect web applications like AutoToDo. Here are common issues and their solutions:
+
+*localStorage and Data Persistence Issues:*
+- **Intelligent Tracking Prevention (ITP) clears data:** Safari 14+ may automatically clear localStorage after 7 days of inactivity
+  - Solution: Regularly use the app to prevent automatic data clearing
+  - Workaround: Export/backup your todos periodically (copy from browser console: `JSON.stringify(localStorage.getItem('todos'))`)
+  - Consider adding AutoToDo to your Home Screen (iOS) for app-like persistence
+
+- **Private browsing severely limits storage:** 
+  - Solution: Use regular browsing mode for persistent todo storage
+  - Alternative: Keep Safari window open to maintain session storage during private browsing
+
+- **Cross-site tracking settings interfere with localStorage:**
+  - Go to Safari Preferences → Privacy → Uncheck "Prevent cross-site tracking" if you experience data loss
+  - Or: Safari Settings → Privacy & Security → Allow "Website tracking" for better localStorage reliability
+
+*CSS Rendering and Layout Issues:*
+- **Flexbox gap property not supported (Safari 14.0):**
+  - Issue: Todo items may appear too close together
+  - Auto-fixed: The app uses margin-based spacing as fallback
+  - Update to Safari 14.1+ for full flexbox gap support
+
+- **CSS Grid behavior differences:**
+  - Some grid layouts may render slightly differently than other browsers
+  - The app includes Safari-specific CSS adjustments
+  - If layout appears broken, try zooming in/out (Cmd +/-) to force re-render
+
+- **Dark mode CSS variable issues:**
+  - Theme switching may not work smoothly on Safari 14.0-14.2
+  - Solution: Update to Safari 14.3+ for improved CSS custom properties support
+  - Workaround: Refresh the page after switching themes if colors don't update
+
+*JavaScript and Performance Issues:*
+- **Crypto.randomUUID() not available (Safari 14.0-14.5):**
+  - The app automatically falls back to alternative ID generation methods
+  - No action required - this is handled transparently
+
+- **Performance with large todo lists:**
+  - Safari 14+ may be slower with 500+ todos due to enhanced memory management
+  - Solution: Use search functionality to filter large lists
+  - Consider archiving completed todos by exporting them and starting fresh
+
+*Mobile Safari (iOS 14+) Specific Issues:*
+- **Viewport scaling problems:**
+  - Add AutoToDo to Home Screen for better mobile experience (Share → Add to Home Screen)
+  - This provides app-like viewport handling and persistent storage
+
+- **Touch interaction delays:**
+  - Enable "Fast clicking" by ensuring JavaScript is enabled
+  - Disable "Reduce Motion" in iOS Accessibility settings if animations feel sluggish
+
+- **Keyboard shortcuts not working:**
+  - External keyboard shortcuts work better with AutoToDo added to Home Screen
+  - Some shortcuts may conflict with iOS system shortcuts
+
+*Troubleshooting Steps for Safari 14+:*
+1. **First, try these quick fixes:**
+   - Update Safari to the latest version (Safari → About Safari)
+   - Clear browser cache and cookies for the AutoToDo domain
+   - Disable browser extensions temporarily to rule out conflicts
+
+2. **For localStorage issues:**
+   - Check Storage settings: Safari Preferences → Websites → Local Storage → Allow for this website
+   - Verify you're not in Private Browsing mode (file:// or domain should show normal, not dark address bar)
+   - Test with a local server (http://localhost) instead of file:// protocol
+
+3. **For layout/rendering issues:**
+   - Try force-refresh with Cmd+Shift+R (macOS) or Ctrl+Shift+R
+   - Check zoom level is at 100% (View → Actual Size or Cmd+0)
+   - Enable "Show Develop menu" and use "Disable Caches" while testing
+
+4. **If problems persist:**
+   - Use Safari's Web Inspector (Develop → Show Web Inspector) to check Console for errors
+   - Compare behavior with Chrome/Firefox to confirm if it's Safari-specific
+   - Consider using Chrome or Firefox as alternatives if Safari issues can't be resolved
+
 #### Getting Help
 If you continue experiencing issues:
 1. Check the browser console (F12 → Console tab) for error messages
